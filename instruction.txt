@@ -1,0 +1,529 @@
+# 여행 일정 관리 시스템 개발 프로젝트 - SuperClaude Framework 프롬프트
+
+## 🎯 프로젝트 개요
+어행 상세 일정 관리 서비스 개발
+
+---
+
+## 📋 1. 요구사항 분석 및 유저스토리 작성
+
+### SuperClaude 프롬프트:
+```
+/sc:analyze --persona architect --think --strategy user-centered --output detailed
+
+다음 유저스토리를 작성해주세요:
+
+**목표**: 여행 상세 일정 생성 서비스
+
+**유저스토리 형식**:
+- Epic > Feature > User Story > Acceptance Criteria
+- 각 스토리에 우선순위, 복잡도, 예상 작업시간 포함
+- 유저스토리 결과를 'userstory.md'로 작성
+- 한국어로 작성
+
+**필수 기능**:
+- 여행 멤버 관리
+- 큰 여행 일정 관리: 날짜, 출발지(국가,도시), 도착지(국가, 도시), 숙소, 선호 관광지
+- 각 날짜의 시간별 상세 일정 CRUD: 날짜 입력 시 큰 여행 일정 참조하여 시간대별 상세 일정 작성. 여행 멤버 선호, 연령, 건강상태 고려.
+- 실시간 위치 기반 서비스: 국내는 카카오 MCP, 해외는 구글맵 MCP 이용
+- 응급상황 대응 체계
+- 사진/메모 첨부 기능
+```
+
+---
+
+## 🎨 2. UI/UX 설계 (Wireframe)
+
+### SuperClaude 프롬프트:
+```
+/sc:design travel-schedule-app --type mobile-web --persona frontend --uc --magic
+
+📱 다음 화면들의 SVG Wireframe을 생성해주세요:
+
+**주요 화면**:
+1. **대시보드**: 오늘 일정 + 날씨 + 응급연락처
+2. **상세 일정**: 시간대별 스케줄 + 지도 연동
+3. **가족 현황**: 각 구성원별 상태 + 위치
+4. **응급 도구**: 병원/약국 찾기 + 통역 서비스
+5. **사진 갤러리**: 날짜별 여행 기록
+
+**시니어 친화적 설계**:
+- 큰 글씨 (최소 16px)
+- 고대비 색상 조합
+- 터치 영역 최소 44px
+- 간단한 네비게이션 구조
+- 음성 안내 지원
+
+**SVG 요구사항**:
+- 반응형 레이아웃 (320px~1024px)
+- 컴포넌트별 분리된 wireframe
+- 사용자 플로우 다이어그램 포함
+
+--framework react --accessibility wcag-aa --device mobile-first
+```
+
+---
+
+## 🏗️ 3. 백엔드 아키텍처 설계
+
+### SuperClaude 프롬프트:
+```
+/sc:design backend-architecture --persona architect --think-hard --sequential --c7
+
+🏗️ 다음 아키텍처를 PlantUML로 설계해주세요:
+
+**1. 논리 아키텍처 (Logical Architecture)**
+```plantuml
+@startuml TravelManagementLogicalArchitecture
+!define RECTANGLE class
+
+RECTANGLE "Presentation Layer" {
+  [React Web App]
+  [Mobile PWA]
+  [Admin Dashboard]
+}
+
+RECTANGLE "Application Layer" {
+  [Schedule Service]
+  [Location Service]
+  [Notification Service]
+  [User Management Service]
+}
+
+RECTANGLE "Domain Layer" {
+  [Schedule Domain]
+  [User Domain]
+  [Location Domain]
+  [Emergency Domain]
+}
+
+RECTANGLE "Infrastructure Layer" {
+  [PostgreSQL]
+  [Redis Cache]
+  [Google Maps API]
+  [Push Notification]
+}
+
+[React Web App] --> [Schedule Service]
+[Schedule Service] --> [Schedule Domain]
+[Schedule Domain] --> [PostgreSQL]
+
+@enduml
+```
+
+**2. API 설계서**
+- RESTful API 엔드포인트 정의
+- GraphQL 스키마 (복잡한 쿼리용)
+- OpenAPI 3.0 스펙 문서
+- Rate Limiting 전략
+
+**3. 시퀀스 다이어그램**
+- 일정 생성/수정/조회 플로우
+- 실시간 위치 공유 플로우
+- 응급상황 알림 플로우
+
+**4. 클래스 다이어그램**
+- Domain Model (DDD 패턴)
+- Aggregate Root 정의
+- Value Objects 설계
+
+**5. 데이터 설계서**
+- ERD (Entity Relationship Diagram)
+- 인덱싱 전략
+- 파티셔닝 계획
+
+**기술 스택**:
+- Spring Boot 3.2+
+- Java 21 (Virtual Threads)
+- PostgreSQL 16
+- Redis 7
+- Docker & Kubernetes
+
+--pattern clean-architecture --pattern event-driven --framework spring-boot
+```
+
+---
+
+## 🎨 4. 프론트엔드 설계
+
+### SuperClaude 프롬프트:
+```
+/sc:design frontend-architecture --persona frontend --uc --magic --c7
+
+⚛️ React 기반 프론트엔드 아키텍처를 설계해주세요:
+
+**1. 컴포넌트 설계**
+```
+src/
+├── components/
+│   ├── common/          # 공통 컴포넌트
+│   │   ├── Header/
+│   │   ├── Navigation/
+│   │   └── Loading/
+│   ├── schedule/        # 일정 관련
+│   │   ├── ScheduleCard/
+│   │   ├── TimelineView/
+│   │   └── ScheduleForm/
+│   ├── location/        # 위치 관련
+│   │   ├── MapView/
+│   │   ├── LocationCard/
+│   │   └── DirectionsView/
+│   └── emergency/       # 응급 도구
+│       ├── EmergencyButton/
+│       ├── HospitalFinder/
+│       └── TranslationTool/
+```
+
+**2. 상태 관리 설계**
+- Redux Toolkit (복잡한 상태)
+- React Query (서버 상태)
+- Context API (전역 설정)
+
+**3. 라우팅 구조**
+- React Router v6
+- 중첩 라우팅
+- 보호된 라우트
+- 딥링킹 지원
+
+**4. PWA 기능**
+- Service Worker
+- 오프라인 지원
+- 캐싱 전략
+- Push Notification
+
+**기술 스택**:
+- React 18 (Concurrent Features)
+- TypeScript
+- Vite (빌드 도구)
+- Tailwind CSS
+- React Query
+- Redux Toolkit
+
+--pattern atomic-design --pattern container-presenter --accessibility wcag-aa
+```
+
+---
+
+## 🗄️ 5. 백킹 서비스 배포
+
+### SuperClaude 프롬프트:
+```
+/sc:build infrastructure --persona backend --think --output yaml
+
+🐳 다음 백킹 서비스들의 Kubernetes Manifest를 생성해주세요:
+
+**1. PostgreSQL 클러스터**
+- Master-Replica 구성
+- PVC (Persistent Volume Claims)
+- ConfigMap (설정 관리)
+- Secret (인증 정보)
+
+**2. Redis 클러스터**
+- Sentinel 구성 (고가용성)
+- 메모리 최적화
+- 백업 전략
+
+**3. Message Broker (Apache Kafka)**
+- 3-node 클러스터
+- Zookeeper 설정
+- 토픽 구성 (schedule-events, location-updates)
+
+**파일 구조**:
+```
+k8s/
+├── namespaces/
+├── databases/
+│   ├── postgresql/
+│   └── redis/
+├── messaging/
+│   └── kafka/
+├── monitoring/
+│   ├── prometheus/
+│   └── grafana/
+└── ingress/
+    └── nginx-ingress/
+```
+
+--strategy cloud-native --environment production
+```
+
+---
+
+## 💻 6. 백엔드 개발
+
+### SuperClaude 프롬프트:
+```
+/sc:implement backend-services --persona backend --think-hard --sequential --c7
+
+☕ Spring Boot 기반 백엔드 서비스를 구현해주세요:
+
+**1. 프로젝트 구조 (Clean Architecture)**
+```
+src/main/java/com/travelteam/scheduler/
+├── application/
+│   ├── port/in/         # Use Cases
+│   ├── port/out/        # Gateway Interfaces
+│   └── service/         # Application Services
+├── domain/
+│   ├── model/           # Domain Entities
+│   ├── repository/      # Repository Interfaces
+│   └── event/           # Domain Events
+├── infrastructure/
+│   ├── persistence/     # JPA Repositories
+│   ├── messaging/       # Kafka Producers/Consumers
+│   ├── external/        # External API Clients
+│   └── configuration/   # Spring Configuration
+└── web/
+    ├── controller/      # REST Controllers
+    ├── dto/             # Data Transfer Objects
+    └── exception/       # Exception Handlers
+```
+
+**2. 핵심 서비스 구현**
+- ScheduleManagementService
+- LocationTrackingService
+- EmergencyNotificationService
+- UserManagementService
+
+**3. Event-Driven Architecture**
+- Domain Events 발행
+- Event Handlers 구현
+- Saga Pattern (복잡한 비즈니스 플로우)
+
+**4. 외부 API 연동**
+- Google Maps API
+- 날씨 API
+- 번역 API
+
+**요구사항**:
+- Spring Boot 3.2+
+- Java 21 (Virtual Threads 활용)
+- JPA/Hibernate
+- Spring Security (JWT)
+- Spring Cloud Gateway
+- Testcontainers (통합 테스트)
+
+--pattern clean-architecture --pattern event-driven --testing comprehensive
+```
+
+---
+
+## ⚛️ 7. 프론트엔드 개발
+
+### SuperClaude 프롬프트:
+```
+/sc:implement frontend-app --persona frontend --uc --magic --c7
+
+⚛️ React 기반 프론트엔드 애플리케이션을 구현해주세요:
+
+**1. 핵심 컴포넌트 구현**
+```
+src/
+├── components/
+│   ├── Dashboard/
+│   │   ├── TodaySchedule.tsx
+│   │   ├── WeatherWidget.tsx
+│   │   └── QuickActions.tsx
+│   ├── Schedule/
+│   │   ├── ScheduleTimeline.tsx
+│   │   ├── ScheduleDetail.tsx
+│   │   └── ScheduleForm.tsx
+│   └── Map/
+│       ├── InteractiveMap.tsx
+│       ├── LocationMarker.tsx
+│       └── RouteDisplay.tsx
+```
+
+**2. 상태 관리 구현**
+- Redux Store 설정
+- API Slice (RTK Query)
+- 실시간 업데이트 (WebSocket)
+
+**3. PWA 기능**
+- Workbox (Service Worker)
+- 오프라인 페이지
+- 백그라운드 동기화
+
+**4. 접근성 구현**
+- ARIA 레이블
+- 키보드 네비게이션
+- 스크린 리더 지원
+- 고대비 모드
+
+**기술 요구사항**:
+- TypeScript 5+
+- React 18 (Concurrent Features)
+- Material-UI v5 (시니어 친화적 디자인)
+- React Query (서버 상태)
+- React Router v6
+- Framer Motion (애니메이션)
+
+--framework react --pattern atomic-design --accessibility wcag-aa --mobile-first
+```
+
+---
+
+## 🧪 8. 테스트 코드 작성
+
+### SuperClaude 프롬프트:
+```
+/sc:test comprehensive --think-hard --sequential
+
+🧪 포괄적인 테스트 전략을 구현해주세요:
+
+**1. 백엔드 테스트**
+```
+src/test/java/
+├── unit/                # 단위 테스트
+│   ├── domain/          # Domain Logic 테스트
+│   ├── service/         # Service Layer 테스트
+│   └── controller/      # Controller 테스트
+├── integration/         # 통합 테스트
+│   ├── repository/      # Repository 테스트
+│   ├── messaging/       # Kafka 테스트
+│   └── external/        # External API 테스트
+└── e2e/                # End-to-End 테스트
+    └── api/             # API 시나리오 테스트
+```
+
+**2. 프론트엔드 테스트**
+```
+src/__tests__/
+├── components/          # 컴포넌트 테스트
+├── hooks/               # Custom Hook 테스트
+├── services/            # API 서비스 테스트
+├── utils/               # Utility 함수 테스트
+└── e2e/                 # Playwright E2E 테스트
+```
+
+**3. 테스트 도구**
+- **Backend**: JUnit 5, Mockito, Testcontainers, WireMock
+- **Frontend**: Jest, Testing Library, MSW, Playwright
+- **API**: Postman/Newman, K6 (성능 테스트)
+
+**4. 테스트 커버리지 목표**
+- 단위 테스트: 80% 이상
+- 통합 테스트: 주요 플로우 100%
+- E2E 테스트: 핵심 사용자 시나리오
+
+**5. CI/CD 통합**
+- GitHub Actions 워크플로우
+- 병렬 테스트 실행
+- 테스트 결과 리포팅
+
+--strategy tdd --coverage 80 --tools junit-jest-playwright
+```
+
+---
+
+## 🚀 9. 배포 및 DevOps
+
+### SuperClaude 프롬프트:
+```
+/sc:build deployment-pipeline --persona backend --think --output yaml
+
+🚀 완전한 CI/CD 파이프라인을 구축해주세요:
+
+**1. Container Image 빌드**
+```
+docker/
+├── backend/
+│   ├── Dockerfile
+│   └── .dockerignore
+├── frontend/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   └── .dockerignore
+└── compose/
+    ├── docker-compose.dev.yml
+    └── docker-compose.prod.yml
+```
+
+**2. Kubernetes Manifests**
+```
+k8s/
+├── base/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── configmap.yaml
+│   └── secret.yaml
+├── overlays/
+│   ├── development/
+│   ├── staging/
+│   └── production/
+└── monitoring/
+    ├── prometheus.yaml
+    └── grafana.yaml
+```
+
+**3. GitHub Actions 워크플로우**
+```
+.github/workflows/
+├── ci.yml              # 테스트 및 빌드
+├── cd-staging.yml      # 스테이징 배포
+├── cd-production.yml   # 프로덕션 배포
+└── security-scan.yml   # 보안 스캔
+```
+
+**4. 모니터링 및 로깅**
+- Prometheus + Grafana (메트릭)
+- ELK Stack (로그 분석)
+- Jaeger (분산 트레이싱)
+- Sentry (에러 트래킹)
+
+**5. 인프라 구성**
+- AWS EKS 또는 GKE
+- Load Balancer (ALB/GLB)
+- CDN (CloudFront/Cloud CDN)
+- SSL/TLS 인증서 (Let's Encrypt)
+
+**배포 전략**:
+- Blue-Green Deployment
+- Rolling Updates
+- Feature Flags
+- Canary Releases
+
+--strategy gitops --cloud aws --monitoring comprehensive
+```
+
+---
+
+## 🎯 프로젝트 실행 순서
+
+### 전체 프로젝트 오케스트레이션:
+```
+/sc:workflow travel-system-development --strategy comprehensive --output roadmap --personas all --dependencies --risks
+
+📋 15일간 유럽 여행을 위한 일정 관리 시스템을 단계별로 구축하는 로드맵을 생성해주세요:
+
+**Phase 1**: 요구사항 분석 및 설계 (1주)
+**Phase 2**: 백엔드 개발 (2주)
+**Phase 3**: 프론트엔드 개발 (2주)
+**Phase 4**: 통합 테스트 및 배포 (1주)
+**Phase 5**: 여행 전 최종 점검 (3일)
+
+각 단계별 상세 작업 항목과 예상 소요시간을 포함해주세요.
+```
+
+---
+
+## ⚡ 고급 기능 통합
+
+### SuperClaude 고급 기능 활용:
+```bash
+# 복합적인 분석 및 구현
+/sc:analyze --ultrathink --sequential --c7 @entire-project/
+
+# 성능 최적화
+/sc:improve --performance --think-hard --output recommendations
+
+# 보안 검토
+/sc:analyze --security --risks --output comprehensive
+
+# 문서화 자동 생성
+/sc:document --api --architecture --deployment
+```
+
+---
+
+이 프롬프트를 단계별로 실행하면 여행 일정 관리 시스템의 완전한 개발 프로세스를 SuperClaude Framework를 통해 체계적으로 진행할 수 있습니다. 각 단계에서 적절한 페르소나와 MCP 서버가 자동으로 활성화되어 전문적인 지원을 제공할 것입니다.
