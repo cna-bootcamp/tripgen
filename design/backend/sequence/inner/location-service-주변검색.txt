@@ -1,0 +1,232 @@
+@startuml
+!theme mono
+
+title 장소 서비스 - 주변 장소 검색 내부 시퀀스
+
+participant "Client" as Client
+participant "API Gateway" as Gateway
+participant "LocationController" as Controller
+participant "LocationService" as Service
+participant "CacheManager" as Cache
+participant "CircuitBreakerManager" as CircuitBreaker
+participant "MCPProviderSelector" as Selector
+participant "MCPAdapter" as Adapter
+participant "KakaoMCP" as KakaoMCP
+participant "GoogleMCP" as GoogleMCP
+participant "Redis" as Redis
+
+== 1. 요청 접수 및 초기 검증 ==
+
+Client -> Gateway: GET /places/search/nearby\n?latitude=37.5665&longitude=126.9780\n&radius=1000&categories=restaurant
+
+Gateway -> Controller: searchNearbyPlaces()
+note right of Controller
+  요청 파라미터:
+  - latitude: 37.5665
+  - longitude: 126.9780  
+  - radius: 1000
+  - categories: restaurant
+  - transport_mode: walking
+  - sort_by: distance
+end note
+
+Controller -> Controller: validateInput()
+note right of Controller
+  입력 검증:
+  - 위도/경도 범위 (-90~90, -180~180)
+  - 반경 범위 (100~50000m)
+  - 카테고리 유효성 검사
+end note
+
+alt 입력 검증 실패
+    Controller -> Gateway: 400 Bad Request
+    Gateway -> Client: Error Response
+    return
+end
+
+== 2. 캐시 조회 (Cache-aside Pattern) ==
+
+Controller -> Service: searchNearbyPlaces(request)
+
+Service -> Cache: generateCacheKey(lat, lng, radius, categories)
+note right of Cache
+  캐시 키 생성:
+  location:nearby:{lat}:{lng}:{radius}:{categories}
+  예: location:nearby:37.5665:126.9780:1000:restaurant
+end note
+
+Cache -> Redis: GET location:nearby:37.5665:126.9780:1000:restaurant
+
+alt 캐시 히트 (Cache Hit)
+    Redis -> Cache: 캐시된 검색 결과
+    Cache -> Service: PlaceSearchResponse (cached)
+    Service -> Controller: 성공 응답 (from cache)
+    
+    note right of Service
+      캐시에서 조회 성공
+      - TTL 확인 (3600초)
+      - 데이터 신선도 검증
+    end note
+    
+    Controller -> Gateway: 200 OK (cached)
+    Gateway -> Client: PlaceSearchResponse
+    return
+end
+
+== 3. 캐시 미스 시 외부 API 호출 ==
+
+Redis -> Cache: null (캐시 미스)
+Cache -> Service: 캐시 데이터 없음
+
+Service -> Selector: selectProvider(latitude, longitude)
+note right of Selector
+  MCP 제공자 선택 로직:
+  - 위도/경도로 국가 판단
+  - 국내(KR): Kakao MCP
+  - 해외: Google MCP
+  
+  37.5665, 126.9780 → 한국 → Kakao MCP
+end note
+
+Selector -> Service: KakaoMCP 선택
+
+== 4. Circuit Breaker 상태 확인 ==
+
+Service -> CircuitBreaker: checkCircuitState("kakao")
+
+alt Circuit Breaker OPEN (장애 상태)
+    CircuitBreaker -> Service: OPEN 상태
+    
+    note right of CircuitBreaker
+      회로 차단기 OPEN:
+      - 연속 실패 임계치 초과
+      - 대안 서비스로 전환 시도
+    end note
+    
+    Service -> Selector: getFallbackProvider()
+    Selector -> Service: GoogleMCP (fallback)
+    
+    Service -> CircuitBreaker: checkCircuitState("google")
+    CircuitBreaker -> Service: CLOSED 상태
+    
+else Circuit Breaker CLOSED (정상 상태)
+    CircuitBreaker -> Service: CLOSED 상태
+end
+
+== 5. 외부 MCP API 호출 ==
+
+Service -> Adapter: searchNearby(provider, request)
+note right of Adapter
+  MCP 어댑터 역할:
+  - 프로바이더별 API 스펙 변환
+  - 공통 응답 포맷으로 변환
+  - 오류 핸들링 및 재시도
+end note
+
+Adapter -> KakaoMCP: 카카오 로컬 API 호출
+note right of KakaoMCP
+  카카오 로컬 API:
+  - 키워드: 맛집
+  - x, y: 126.9780, 37.5665
+  - radius: 1000
+  - category_group_code: FD6
+end note
+
+alt MCP API 호출 성공
+    KakaoMCP -> Adapter: 장소 검색 결과
+    
+    Adapter -> Adapter: transformResponse()
+    note right of Adapter
+      응답 변환:
+      - 카카오 → 표준 PlaceSummary 포맷
+      - 거리 계산 및 정렬
+      - 이동 시간 계산 (transport_mode 기준)
+    end note
+    
+    Adapter -> Service: PlaceSearchResponse
+    
+    Service -> CircuitBreaker: recordSuccess("kakao")
+    note right of CircuitBreaker
+      성공 기록:
+      - 연속 실패 카운트 리셋
+      - Circuit 상태 유지/개선
+    end note
+
+else MCP API 호출 실패
+    KakaoMCP -> Adapter: API 오류 (timeout/error)
+    
+    Adapter -> Service: MCPException
+    
+    Service -> CircuitBreaker: recordFailure("kakao")
+    note right of CircuitBreaker
+      실패 기록:
+      - 연속 실패 카운트 증가
+      - 임계치 도달 시 OPEN 상태로 전환
+    end note
+    
+    alt 재시도 가능한 오류
+        Service -> Adapter: retryWithBackoff()
+        Adapter -> KakaoMCP: 재시도 호출
+        
+        alt 재시도 성공
+            KakaoMCP -> Adapter: 성공 응답
+            Adapter -> Service: PlaceSearchResponse
+        else 재시도 실패  
+            Service -> Selector: getFallbackProvider()
+            Selector -> Service: GoogleMCP
+            Service -> Adapter: searchNearby(GoogleMCP, request)
+            Adapter -> GoogleMCP: Google Places API 호출
+            GoogleMCP -> Adapter: 장소 검색 결과
+            Adapter -> Service: PlaceSearchResponse (fallback)
+        end
+    else 재시도 불가능한 오류
+        Service -> Controller: ServiceException
+        Controller -> Gateway: 503 Service Unavailable
+        Gateway -> Client: Error Response
+        return
+    end
+end
+
+== 6. 응답 캐싱 및 반환 ==
+
+Service -> Cache: cacheSearchResult(key, response, ttl)
+note right of Cache
+  캐시 저장 (Cache-aside Write):
+  - key: location:nearby:37.5665:126.9780:1000:restaurant
+  - TTL: 3600초 (1시간)
+  - 메타데이터: 검색 시각, 데이터 소스
+end note
+
+Cache -> Redis: SETEX location:nearby:37.5665:126.9780:1000:restaurant 3600 {response}
+
+Service -> Service: addMetadata()
+note right of Service
+  응답 메타데이터 추가:
+  - search_time_ms: API 호출 시간
+  - data_source: kakao/google/cached
+  - total_results: 검색된 장소 수
+  - query_id: 로깅용 식별자
+end note
+
+Service -> Controller: PlaceSearchResponse
+
+== 7. 최종 응답 ==
+
+Controller -> Gateway: 200 OK
+Gateway -> Client: PlaceSearchResponse
+
+note over Client
+  최종 응답 포함 정보:
+  - places: 장소 목록 (거리순 정렬)
+  - pagination: 페이징 정보
+  - search_metadata: 검색 메타데이터
+  
+  각 장소 정보:
+  - id, name, category
+  - location (위도, 경도, 주소)  
+  - distance, travel_time
+  - rating, review_count
+  - is_open_now, thumbnail_url
+end note
+
+@enduml

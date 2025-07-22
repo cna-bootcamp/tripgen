@@ -1,0 +1,1095 @@
+@startuml
+!theme mono
+
+title 일정 서비스(Itinerary Service) 클래스 다이어그램 - Clean Architecture with CQRS & Saga
+
+' 공통 컴포넌트 임포트
+!include common-base.txt
+
+package "com.unicorn.tripgen.itinerary" {
+    
+    ' ===== itinerary-biz 모듈 =====
+    package "itinerary-biz" {
+        
+        ' ----- Domain 레이어 -----
+        package "domain" {
+            class Itinerary implements Identifiable, Auditable, Versionable {
+                - id: String
+                - tripId: String
+                - date: LocalDate
+                - dayNumber: Integer
+                - title: String
+                - totalDistance: Double
+                - totalDuration: Integer
+                - status: ItineraryStatus
+                - version: Long
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+                - createdBy: String
+                - updatedBy: String
+                + Itinerary()
+                + addActivity(activity: DailyActivity): void
+                + removeActivity(activityId: String): void
+                + reorderActivities(): void
+                + calculateTotalDistance(): Double
+                + calculateTotalDuration(): Integer
+                + isModifiable(): Boolean
+            }
+            
+            class DailyActivity implements Identifiable {
+                - id: String
+                - itineraryId: String
+                - placeId: String
+                - name: String
+                - recommendReason: String
+                - address: String
+                - location: Coordinate
+                - order: Integer
+                - startTime: LocalTime
+                - endTime: LocalTime
+                - duration: Integer
+                - category: PlaceCategory
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+                + DailyActivity()
+                + getDurationInMinutes(): Integer
+                + isOverlapping(other: DailyActivity): Boolean
+                + adjustTime(newStartTime: LocalTime): void
+            }
+            
+            class Coordinate {
+                - latitude: Double
+                - longitude: Double
+                + Coordinate()
+                + distanceTo(other: Coordinate): Double
+                + isValid(): Boolean
+                + toString(): String
+            }
+            
+            class Attachment implements Identifiable, Auditable {
+                - id: String
+                - placeId: String
+                - type: AttachmentType
+                - createdAt: LocalDateTime
+                - createdBy: String
+                + Attachment()
+                + isPhoto(): Boolean
+                + isMemo(): Boolean
+            }
+            
+            class PhotoAttachment extends Attachment {
+                - fileName: String
+                - fileSize: Long
+                - mimeType: String
+                - url: String
+                - thumbnailUrl: String
+                - caption: String
+                - width: Integer
+                - height: Integer
+                - takenAt: LocalDateTime
+                - location: Coordinate
+                + PhotoAttachment()
+                + generateThumbnailUrl(): String
+                + isValidImage(): Boolean
+            }
+            
+            class MemoAttachment extends Attachment {
+                - content: String
+                - updatedAt: LocalDateTime
+                + MemoAttachment()
+                + getContentPreview(maxLength: Integer): String
+                + wordCount(): Integer
+            }
+            
+            class Route implements Identifiable {
+                - id: String
+                - fromPlaceId: String
+                - toPlaceId: String
+                - distance: Double
+                - duration: Integer
+                - transportType: TransportType
+                - polyline: String
+                - steps: List<RouteStep>
+                + Route()
+                + getTotalDistance(): Double
+                + getTotalDuration(): Integer
+                + getEstimatedArrivalTime(departureTime: LocalTime): LocalTime
+            }
+            
+            class RouteStep {
+                - instruction: String
+                - distance: Double
+                - duration: Integer
+                - maneuver: String
+                + RouteStep()
+            }
+            
+            ' Enums
+            enum ItineraryStatus {
+                DRAFT
+                GENERATING
+                GENERATED
+                CONFIRMED
+                COMPLETED
+                CANCELLED
+            }
+            
+            enum PlaceCategory {
+                TOURIST_ATTRACTION
+                RESTAURANT
+                CAFE
+                SHOPPING
+                ACTIVITY
+                ACCOMMODATION
+                OTHER
+            }
+            
+            enum AttachmentType {
+                PHOTO
+                MEMO
+            }
+            
+            enum TransportType {
+                PUBLIC_TRANSPORT
+                PRIVATE_CAR
+                WALKING
+                BICYCLE
+                TAXI
+            }
+            
+            ' Value Objects
+            class ItineraryPreferences {
+                - startTime: LocalTime
+                - endTime: LocalTime
+                - includeBreaks: Boolean
+                - mealTimes: MealTimes
+                + ItineraryPreferences()
+                + getAvailableHours(): Integer
+                + isValidTimeRange(): Boolean
+            }
+            
+            class MealTimes {
+                - breakfast: LocalTime
+                - lunch: LocalTime
+                - dinner: LocalTime
+                + MealTimes()
+                + getMealTimeFor(mealType: String): LocalTime
+            }
+            
+            ' Domain Events
+            abstract class DomainEvent {
+                - eventId: String
+                - aggregateId: String
+                - occurredOn: LocalDateTime
+                + DomainEvent()
+            }
+            
+            class ItineraryGeneratedEvent extends DomainEvent {
+                - itineraryId: String
+                - tripId: String
+                - date: LocalDate
+                + ItineraryGeneratedEvent()
+            }
+            
+            class ActivityAddedEvent extends DomainEvent {
+                - activityId: String
+                - itineraryId: String
+                - placeId: String
+                + ActivityAddedEvent()
+            }
+        }
+        
+        ' ----- UseCase 레이어 (CQRS) -----
+        package "usecase" {
+            ' Command UseCases
+            package "command" {
+                interface GenerateItineraryUseCase {
+                    + execute(command: GenerateItineraryCommand): GenerateItineraryResult
+                }
+                
+                interface UpdateItineraryUseCase {
+                    + execute(command: UpdateItineraryCommand): UpdateItineraryResult
+                }
+                
+                interface DeleteItineraryUseCase {
+                    + execute(command: DeleteItineraryCommand): void
+                }
+                
+                interface AddActivityUseCase {
+                    + execute(command: AddActivityCommand): AddActivityResult
+                }
+                
+                interface AttachPhotoUseCase {
+                    + execute(command: AttachPhotoCommand): AttachPhotoResult
+                }
+                
+                interface CreateMemoUseCase {
+                    + execute(command: CreateMemoCommand): CreateMemoResult
+                }
+                
+                ' Command Objects
+                class GenerateItineraryCommand {
+                    - tripId: String
+                    - date: LocalDate
+                    - additionalRequirements: String
+                    - preferences: ItineraryPreferences
+                    + GenerateItineraryCommand()
+                }
+                
+                class UpdateItineraryCommand {
+                    - itineraryId: String
+                    - title: String
+                    - activities: List<ActivityUpdateData>
+                    + UpdateItineraryCommand()
+                }
+                
+                class DeleteItineraryCommand {
+                    - itineraryId: String
+                    - tripId: String
+                    + DeleteItineraryCommand()
+                }
+                
+                class AddActivityCommand {
+                    - itineraryId: String
+                    - placeData: PlaceData
+                    + AddActivityCommand()
+                }
+                
+                class AttachPhotoCommand {
+                    - placeId: String
+                    - file: MultipartFile
+                    - caption: String
+                    + AttachPhotoCommand()
+                }
+                
+                class CreateMemoCommand {
+                    - placeId: String
+                    - content: String
+                    + CreateMemoCommand()
+                }
+                
+                ' Result Objects
+                class GenerateItineraryResult {
+                    - itineraryId: String
+                    - status: ItineraryStatus
+                    - estimatedCompletionTime: LocalDateTime
+                    + GenerateItineraryResult()
+                }
+                
+                class UpdateItineraryResult {
+                    - itinerary: Itinerary
+                    - updatedActivities: List<DailyActivity>
+                    + UpdateItineraryResult()
+                }
+                
+                class AddActivityResult {
+                    - activity: DailyActivity
+                    - reorderedActivities: List<DailyActivity>
+                    + AddActivityResult()
+                }
+                
+                class AttachPhotoResult {
+                    - attachment: PhotoAttachment
+                    - uploadUrl: String
+                    + AttachPhotoResult()
+                }
+                
+                class CreateMemoResult {
+                    - attachment: MemoAttachment
+                    + CreateMemoResult()
+                }
+            }
+            
+            ' Query UseCases
+            package "query" {
+                interface GetItineraryUseCase {
+                    + execute(query: GetItineraryQuery): ItineraryDetail
+                }
+                
+                interface GetItinerariesUseCase {
+                    + execute(query: GetItinerariesQuery): List<ItinerarySummary>
+                }
+                
+                interface GetPlaceDetailsUseCase {
+                    + execute(query: GetPlaceDetailsQuery): PlaceDetail
+                }
+                
+                interface GetRouteDetailsUseCase {
+                    + execute(query: GetRouteDetailsQuery): RouteDetail
+                }
+                
+                interface GetAttachmentsUseCase {
+                    + execute(query: GetAttachmentsQuery): List<Attachment>
+                }
+                
+                ' Query Objects
+                class GetItineraryQuery {
+                    - itineraryId: String
+                    - includeActivities: Boolean
+                    - includeRoutes: Boolean
+                    + GetItineraryQuery()
+                }
+                
+                class GetItinerariesQuery {
+                    - tripId: String
+                    - date: LocalDate
+                    - status: ItineraryStatus
+                    + GetItinerariesQuery()
+                }
+                
+                class GetPlaceDetailsQuery {
+                    - placeId: String
+                    - refresh: Boolean
+                    + GetPlaceDetailsQuery()
+                }
+                
+                class GetRouteDetailsQuery {
+                    - routeId: String
+                    - realtime: Boolean
+                    + GetRouteDetailsQuery()
+                }
+                
+                class GetAttachmentsQuery {
+                    - placeId: String
+                    - type: AttachmentType
+                    + GetAttachmentsQuery()
+                }
+            }
+            
+            ' Ports
+            package "port" {
+                ' Input Ports (implemented by UseCase implementations)
+                interface ItineraryCommandPort {
+                    + generateItinerary(command: GenerateItineraryCommand): GenerateItineraryResult
+                    + updateItinerary(command: UpdateItineraryCommand): UpdateItineraryResult
+                    + deleteItinerary(command: DeleteItineraryCommand): void
+                }
+                
+                interface ItineraryQueryPort {
+                    + getItinerary(query: GetItineraryQuery): ItineraryDetail
+                    + getItineraries(query: GetItinerariesQuery): List<ItinerarySummary>
+                }
+                
+                ' Output Ports (implemented by Infrastructure)
+                interface ItineraryRepository {
+                    + save(itinerary: Itinerary): Itinerary
+                    + findById(id: String): Optional<Itinerary>
+                    + findByTripIdAndDate(tripId: String, date: LocalDate): List<Itinerary>
+                    + delete(id: String): void
+                    + existsById(id: String): Boolean
+                }
+                
+                interface ActivityRepository {
+                    + save(activity: DailyActivity): DailyActivity
+                    + saveAll(activities: List<DailyActivity>): List<DailyActivity>
+                    + findByItineraryId(itineraryId: String): List<DailyActivity>
+                    + delete(id: String): void
+                }
+                
+                interface AttachmentRepository {
+                    + save(attachment: Attachment): Attachment
+                    + findByPlaceId(placeId: String): List<Attachment>
+                    + findById(id: String): Optional<Attachment>
+                    + delete(id: String): void
+                }
+                
+                interface RouteRepository {
+                    + save(route: Route): Route
+                    + findByItineraryId(itineraryId: String): List<Route>
+                    + findById(id: String): Optional<Route>
+                }
+                
+                ' External Service Ports
+                interface ProfileServicePort {
+                    + getTripDetails(tripId: String): TripProfile
+                    + getMemberPreferences(tripId: String): List<MemberPreference>
+                }
+                
+                interface LocationServicePort {
+                    + searchPlaces(query: PlaceSearchQuery): List<PlaceInfo>
+                    + getPlaceDetails(placeId: String): PlaceDetail
+                    + validateLocation(coordinate: Coordinate): Boolean
+                }
+                
+                interface AIServicePort {
+                    + generateItinerary(request: AIItineraryRequest): AIItineraryResponse
+                    + optimizeRoute(places: List<PlaceInfo>): List<OptimizedRoute>
+                }
+                
+                interface FileStoragePort {
+                    + uploadPhoto(file: MultipartFile): FileUploadResult
+                    + deleteFile(fileUrl: String): void
+                    + generateThumbnail(originalUrl: String): String
+                }
+                
+                interface EventPublisher {
+                    + publish(event: DomainEvent): void
+                }
+                
+                interface CachePort {
+                    + get(key: String): Optional<Object>
+                    + put(key: String, value: Object, ttl: Duration): void
+                    + evict(key: String): void
+                }
+            }
+        }
+        
+        ' ----- Service 레이어 -----
+        package "service" {
+            ' Command Service Implementations
+            class GenerateItineraryService implements GenerateItineraryUseCase {
+                - itineraryRepository: ItineraryRepository
+                - profileServicePort: ProfileServicePort
+                - locationServicePort: LocationServicePort
+                - aiServicePort: AIServicePort
+                - jobQueueService: JobQueueService
+                - eventPublisher: EventPublisher
+                + execute(command: GenerateItineraryCommand): GenerateItineraryResult
+                - createItineraryJob(command: GenerateItineraryCommand): Job
+                - validateTripAccess(tripId: String): void
+            }
+            
+            class UpdateItineraryService implements UpdateItineraryUseCase {
+                - itineraryRepository: ItineraryRepository
+                - activityRepository: ActivityRepository
+                - eventPublisher: EventPublisher
+                - cachePort: CachePort
+                + execute(command: UpdateItineraryCommand): UpdateItineraryResult
+                - validateItinerary(itinerary: Itinerary): void
+                - reorderActivities(activities: List<DailyActivity>): List<DailyActivity>
+            }
+            
+            class AttachmentService implements AttachPhotoUseCase, CreateMemoUseCase {
+                - attachmentRepository: AttachmentRepository
+                - fileStoragePort: FileStoragePort
+                - cachePort: CachePort
+                + execute(command: AttachPhotoCommand): AttachPhotoResult
+                + execute(command: CreateMemoCommand): CreateMemoResult
+                - validateFile(file: MultipartFile): void
+                - processImage(file: MultipartFile): ProcessedImage
+            }
+            
+            ' Query Service Implementations
+            class ItineraryQueryService implements GetItineraryUseCase, GetItinerariesUseCase {
+                - itineraryRepository: ItineraryRepository
+                - activityRepository: ActivityRepository
+                - routeRepository: RouteRepository
+                - cachePort: CachePort
+                + execute(query: GetItineraryQuery): ItineraryDetail
+                + execute(query: GetItinerariesQuery): List<ItinerarySummary>
+                - buildItineraryDetail(itinerary: Itinerary, includeActivities: Boolean, includeRoutes: Boolean): ItineraryDetail
+            }
+            
+            class PlaceQueryService implements GetPlaceDetailsUseCase {
+                - locationServicePort: LocationServicePort
+                - attachmentRepository: AttachmentRepository
+                - cachePort: CachePort
+                + execute(query: GetPlaceDetailsQuery): PlaceDetail
+                - refreshPlaceInfo(placeId: String): PlaceDetail
+            }
+            
+            ' AI Service Implementation
+            class AIItineraryGenerationService {
+                - aiServicePort: AIServicePort
+                - locationServicePort: LocationServicePort
+                - routeCalculator: RouteCalculator
+                + generateDailyItinerary(preferences: GenerationPreferences): GeneratedItinerary
+                + optimizeActivities(activities: List<DailyActivity>): List<DailyActivity>
+                - buildAIRequest(preferences: GenerationPreferences): AIItineraryRequest
+                - parseAIResponse(response: AIItineraryResponse): List<DailyActivity>
+            }
+            
+            ' Route Calculation Service
+            class RouteCalculationService {
+                - locationServicePort: LocationServicePort
+                - routeRepository: RouteRepository
+                - cachePort: CachePort
+                + calculateRoutes(places: List<DailyActivity>, transportType: TransportType): List<Route>
+                + optimizeRoute(places: List<DailyActivity>): List<DailyActivity>
+                - getDistanceMatrix(places: List<Coordinate>): DistanceMatrix
+            }
+            
+            ' Job Queue Service for Async Processing
+            class JobQueueService {
+                - jobQueue: JobQueue
+                - jobProcessor: JobProcessor
+                + submitJob(job: Job): String
+                + getJobStatus(jobId: String): JobStatus
+                + cancelJob(jobId: String): Boolean
+            }
+            
+            ' Saga Orchestrator for Complex Workflows
+            class ItinerarySagaOrchestrator {
+                - sagaRepository: SagaRepository
+                - commandDispatcher: CommandDispatcher
+                + startItineraryGeneration(sagaId: String, command: GenerateItineraryCommand): void
+                + handleStepCompleted(sagaId: String, step: SagaStep): void
+                + handleStepFailed(sagaId: String, step: SagaStep, error: Exception): void
+                - compensate(sagaId: String, failedStep: SagaStep): void
+            }
+        }
+        
+        ' ----- DTO 레이어 -----
+        package "dto" {
+            ' Request DTOs
+            class ItineraryGenerateRequest {
+                - date: LocalDate
+                - additionalRequirements: String
+                - preferences: PreferencesDto
+                + validate(): List<String>
+            }
+            
+            class ItineraryUpdateRequest {
+                - title: String
+                - places: List<PlaceOrderDto>
+                + validate(): List<String>
+            }
+            
+            class PlaceRequest {
+                - name: String
+                - recommendReason: String
+                - address: String
+                - location: CoordinateDto
+                - order: Integer
+                - startTime: String
+                - endTime: String
+                - category: String
+                + validate(): List<String>
+            }
+            
+            class MemoRequest {
+                - content: String
+                + validate(): List<String>
+            }
+            
+            ' Response DTOs
+            class ItineraryResponse {
+                - id: String
+                - tripId: String
+                - date: LocalDate
+                - dayNumber: Integer
+                - title: String
+                - places: List<PlaceResponse>
+                - totalDistance: Double
+                - totalDuration: Integer
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+            }
+            
+            class PlaceResponse {
+                - id: String
+                - name: String
+                - recommendReason: String
+                - address: String
+                - location: CoordinateDto
+                - order: Integer
+                - startTime: String
+                - endTime: String
+                - duration: Integer
+                - category: String
+                - attachmentCount: Integer
+            }
+            
+            class PlaceDetailResponse extends PlaceResponse {
+                - mapSearchKeyword: String
+                - rating: RatingDto
+                - phone: String
+                - businessHours: BusinessHoursDto
+                - parking: ParkingDto
+                - congestion: String
+                - lastVerified: LocalDateTime
+            }
+            
+            class AttachmentResponse {
+                - id: String
+                - placeId: String
+                - type: String
+                - createdAt: LocalDateTime
+                - createdBy: String
+            }
+            
+            class PhotoAttachmentResponse extends AttachmentResponse {
+                - fileName: String
+                - fileSize: Long
+                - mimeType: String
+                - url: String
+                - thumbnailUrl: String
+                - caption: String
+                - metadata: PhotoMetadataDto
+            }
+            
+            class MemoAttachmentResponse extends AttachmentResponse {
+                - content: String
+                - updatedAt: LocalDateTime
+            }
+            
+            ' Shared DTOs
+            class CoordinateDto {
+                - latitude: Double
+                - longitude: Double
+                + toCoordinate(): Coordinate
+                + fromCoordinate(coordinate: Coordinate): CoordinateDto
+            }
+            
+            class PreferencesDto {
+                - startTime: String
+                - endTime: String
+                - includeBreaks: Boolean
+                - mealTimes: MealTimesDto
+            }
+            
+            class MealTimesDto {
+                - breakfast: String
+                - lunch: String
+                - dinner: String
+            }
+            
+            ' External Service DTOs
+            class TripProfile {
+                - tripId: String
+                - destination: String
+                - startDate: LocalDate
+                - endDate: LocalDate
+                - memberCount: Integer
+                - transportType: String
+                - preferences: Map<String, Object>
+            }
+            
+            class MemberPreference {
+                - memberId: String
+                - dietaryRestrictions: List<String>
+                - interests: List<String>
+                - mobilityLevel: String
+            }
+            
+            class PlaceInfo {
+                - placeId: String
+                - name: String
+                - category: String
+                - location: Coordinate
+                - rating: Double
+                - priceLevel: Integer
+            }
+            
+            class AIItineraryRequest {
+                - destination: String
+                - date: LocalDate
+                - preferences: Map<String, Object>
+                - memberPreferences: List<MemberPreference>
+                - constraints: List<String>
+            }
+            
+            class AIItineraryResponse {
+                - activities: List<AIActivity>
+                - reasoning: String
+                - alternativeOptions: List<AIActivity>
+            }
+        }
+    }
+    
+    ' ===== itinerary-infra 모듈 =====
+    package "itinerary-infra" {
+        
+        ' ----- Controller 레이어 -----
+        package "controller" {
+            class ItineraryController {
+                - generateItineraryUseCase: GenerateItineraryUseCase
+                - updateItineraryUseCase: UpdateItineraryUseCase
+                - deleteItineraryUseCase: DeleteItineraryUseCase
+                - getItineraryUseCase: GetItineraryUseCase
+                - getItinerariesUseCase: GetItinerariesUseCase
+                + getItineraries(tripId: String, date: LocalDate): ResponseEntity<List<ItineraryResponse>>
+                + generateItinerary(tripId: String, request: ItineraryGenerateRequest): ResponseEntity<ItineraryResponse>
+                + getItineraryById(tripId: String, itineraryId: String): ResponseEntity<ItineraryResponse>
+                + updateItinerary(tripId: String, itineraryId: String, request: ItineraryUpdateRequest): ResponseEntity<ItineraryResponse>
+                + deleteItinerary(tripId: String, itineraryId: String): ResponseEntity<Void>
+            }
+            
+            class PlaceController {
+                - addActivityUseCase: AddActivityUseCase
+                - getPlaceDetailsUseCase: GetPlaceDetailsUseCase
+                + getPlacesInItinerary(tripId: String, itineraryId: String): ResponseEntity<List<PlaceResponse>>
+                + addPlaceToItinerary(tripId: String, itineraryId: String, request: PlaceRequest): ResponseEntity<PlaceResponse>
+                + getPlaceById(placeId: String, refresh: Boolean): ResponseEntity<PlaceDetailResponse>
+                + updatePlace(placeId: String, request: PlaceUpdateRequest): ResponseEntity<PlaceResponse>
+                + deletePlace(placeId: String): ResponseEntity<Void>
+            }
+            
+            class RouteController {
+                - routeCalculationService: RouteCalculationService
+                - getRouteDetailsUseCase: GetRouteDetailsUseCase
+                + calculateRoutes(tripId: String, request: RouteCalculateRequest): ResponseEntity<RouteCalculateResponse>
+                + getRouteById(routeId: String, realtime: Boolean): ResponseEntity<RouteDetailResponse>
+            }
+            
+            class AttachmentController {
+                - attachPhotoUseCase: AttachPhotoUseCase
+                - createMemoUseCase: CreateMemoUseCase
+                - getAttachmentsUseCase: GetAttachmentsUseCase
+                + getAttachments(placeId: String, type: String): ResponseEntity<List<AttachmentResponse>>
+                + uploadPhoto(placeId: String, file: MultipartFile, caption: String): ResponseEntity<PhotoAttachmentResponse>
+                + createMemo(placeId: String, request: MemoRequest): ResponseEntity<MemoAttachmentResponse>
+                + deleteAttachment(attachmentId: String): ResponseEntity<Void>
+            }
+        }
+        
+        ' ----- Gateway 레이어 -----
+        package "gateway" {
+            class ProfileServiceClient implements ProfileServicePort {
+                - restTemplate: RestTemplate
+                - profileServiceUrl: String
+                - circuitBreaker: CircuitBreaker
+                - cachePort: CachePort
+                + getTripDetails(tripId: String): TripProfile
+                + getMemberPreferences(tripId: String): List<MemberPreference>
+                - handleFallback(tripId: String): TripProfile
+                - buildCacheKey(tripId: String): String
+            }
+            
+            class LocationServiceClient implements LocationServicePort {
+                - restTemplate: RestTemplate
+                - locationServiceUrl: String
+                - circuitBreaker: CircuitBreaker
+                - cachePort: CachePort
+                + searchPlaces(query: PlaceSearchQuery): List<PlaceInfo>
+                + getPlaceDetails(placeId: String): PlaceDetail
+                + validateLocation(coordinate: Coordinate): Boolean
+                - handleFallback(Exception e): List<PlaceInfo>
+            }
+            
+            class MCPGateway implements AIServicePort {
+                - mcpClient: MCPClient
+                - apiKey: String
+                - timeout: Duration
+                + generateItinerary(request: AIItineraryRequest): AIItineraryResponse
+                + optimizeRoute(places: List<PlaceInfo>): List<OptimizedRoute>
+                - buildPrompt(request: AIItineraryRequest): String
+                - parseResponse(response: String): AIItineraryResponse
+            }
+            
+            class S3StorageAdapter implements FileStoragePort {
+                - s3Client: S3Client
+                - bucketName: String
+                - cdnUrl: String
+                + uploadPhoto(file: MultipartFile): FileUploadResult
+                + deleteFile(fileUrl: String): void
+                + generateThumbnail(originalUrl: String): String
+                - generateKey(file: MultipartFile): String
+                - buildUrl(key: String): String
+            }
+        }
+        
+        ' ----- Repository 레이어 -----
+        package "repository" {
+            ' JPA Entities
+            @Entity
+            class ItineraryEntity {
+                - id: String
+                - tripId: String
+                - date: LocalDate
+                - dayNumber: Integer
+                - title: String
+                - totalDistance: Double
+                - totalDuration: Integer
+                - status: String
+                - version: Long
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+                - createdBy: String
+                - updatedBy: String
+            }
+            
+            @Entity
+            class ActivityEntity {
+                - id: String
+                - itineraryId: String
+                - placeId: String
+                - name: String
+                - recommendReason: String
+                - address: String
+                - latitude: Double
+                - longitude: Double
+                - orderNum: Integer
+                - startTime: LocalTime
+                - endTime: LocalTime
+                - duration: Integer
+                - category: String
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+            }
+            
+            @Entity
+            class AttachmentEntity {
+                - id: String
+                - placeId: String
+                - type: String
+                - fileName: String
+                - fileSize: Long
+                - mimeType: String
+                - url: String
+                - thumbnailUrl: String
+                - caption: String
+                - content: String
+                - metadata: String
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+                - createdBy: String
+            }
+            
+            @Entity
+            class RouteEntity {
+                - id: String
+                - fromPlaceId: String
+                - toPlaceId: String
+                - distance: Double
+                - duration: Integer
+                - transportType: String
+                - polyline: String
+                - steps: String
+                - createdAt: LocalDateTime
+            }
+            
+            ' JPA Repositories
+            interface ItineraryJpaRepository extends JpaRepository {
+                + findByTripIdAndDate(tripId: String, date: LocalDate): List<ItineraryEntity>
+                + findByTripIdOrderByDateAsc(tripId: String): List<ItineraryEntity>
+                + existsByTripIdAndDate(tripId: String, date: LocalDate): Boolean
+            }
+            
+            interface ActivityJpaRepository extends JpaRepository {
+                + findByItineraryIdOrderByOrderNumAsc(itineraryId: String): List<ActivityEntity>
+                + deleteByItineraryId(itineraryId: String): void
+                + findByPlaceId(placeId: String): List<ActivityEntity>
+            }
+            
+            interface AttachmentJpaRepository extends JpaRepository {
+                + findByPlaceId(placeId: String): List<AttachmentEntity>
+                + findByPlaceIdAndType(placeId: String, type: String): List<AttachmentEntity>
+                + countByPlaceId(placeId: String): Long
+            }
+            
+            interface RouteJpaRepository extends JpaRepository {
+                + findByFromPlaceIdAndToPlaceId(fromId: String, toId: String): Optional<RouteEntity>
+                + findByFromPlaceIdOrToPlaceId(placeId: String): List<RouteEntity>
+            }
+            
+            ' Repository Adapters
+            class ItineraryRepositoryAdapter implements ItineraryRepository {
+                - jpaRepository: ItineraryJpaRepository
+                - mapper: ItineraryMapper
+                + save(itinerary: Itinerary): Itinerary
+                + findById(id: String): Optional<Itinerary>
+                + findByTripIdAndDate(tripId: String, date: LocalDate): List<Itinerary>
+                + delete(id: String): void
+                + existsById(id: String): Boolean
+            }
+            
+            class ActivityRepositoryAdapter implements ActivityRepository {
+                - jpaRepository: ActivityJpaRepository
+                - mapper: ActivityMapper
+                + save(activity: DailyActivity): DailyActivity
+                + saveAll(activities: List<DailyActivity>): List<DailyActivity>
+                + findByItineraryId(itineraryId: String): List<DailyActivity>
+                + delete(id: String): void
+            }
+            
+            class AttachmentRepositoryAdapter implements AttachmentRepository {
+                - jpaRepository: AttachmentJpaRepository
+                - mapper: AttachmentMapper
+                + save(attachment: Attachment): Attachment
+                + findByPlaceId(placeId: String): List<Attachment>
+                + findById(id: String): Optional<Attachment>
+                + delete(id: String): void
+            }
+            
+            ' Mappers
+            class ItineraryMapper {
+                + toEntity(domain: Itinerary): ItineraryEntity
+                + toDomain(entity: ItineraryEntity): Itinerary
+                + toEntityList(domains: List<Itinerary>): List<ItineraryEntity>
+                + toDomainList(entities: List<ItineraryEntity>): List<Itinerary>
+            }
+            
+            class ActivityMapper {
+                + toEntity(domain: DailyActivity): ActivityEntity
+                + toDomain(entity: ActivityEntity): DailyActivity
+                + toEntityList(domains: List<DailyActivity>): List<ActivityEntity>
+                + toDomainList(entities: List<ActivityEntity>): List<DailyActivity>
+            }
+            
+            class AttachmentMapper {
+                + toEntity(domain: Attachment): AttachmentEntity
+                + toDomain(entity: AttachmentEntity): Attachment
+                + toPhotoAttachment(entity: AttachmentEntity): PhotoAttachment
+                + toMemoAttachment(entity: AttachmentEntity): MemoAttachment
+            }
+        }
+        
+        ' ----- Config 레이어 -----
+        package "config" {
+            @Configuration
+            class ItineraryServiceConfig extends BaseConfig {
+                + dataSource(): DataSource
+                + entityManagerFactory(): LocalContainerEntityManagerFactoryBean
+                + transactionManager(): PlatformTransactionManager
+            }
+            
+            @Configuration
+            class AsyncConfig {
+                - corePoolSize: Integer
+                - maxPoolSize: Integer
+                - queueCapacity: Integer
+                + taskExecutor(): TaskExecutor
+                + asyncExceptionHandler(): AsyncUncaughtExceptionHandler
+            }
+            
+            @Configuration
+            class CacheConfig {
+                + cacheManager(): CacheManager
+                + redisCacheConfiguration(): RedisCacheConfiguration
+                + keyGenerator(): KeyGenerator
+            }
+            
+            @Configuration
+            class CircuitBreakerConfig {
+                + profileServiceCircuitBreaker(): CircuitBreaker
+                + locationServiceCircuitBreaker(): CircuitBreaker
+                + defaultCircuitBreakerConfig(): CircuitBreakerConfig
+            }
+            
+            @Configuration
+            class SecurityConfig {
+                + securityFilterChain(http: HttpSecurity): SecurityFilterChain
+                + jwtAuthenticationFilter(): JwtAuthenticationFilter
+                + authenticationManager(): AuthenticationManager
+            }
+            
+            @Configuration
+            class JobQueueConfig {
+                + jobQueue(): JobQueue
+                + jobProcessor(): JobProcessor
+                + jobScheduler(): JobScheduler
+            }
+            
+            @Configuration
+            class SagaConfig {
+                + sagaRepository(): SagaRepository
+                + commandDispatcher(): CommandDispatcher
+                + sagaOrchestrator(): ItinerarySagaOrchestrator
+            }
+        }
+        
+        ' ----- Infrastructure Services -----
+        package "infrastructure" {
+            class RedisEventPublisher implements EventPublisher {
+                - redisTemplate: RedisTemplate
+                - objectMapper: ObjectMapper
+                + publish(event: DomainEvent): void
+                - serializeEvent(event: DomainEvent): String
+            }
+            
+            class RedisCacheAdapter implements CachePort {
+                - redisTemplate: RedisTemplate
+                - defaultTtl: Duration
+                + get(key: String): Optional<Object>
+                + put(key: String, value: Object, ttl: Duration): void
+                + evict(key: String): void
+                + evictPattern(pattern: String): void
+            }
+            
+            class JobQueueImpl implements JobQueue {
+                - redisTemplate: RedisTemplate
+                - queueName: String
+                + push(job: Job): String
+                + pop(): Optional<Job>
+                + peek(): Optional<Job>
+                + size(): Long
+            }
+            
+            class SagaRepositoryImpl implements SagaRepository {
+                - jdbcTemplate: JdbcTemplate
+                + save(saga: Saga): void
+                + findById(sagaId: String): Optional<Saga>
+                + updateStatus(sagaId: String, status: SagaStatus): void
+            }
+        }
+    }
+}
+
+' 주요 관계 정의
+' Domain relationships
+Itinerary "1" *-- "0..*" DailyActivity : contains
+DailyActivity ..> Coordinate : uses
+Attachment <|-- PhotoAttachment
+Attachment <|-- MemoAttachment
+PhotoAttachment ..> Coordinate : uses
+Route "1" *-- "0..*" RouteStep : contains
+DomainEvent <|-- ItineraryGeneratedEvent
+DomainEvent <|-- ActivityAddedEvent
+
+' UseCase to Port relationships
+GenerateItineraryUseCase ..> ItineraryRepository : uses
+GenerateItineraryUseCase ..> ProfileServicePort : uses
+GenerateItineraryUseCase ..> LocationServicePort : uses
+GenerateItineraryUseCase ..> AIServicePort : uses
+GenerateItineraryUseCase ..> EventPublisher : uses
+
+UpdateItineraryUseCase ..> ItineraryRepository : uses
+UpdateItineraryUseCase ..> ActivityRepository : uses
+UpdateItineraryUseCase ..> EventPublisher : uses
+UpdateItineraryUseCase ..> CachePort : uses
+
+AttachPhotoUseCase ..> AttachmentRepository : uses
+AttachPhotoUseCase ..> FileStoragePort : uses
+CreateMemoUseCase ..> AttachmentRepository : uses
+
+GetItineraryUseCase ..> ItineraryRepository : uses
+GetItineraryUseCase ..> ActivityRepository : uses
+GetItineraryUseCase ..> RouteRepository : uses
+GetItineraryUseCase ..> CachePort : uses
+
+' Service implementations
+GenerateItineraryService ..|> GenerateItineraryUseCase : implements
+UpdateItineraryService ..|> UpdateItineraryUseCase : implements
+AttachmentService ..|> AttachPhotoUseCase : implements
+AttachmentService ..|> CreateMemoUseCase : implements
+ItineraryQueryService ..|> GetItineraryUseCase : implements
+ItineraryQueryService ..|> GetItinerariesUseCase : implements
+PlaceQueryService ..|> GetPlaceDetailsUseCase : implements
+
+' Infrastructure implementations
+ProfileServiceClient ..|> ProfileServicePort : implements
+LocationServiceClient ..|> LocationServicePort : implements
+MCPGateway ..|> AIServicePort : implements
+S3StorageAdapter ..|> FileStoragePort : implements
+ItineraryRepositoryAdapter ..|> ItineraryRepository : implements
+ActivityRepositoryAdapter ..|> ActivityRepository : implements
+AttachmentRepositoryAdapter ..|> AttachmentRepository : implements
+RedisEventPublisher ..|> EventPublisher : implements
+RedisCacheAdapter ..|> CachePort : implements
+
+' Controller to UseCase relationships
+ItineraryController ..> GenerateItineraryUseCase : uses
+ItineraryController ..> UpdateItineraryUseCase : uses
+ItineraryController ..> DeleteItineraryUseCase : uses
+ItineraryController ..> GetItineraryUseCase : uses
+ItineraryController ..> GetItinerariesUseCase : uses
+
+PlaceController ..> AddActivityUseCase : uses
+PlaceController ..> GetPlaceDetailsUseCase : uses
+
+AttachmentController ..> AttachPhotoUseCase : uses
+AttachmentController ..> CreateMemoUseCase : uses
+AttachmentController ..> GetAttachmentsUseCase : uses
+
+' Async processing relationships
+GenerateItineraryService ..> JobQueueService : uses
+JobQueueService ..> JobQueue : uses
+ItinerarySagaOrchestrator ..> SagaRepository : uses
+
+' Repository to Entity relationships
+ItineraryRepositoryAdapter ..> ItineraryJpaRepository : uses
+ActivityRepositoryAdapter ..> ActivityJpaRepository : uses
+AttachmentRepositoryAdapter ..> AttachmentJpaRepository : uses
+
+@enduml

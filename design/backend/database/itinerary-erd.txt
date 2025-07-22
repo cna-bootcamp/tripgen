@@ -1,0 +1,237 @@
+@startuml
+!theme mono
+
+title 일정 서비스(Itinerary Service) ERD
+
+' 데이터베이스 스키마 정의
+!define TABLE(name,desc) class name as "desc" << (T,#FFAAAA) >>
+!define PK(x) <b>x</b>
+!define FK(x) <i>x</i>
+
+' 테이블 정의
+TABLE(itineraries, "ITINERARIES\n(일정)") {
+    PK(id: VARCHAR(36))
+    --
+    trip_id: VARCHAR(36) NOT NULL
+    date: DATE NOT NULL
+    day_number: INT NOT NULL
+    title: VARCHAR(255) NOT NULL
+    total_distance: DECIMAL(10, 2)
+    total_duration: INT
+    status: VARCHAR(20) NOT NULL
+    version: BIGINT NOT NULL
+    created_at: TIMESTAMP NOT NULL
+    updated_at: TIMESTAMP NOT NULL
+    created_by: VARCHAR(36) NOT NULL
+    updated_by: VARCHAR(36) NOT NULL
+}
+
+TABLE(activities, "DAILY_ACTIVITIES\n(일일 활동)") {
+    PK(id: VARCHAR(36))
+    --
+    FK(itinerary_id: VARCHAR(36)) NOT NULL
+    place_id: VARCHAR(36) NOT NULL
+    name: VARCHAR(255) NOT NULL
+    recommend_reason: TEXT
+    address: VARCHAR(500) NOT NULL
+    latitude: DECIMAL(10, 8) NOT NULL
+    longitude: DECIMAL(11, 8) NOT NULL
+    order_num: INT NOT NULL
+    start_time: TIME NOT NULL
+    end_time: TIME NOT NULL
+    duration: INT NOT NULL
+    category: VARCHAR(50) NOT NULL
+    created_at: TIMESTAMP NOT NULL
+    updated_at: TIMESTAMP NOT NULL
+}
+
+TABLE(attachments, "ATTACHMENTS\n(첨부파일)") {
+    PK(id: VARCHAR(36))
+    --
+    place_id: VARCHAR(36) NOT NULL
+    type: VARCHAR(20) NOT NULL
+    --
+    .. Photo fields ..
+    file_name: VARCHAR(255)
+    file_size: BIGINT
+    mime_type: VARCHAR(100)
+    url: VARCHAR(500)
+    thumbnail_url: VARCHAR(500)
+    caption: VARCHAR(500)
+    width: INT
+    height: INT
+    taken_at: TIMESTAMP
+    location_latitude: DECIMAL(10, 8)
+    location_longitude: DECIMAL(11, 8)
+    --
+    .. Memo fields ..
+    content: TEXT
+    content_updated_at: TIMESTAMP
+    --
+    created_at: TIMESTAMP NOT NULL
+    updated_at: TIMESTAMP NOT NULL
+    created_by: VARCHAR(36) NOT NULL
+}
+
+TABLE(routes, "ROUTES\n(경로)") {
+    PK(id: VARCHAR(36))
+    --
+    FK(itinerary_id: VARCHAR(36)) NOT NULL
+    from_place_id: VARCHAR(36) NOT NULL
+    to_place_id: VARCHAR(36) NOT NULL
+    distance: DECIMAL(10, 2) NOT NULL
+    duration: INT NOT NULL
+    transport_type: VARCHAR(30) NOT NULL
+    polyline: TEXT
+    steps: JSON
+    created_at: TIMESTAMP NOT NULL
+}
+
+TABLE(jobs, "ITINERARY_JOBS\n(일정 생성 작업)") {
+    PK(id: VARCHAR(36))
+    --
+    job_type: VARCHAR(50) NOT NULL
+    status: VARCHAR(20) NOT NULL
+    FK(itinerary_id: VARCHAR(36))
+    trip_id: VARCHAR(36) NOT NULL
+    request_data: JSON NOT NULL
+    response_data: JSON
+    error_message: TEXT
+    retry_count: INT
+    max_retries: INT
+    priority: INT
+    scheduled_at: TIMESTAMP
+    started_at: TIMESTAMP
+    completed_at: TIMESTAMP
+    created_at: TIMESTAMP NOT NULL
+    updated_at: TIMESTAMP NOT NULL
+}
+
+TABLE(sagas, "SAGA_TRANSACTIONS\n(사가 트랜잭션)") {
+    PK(id: VARCHAR(36))
+    --
+    saga_type: VARCHAR(50) NOT NULL
+    status: VARCHAR(20) NOT NULL
+    current_step: VARCHAR(100)
+    step_status: VARCHAR(20)
+    context: JSON NOT NULL
+    compensation_data: JSON
+    error_message: TEXT
+    started_at: TIMESTAMP NOT NULL
+    completed_at: TIMESTAMP
+}
+
+TABLE(cache, "PLACE_CACHE\n(장소 캐시)") {
+    PK(place_id: VARCHAR(36))
+    --
+    name: VARCHAR(255) NOT NULL
+    category: VARCHAR(50) NOT NULL
+    address: VARCHAR(500) NOT NULL
+    latitude: DECIMAL(10, 8) NOT NULL
+    longitude: DECIMAL(11, 8) NOT NULL
+    rating: DECIMAL(2, 1)
+    price_level: INT
+    phone: VARCHAR(50)
+    business_hours: JSON
+    parking_info: JSON
+    congestion_level: VARCHAR(20)
+    additional_info: JSON
+    last_verified: TIMESTAMP NOT NULL
+    expires_at: TIMESTAMP NOT NULL
+    created_at: TIMESTAMP NOT NULL
+    updated_at: TIMESTAMP NOT NULL
+}
+
+' 관계 정의
+itineraries ||--o{ activities : "contains"
+itineraries ||--o{ routes : "has"
+itineraries ||--o{ jobs : "tracked by"
+activities ||--o{ attachments : "has"
+activities }o--|| cache : "references"
+
+' 관계 상세 표시
+note right of activities
+    FOREIGN KEY (itinerary_id) 
+    REFERENCES itineraries(id) 
+    ON DELETE CASCADE
+end note
+
+note right of routes
+    FOREIGN KEY (itinerary_id) 
+    REFERENCES itineraries(id) 
+    ON DELETE CASCADE
+end note
+
+note right of jobs
+    FOREIGN KEY (itinerary_id) 
+    REFERENCES itineraries(id) 
+    ON DELETE SET NULL
+end note
+
+' 인덱스 표시
+note top of itineraries
+    **Indexes:**
+    - PRIMARY KEY (id)
+    - UNIQUE KEY uk_trip_date (trip_id, date)
+    - INDEX idx_trip_id (trip_id)
+    - INDEX idx_date (date)
+    - INDEX idx_status (status)
+    - INDEX idx_created_at (created_at)
+    - INDEX idx_trip_status_date (trip_id, status, date)
+    
+    **Partitioned by:** YEAR(date) * 100 + MONTH(date)
+end note
+
+note top of activities
+    **Indexes:**
+    - PRIMARY KEY (id)
+    - UNIQUE KEY uk_itinerary_order (itinerary_id, order_num)
+    - INDEX idx_itinerary_id (itinerary_id)
+    - INDEX idx_place_id (place_id)
+    - INDEX idx_category (category)
+    - INDEX idx_location (latitude, longitude)
+    - INDEX idx_itinerary_order_time (itinerary_id, order_num, start_time)
+end note
+
+note top of attachments
+    **Indexes:**
+    - PRIMARY KEY (id)
+    - INDEX idx_place_id (place_id)
+    - INDEX idx_type (type)
+    - INDEX idx_created_at (created_at)
+    - INDEX idx_created_by (created_by)
+    - INDEX idx_place_type_created (place_id, type, created_at DESC)
+end note
+
+note bottom of jobs
+    **Indexes:**
+    - PRIMARY KEY (id)
+    - INDEX idx_status (status)
+    - INDEX idx_job_type (job_type)
+    - INDEX idx_trip_id (trip_id)
+    - INDEX idx_scheduled_at (scheduled_at)
+    - INDEX idx_priority_scheduled (priority DESC, scheduled_at ASC)
+    - INDEX idx_status_scheduled_priority (status, scheduled_at, priority DESC)
+    
+    **Partitioned by:** TO_DAYS(created_at)
+end note
+
+' 제약조건 표시
+note bottom of itineraries
+    **Check Constraints:**
+    - status IN ('DRAFT', 'GENERATING', 'GENERATED', 'CONFIRMED', 'COMPLETED', 'CANCELLED')
+    - day_number > 0
+    - total_distance >= 0
+    - total_duration >= 0
+end note
+
+note bottom of activities
+    **Check Constraints:**
+    - order_num > 0
+    - duration > 0
+    - latitude >= -90 AND latitude <= 90
+    - longitude >= -180 AND longitude <= 180
+    - end_time > start_time
+end note
+
+@enduml

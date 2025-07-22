@@ -1,0 +1,288 @@
+@startuml
+!theme mono
+
+title 프로파일 서비스 - 멤버 관리 내부 시퀀스
+
+actor Client as client
+participant MemberController as controller
+participant MemberService as service  
+participant MemberRepository as repository
+database RedisCache as cache
+database PostgreSQL as db
+
+== 1. 멤버 목록 조회 (GET /api/profile/members) ==
+
+client -> controller : GET /api/profile/members
+activate controller
+
+controller -> service : getAllMembers()
+activate service
+
+' 캐시에서 멤버 목록 조회 시도
+service -> cache : get("profile:members:list")
+activate cache
+cache --> service : List<Member> (캐시 히트 시)
+deactivate cache
+
+alt 캐시 미스인 경우
+    service -> repository : findAll()
+    activate repository
+    repository -> db : SELECT * FROM members WHERE deleted_at IS NULL
+    activate db
+    db --> repository : List<MemberEntity>
+    deactivate db
+    repository --> service : List<Member> (도메인 변환)
+    deactivate repository
+    
+    ' 조회 결과를 캐시에 저장 (TTL: 1시간)
+    service -> cache : setex("profile:members:list", 3600, membersList)
+    activate cache
+    cache --> service : OK
+    deactivate cache
+end
+
+service --> controller : List<Member>
+deactivate service
+
+controller --> client : 200 OK, List<Member>
+deactivate controller
+
+== 2. 멤버 등록 (POST /api/profile/members) ==
+
+client -> controller : POST /api/profile/members\n{name, age, healthStatus, preferences}
+activate controller
+
+' 요청 데이터 검증
+controller -> controller : @Valid MemberRequest 검증
+note right : 필수 값, 나이 범위(0-150), 건강상태 Enum 검증
+
+controller -> service : createMember(memberRequest)
+activate service
+
+' 비즈니스 검증 (동일 이름 멤버 중복 확인)
+service -> repository : existsByNameAndDeletedAtIsNull(name)
+activate repository
+repository -> db : SELECT COUNT(*) FROM members\nWHERE name = ? AND deleted_at IS NULL
+activate db
+db --> repository : count
+deactivate db
+repository --> service : boolean exists
+deactivate repository
+
+alt 이름 중복인 경우
+    service --> controller : BusinessException("동일한 이름의 멤버가 이미 존재합니다")
+    controller --> client : 400 Bad Request
+else 정상인 경우
+    ' UUID 생성 및 엔티티 생성
+    service -> service : UUID.randomUUID()
+    service -> service : MemberEntity.create(uuid, request)
+    
+    service -> repository : save(memberEntity)
+    activate repository
+    repository -> db : INSERT INTO members\n(id, name, age, health_status, health_note, preferences, created_at, updated_at)
+    activate db
+    db --> repository : MemberEntity (저장된 데이터)
+    deactivate db
+    repository --> service : Member (도메인 변환)
+    deactivate repository
+    
+    ' 개별 멤버 캐시 저장
+    service -> cache : setex("profile:member:" + memberId, 3600, member)
+    activate cache
+    cache --> service : OK
+    deactivate cache
+    
+    ' 멤버 목록 캐시 무효화 (새 멤버 추가로 목록 변경)
+    service -> cache : del("profile:members:list")
+    activate cache
+    cache --> service : OK
+    deactivate cache
+    
+    service --> controller : Member (생성된 멤버 정보)
+    deactivate service
+    
+    controller --> client : 201 Created, Member
+end
+deactivate controller
+
+== 3. 특정 멤버 조회 (GET /api/profile/members/{memberId}) ==
+
+client -> controller : GET /api/profile/members/{memberId}
+activate controller
+
+' Path Variable UUID 형식 검증
+controller -> controller : @Valid UUID memberId 검증
+
+controller -> service : getMemberById(memberId)
+activate service
+
+' 캐시에서 멤버 정보 조회
+service -> cache : get("profile:member:" + memberId)
+activate cache
+cache --> service : Member (캐시 히트 시)
+deactivate cache
+
+alt 캐시 미스인 경우
+    service -> repository : findByIdAndDeletedAtIsNull(memberId)
+    activate repository
+    repository -> db : SELECT * FROM members\nWHERE id = ? AND deleted_at IS NULL
+    activate db
+    db --> repository : Optional<MemberEntity>
+    deactivate db
+    repository --> service : Optional<Member>
+    deactivate repository
+    
+    alt 멤버가 존재하지 않는 경우
+        service --> controller : EntityNotFoundException("멤버를 찾을 수 없습니다")
+        controller --> client : 404 Not Found
+    else 멤버가 존재하는 경우
+        ' 조회된 멤버를 캐시에 저장
+        service -> cache : setex("profile:member:" + memberId, 3600, member)
+        activate cache
+        cache --> service : OK
+        deactivate cache
+    end
+end
+
+service --> controller : Member
+deactivate service
+
+controller --> client : 200 OK, Member
+deactivate controller
+
+== 4. 멤버 정보 수정 (PUT /api/profile/members/{memberId}) ==
+
+client -> controller : PUT /api/profile/members/{memberId}\n{name, age, healthStatus, preferences}
+activate controller
+
+' 요청 데이터 검증
+controller -> controller : @Valid UUID memberId, @Valid MemberRequest 검증
+
+controller -> service : updateMember(memberId, memberRequest)
+activate service
+
+' 기존 멤버 존재 여부 확인
+service -> repository : findByIdAndDeletedAtIsNull(memberId)
+activate repository
+repository -> db : SELECT * FROM members\nWHERE id = ? AND deleted_at IS NULL
+activate db
+db --> repository : Optional<MemberEntity>
+deactivate db
+repository --> service : Optional<Member>
+deactivate repository
+
+alt 멤버가 존재하지 않는 경우
+    service --> controller : EntityNotFoundException("수정할 멤버를 찾을 수 없습니다")
+    controller --> client : 404 Not Found
+else 멤버가 존재하는 경우
+    ' 이름 변경 시 중복 확인 (기존 멤버는 제외)
+    alt 이름이 변경된 경우
+        service -> repository : existsByNameAndIdNotAndDeletedAtIsNull(newName, memberId)
+        activate repository
+        repository -> db : SELECT COUNT(*) FROM members\nWHERE name = ? AND id != ? AND deleted_at IS NULL
+        activate db
+        db --> repository : count
+        deactivate db
+        repository --> service : boolean exists
+        deactivate repository
+        
+        alt 변경할 이름이 다른 멤버와 중복인 경우
+            service --> controller : BusinessException("동일한 이름의 다른 멤버가 이미 존재합니다")
+            controller --> client : 400 Bad Request
+        end
+    end
+    
+    ' 멤버 정보 업데이트
+    service -> service : member.update(memberRequest)
+    service -> repository : save(updatedMemberEntity)
+    activate repository
+    repository -> db : UPDATE members SET\nname=?, age=?, health_status=?, health_note=?,\npreferences=?, updated_at=?\nWHERE id=?
+    activate db
+    db --> repository : MemberEntity (업데이트된 데이터)
+    deactivate db
+    repository --> service : Member (도메인 변환)
+    deactivate repository
+    
+    ' 개별 멤버 캐시 업데이트
+    service -> cache : setex("profile:member:" + memberId, 3600, updatedMember)
+    activate cache
+    cache --> service : OK
+    deactivate cache
+    
+    ' 멤버 목록 캐시 무효화 (멤버 정보 변경으로 목록 내용 변경)
+    service -> cache : del("profile:members:list")
+    activate cache
+    cache --> service : OK
+    deactivate cache
+    
+    service --> controller : Member (수정된 멤버 정보)
+end
+deactivate service
+
+controller --> client : 200 OK, Member
+deactivate controller
+
+== 5. 멤버 삭제 (DELETE /api/profile/members/{memberId}) ==
+
+client -> controller : DELETE /api/profile/members/{memberId}
+activate controller
+
+' Path Variable UUID 형식 검증
+controller -> controller : @Valid UUID memberId 검증
+
+controller -> service : deleteMember(memberId)
+activate service
+
+' 삭제할 멤버 존재 여부 확인
+service -> repository : findByIdAndDeletedAtIsNull(memberId)
+activate repository
+repository -> db : SELECT * FROM members\nWHERE id = ? AND deleted_at IS NULL
+activate db
+db --> repository : Optional<MemberEntity>
+deactivate db
+repository --> service : Optional<Member>
+deactivate repository
+
+alt 멤버가 존재하지 않는 경우
+    service --> controller : EntityNotFoundException("삭제할 멤버를 찾을 수 없습니다")
+    controller --> client : 404 Not Found
+else 멤버가 존재하는 경우
+    ' 소프트 삭제 수행 (deleted_at 필드 업데이트)
+    service -> repository : softDelete(memberId)
+    activate repository
+    repository -> db : UPDATE members SET\ndeleted_at = CURRENT_TIMESTAMP\nWHERE id = ?
+    activate db
+    db --> repository : 삭제 완료
+    deactivate db
+    repository --> service : 삭제 완료
+    deactivate repository
+    
+    ' 개별 멤버 캐시 삭제
+    service -> cache : del("profile:member:" + memberId)
+    activate cache
+    cache --> service : OK
+    deactivate cache
+    
+    ' 멤버 목록 캐시 무효화 (멤버 삭제로 목록 변경)
+    service -> cache : del("profile:members:list")
+    activate cache
+    cache --> service : OK
+    deactivate cache
+    
+    service --> controller : 삭제 완료
+end
+deactivate service
+
+controller --> client : 204 No Content
+deactivate controller
+
+note over client, db
+  <b>캐시 전략 요약:</b>
+  • 개별 멤버: profile:member:{memberId} (TTL: 1시간)
+  • 멤버 목록: profile:members:list (TTL: 1시간)  
+  • Write-through: 생성/수정 시 캐시 동시 업데이트
+  • Cache-aside: 조회 시 캐시 미스 시 DB 조회 후 캐시 저장
+  • 목록 캐시 무효화: CUD 작업 시 목록 캐시 삭제
+end note
+
+@enduml

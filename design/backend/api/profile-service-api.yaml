@@ -1,0 +1,823 @@
+openapi: 3.0.3
+info:
+  title: 여행 프로파일 서비스 API
+  description: 여행 멤버, 기본 정보, 이동 수단 관리를 위한 RESTful API
+  version: 1.0.0
+  contact:
+    name: TripGen API Support
+    email: api@tripgen.com
+servers:
+  - url: http://localhost:8081
+    description: 개발 서버
+  - url: https://api.tripgen.com/profile
+    description: 운영 서버
+tags:
+  - name: members
+    description: 여행 멤버 관리
+  - name: trips
+    description: 여행 기본 정보 관리
+  - name: transport
+    description: 이동 수단 설정
+
+paths:
+  /api/profile/members:
+    get:
+      x-user-story: RQ-PROF-001
+      x-controller: MemberController
+      tags:
+        - members
+      summary: 여행 멤버 목록 조회
+      description: 등록된 모든 여행 멤버 정보를 조회합니다
+      operationId: getMembers
+      responses:
+        '200':
+          description: 성공적으로 조회됨
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      x-user-story: RQ-PROF-001
+      x-controller: MemberController
+      tags:
+        - members
+      summary: 여행 멤버 등록
+      description: 새로운 여행 멤버를 등록합니다
+      operationId: createMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberRequest'
+      responses:
+        '201':
+          description: 멤버가 성공적으로 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/profile/members/{memberId}:
+    get:
+      x-user-story: RQ-PROF-001
+      x-controller: MemberController
+      tags:
+        - members
+      summary: 특정 멤버 정보 조회
+      description: ID로 특정 멤버 정보를 조회합니다
+      operationId: getMemberById
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '200':
+          description: 성공적으로 조회됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    put:
+      x-user-story: RQ-PROF-001
+      x-controller: MemberController
+      tags:
+        - members
+      summary: 멤버 정보 수정
+      description: 기존 멤버 정보를 수정합니다
+      operationId: updateMember
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberRequest'
+      responses:
+        '200':
+          description: 멤버 정보가 성공적으로 수정됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    delete:
+      x-user-story: RQ-PROF-001
+      x-controller: MemberController
+      tags:
+        - members
+      summary: 멤버 삭제
+      description: 특정 멤버를 삭제합니다
+      operationId: deleteMember
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '204':
+          description: 멤버가 성공적으로 삭제됨
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/profile/trips:
+    get:
+      x-user-story: RQ-PROF-002
+      x-controller: TripController
+      tags:
+        - trips
+      summary: 여행 정보 목록 조회
+      description: 등록된 모든 여행 기본 정보를 조회합니다
+      operationId: getTrips
+      responses:
+        '200':
+          description: 성공적으로 조회됨
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      x-user-story: RQ-PROF-002
+      x-controller: TripController
+      tags:
+        - trips
+      summary: 여행 기본 정보 등록
+      description: 새로운 여행의 기본 정보를 등록합니다
+      operationId: createTrip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripRequest'
+      responses:
+        '201':
+          description: 여행 정보가 성공적으로 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/profile/trips/{tripId}:
+    get:
+      x-user-story: RQ-PROF-002
+      x-controller: TripController
+      tags:
+        - trips
+      summary: 특정 여행 정보 조회
+      description: ID로 특정 여행 정보를 조회합니다
+      operationId: getTripById
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      responses:
+        '200':
+          description: 성공적으로 조회됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    put:
+      x-user-story: RQ-PROF-002
+      x-controller: TripController
+      tags:
+        - trips
+      summary: 여행 정보 수정
+      description: 기존 여행 정보를 수정합니다
+      operationId: updateTrip
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripRequest'
+      responses:
+        '200':
+          description: 여행 정보가 성공적으로 수정됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    delete:
+      x-user-story: RQ-PROF-002
+      x-controller: TripController
+      tags:
+        - trips
+      summary: 여행 삭제
+      description: 특정 여행을 삭제합니다
+      operationId: deleteTrip
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      responses:
+        '204':
+          description: 여행이 성공적으로 삭제됨
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/profile/trips/{tripId}/transport:
+    get:
+      x-user-story: RQ-PROF-003
+      x-controller: TransportController
+      tags:
+        - transport
+      summary: 이동 수단 설정 조회
+      description: 특정 여행의 이동 수단 설정을 조회합니다
+      operationId: getTransportSettings
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      responses:
+        '200':
+          description: 성공적으로 조회됨
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransportSetting'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      x-user-story: RQ-PROF-003
+      x-controller: TransportController
+      tags:
+        - transport
+      summary: 이동 수단 설정 등록
+      description: 여행의 이동 수단을 설정합니다
+      operationId: createTransportSetting
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransportSettingRequest'
+      responses:
+        '201':
+          description: 이동 수단이 성공적으로 설정됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportSetting'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/profile/trips/{tripId}/transport/{transportId}:
+    put:
+      x-user-story: RQ-PROF-003
+      x-controller: TransportController
+      tags:
+        - transport
+      summary: 이동 수단 설정 수정
+      description: 기존 이동 수단 설정을 수정합니다
+      operationId: updateTransportSetting
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+        - $ref: '#/components/parameters/TransportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransportSettingRequest'
+      responses:
+        '200':
+          description: 이동 수단 설정이 성공적으로 수정됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportSetting'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    delete:
+      x-user-story: RQ-PROF-003
+      x-controller: TransportController
+      tags:
+        - transport
+      summary: 이동 수단 설정 삭제
+      description: 특정 이동 수단 설정을 삭제합니다
+      operationId: deleteTransportSetting
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+        - $ref: '#/components/parameters/TransportId'
+      responses:
+        '204':
+          description: 이동 수단 설정이 성공적으로 삭제됨
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      description: 멤버 고유 ID
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      description: 여행 고유 ID
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440001"
+    
+    TransportId:
+      name: transportId
+      in: path
+      required: true
+      description: 이동 수단 설정 고유 ID
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440002"
+
+  schemas:
+    Member:
+      type: object
+      required:
+        - id
+        - name
+        - age
+        - healthStatus
+        - preferences
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 멤버 고유 ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: 멤버 이름
+          minLength: 1
+          maxLength: 50
+          example: "홍길동"
+        age:
+          type: integer
+          description: 멤버 나이
+          minimum: 0
+          maximum: 150
+          example: 30
+        healthStatus:
+          type: string
+          description: 건강 상태
+          enum: [GOOD, CAUTION, LIMITED]
+          example: "GOOD"
+        healthNote:
+          type: string
+          description: 건강 상태 상세 메모
+          maxLength: 500
+          example: "당뇨병 약 복용 중"
+        preferences:
+          type: array
+          description: 선호 활동 목록
+          items:
+            type: string
+            enum: [CULTURE, NATURE, ACTIVITY, FOOD, SHOPPING]
+          example: ["CULTURE", "FOOD"]
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 일시
+          example: "2024-01-15T09:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 일시
+          example: "2024-01-15T10:30:00Z"
+
+    MemberRequest:
+      type: object
+      required:
+        - name
+        - age
+        - healthStatus
+        - preferences
+      properties:
+        name:
+          type: string
+          description: 멤버 이름
+          minLength: 1
+          maxLength: 50
+          example: "홍길동"
+        age:
+          type: integer
+          description: 멤버 나이
+          minimum: 0
+          maximum: 150
+          example: 30
+        healthStatus:
+          type: string
+          description: 건강 상태
+          enum: [GOOD, CAUTION, LIMITED]
+          example: "GOOD"
+        healthNote:
+          type: string
+          description: 건강 상태 상세 메모
+          maxLength: 500
+          example: "당뇨병 약 복용 중"
+        preferences:
+          type: array
+          description: 선호 활동 목록
+          items:
+            type: string
+            enum: [CULTURE, NATURE, ACTIVITY, FOOD, SHOPPING]
+          example: ["CULTURE", "FOOD"]
+
+    Trip:
+      type: object
+      required:
+        - id
+        - tripName
+        - startDate
+        - endDate
+        - origin
+        - destination
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 여행 고유 ID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        tripName:
+          type: string
+          description: 여행 이름
+          minLength: 1
+          maxLength: 100
+          example: "2024년 제주도 가족여행"
+        startDate:
+          type: string
+          format: date
+          description: 여행 시작일
+          example: "2024-07-01"
+        endDate:
+          type: string
+          format: date
+          description: 여행 종료일
+          example: "2024-07-05"
+        origin:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+        accommodation:
+          $ref: '#/components/schemas/Accommodation'
+        memberIds:
+          type: array
+          description: 참여 멤버 ID 목록
+          items:
+            type: string
+            format: uuid
+          example: ["550e8400-e29b-41d4-a716-446655440000"]
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 일시
+          example: "2024-01-15T09:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 일시
+          example: "2024-01-15T10:30:00Z"
+
+    TripRequest:
+      type: object
+      required:
+        - tripName
+        - startDate
+        - endDate
+        - origin
+        - destination
+      properties:
+        tripName:
+          type: string
+          description: 여행 이름
+          minLength: 1
+          maxLength: 100
+          example: "2024년 제주도 가족여행"
+        startDate:
+          type: string
+          format: date
+          description: 여행 시작일
+          example: "2024-07-01"
+        endDate:
+          type: string
+          format: date
+          description: 여행 종료일
+          example: "2024-07-05"
+        origin:
+          $ref: '#/components/schemas/LocationRequest'
+        destination:
+          $ref: '#/components/schemas/LocationRequest'
+        accommodation:
+          $ref: '#/components/schemas/AccommodationRequest'
+        memberIds:
+          type: array
+          description: 참여 멤버 ID 목록
+          items:
+            type: string
+            format: uuid
+          example: ["550e8400-e29b-41d4-a716-446655440000"]
+
+    Location:
+      type: object
+      required:
+        - country
+        - city
+        - address
+        - latitude
+        - longitude
+      properties:
+        country:
+          type: string
+          description: 국가명
+          example: "대한민국"
+        city:
+          type: string
+          description: 도시명
+          example: "서울"
+        address:
+          type: string
+          description: 상세 주소
+          example: "서울특별시 강남구 테헤란로 123"
+        latitude:
+          type: number
+          format: double
+          description: 위도
+          example: 37.5665
+        longitude:
+          type: number
+          format: double
+          description: 경도
+          example: 126.9780
+
+    LocationRequest:
+      type: object
+      required:
+        - country
+        - city
+      properties:
+        country:
+          type: string
+          description: 국가명
+          example: "대한민국"
+        city:
+          type: string
+          description: 도시명
+          example: "서울"
+        address:
+          type: string
+          description: 상세 주소
+          example: "서울특별시 강남구 테헤란로 123"
+
+    Accommodation:
+      type: object
+      required:
+        - name
+        - address
+      properties:
+        name:
+          type: string
+          description: 숙소명
+          example: "제주 신라호텔"
+        address:
+          type: string
+          description: 숙소 주소
+          example: "제주특별자치도 서귀포시 중문관광로 72번길 75"
+        phone:
+          type: string
+          description: 연락처
+          example: "064-735-5114"
+        checkInTime:
+          type: string
+          pattern: "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+          description: 체크인 시간 (HH:MM)
+          example: "15:00"
+        checkOutTime:
+          type: string
+          pattern: "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+          description: 체크아웃 시간 (HH:MM)
+          example: "11:00"
+
+    AccommodationRequest:
+      type: object
+      required:
+        - name
+        - address
+      properties:
+        name:
+          type: string
+          description: 숙소명
+          example: "제주 신라호텔"
+        address:
+          type: string
+          description: 숙소 주소
+          example: "제주특별자치도 서귀포시 중문관광로 72번길 75"
+        phone:
+          type: string
+          description: 연락처
+          example: "064-735-5114"
+        checkInTime:
+          type: string
+          pattern: "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+          description: 체크인 시간 (HH:MM)
+          example: "15:00"
+        checkOutTime:
+          type: string
+          pattern: "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+          description: 체크아웃 시간 (HH:MM)
+          example: "11:00"
+
+    TransportSetting:
+      type: object
+      required:
+        - id
+        - tripId
+        - transportType
+        - isDefault
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 이동 수단 설정 고유 ID
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        tripId:
+          type: string
+          format: uuid
+          description: 여행 ID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        date:
+          type: string
+          format: date
+          description: 특정 날짜 (null이면 전체 기간)
+          example: "2024-07-02"
+        transportType:
+          type: string
+          description: 이동 수단 유형
+          enum: [PUBLIC_TRANSPORT, PRIVATE_CAR, WALKING, BICYCLE, TAXI]
+          example: "PUBLIC_TRANSPORT"
+        isDefault:
+          type: boolean
+          description: 기본 이동 수단 여부
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 일시
+          example: "2024-01-15T09:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 일시
+          example: "2024-01-15T10:30:00Z"
+
+    TransportSettingRequest:
+      type: object
+      required:
+        - transportType
+      properties:
+        date:
+          type: string
+          format: date
+          description: 특정 날짜 (null이면 전체 기간)
+          example: "2024-07-02"
+        transportType:
+          type: string
+          description: 이동 수단 유형
+          enum: [PUBLIC_TRANSPORT, PRIVATE_CAR, WALKING, BICYCLE, TAXI]
+          example: "PUBLIC_TRANSPORT"
+        isDefault:
+          type: boolean
+          description: 기본 이동 수단 여부
+          default: false
+          example: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: 오류 발생 시간
+          example: "2024-01-15T10:30:00Z"
+        status:
+          type: integer
+          description: HTTP 상태 코드
+          example: 400
+        error:
+          type: string
+          description: 오류 유형
+          example: "Bad Request"
+        message:
+          type: string
+          description: 오류 메시지
+          example: "나이는 0 이상 150 이하여야 합니다"
+        path:
+          type: string
+          description: 요청 경로
+          example: "/api/profile/members"
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    NotFound:
+      description: 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    InternalServerError:
+      description: 서버 내부 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

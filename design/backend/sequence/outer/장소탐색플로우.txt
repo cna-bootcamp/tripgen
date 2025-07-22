@@ -1,0 +1,124 @@
+@startuml
+!theme mono
+
+title 장소탐색플로우 - 외부 시퀀스 다이어그램
+
+participant User as U
+participant "API Gateway" as GW
+participant "Location Service" as LOC
+participant "Redis Cache" as CACHE
+participant "카카오 MCP" as KAKAO
+participant "구글 MCP" as GOOGLE
+
+== 1. 주변 장소 검색 ==
+U -> GW: GET /places/search/nearby\n(위도, 경도, 반경, 카테고리)
+note right: 현재 위치 기반으로\n주변 장소 검색
+GW -> LOC: 주변 장소 검색 요청
+
+alt 캐시 확인
+    LOC -> CACHEE: 캐시 조회\n(location:nearby:{lat}:{lng}:{radius})
+    note right: Cache-aside 패턴 적용\nTTL: 5분
+end
+
+alt 캐시 미스 시
+    LOC -> LOC: Circuit Breaker 상태 확인
+    note right: CLOSED 상태 확인
+    
+    LOC -> KAKAO: 주변 장소 검색 API 호출
+    note right: 카카오 로컬 API 사용\n반경 내 장소 조회
+    
+    LOC -> CACHEE: 검색 결과 캐싱
+    note right: 검색 결과를\nRedis에 저장
+end
+
+== 2. 다국어 장소 검색 ==
+U -> GW: GET /places/search/multilingual\n(검색어, 원본언어, 대상언어)
+note right: 여러 언어로\n장소 검색 지원
+GW -> LOC: 다국어 검색 요청
+
+LOC -> CACHEE: 캐시 조회\n(search:multilingual:{query}:{lang})
+
+alt 캐시 미스 시
+    LOC -> LOC: Circuit Breaker 상태 확인
+    
+    alt 구글 MCP 사용
+        LOC -> GOOGLE: 다국어 번역 API 호출
+        note right: 검색어 번역
+        
+        LOC -> GOOGLE: Places API 검색
+        note right: 번역된 검색어로\n장소 검색
+    else 카카오 MCP 대체
+        LOC -> KAKAO: 로컬 검색 API 호출
+        note right: Fallback 처리\n카카오 API 사용
+    end
+    
+    LOC -> CACHEE: 검색 결과 캐싱
+end
+
+== 3. 실시간 정보 검증 ==
+U -> GW: POST /places/{placeId}/validate\n(검증 옵션)
+note right: 영업시간, 영업상태\n최신 정보 검증
+GW -> LOC: 장소 정보 검증 요청
+
+LOC -> LOC: Circuit Breaker 상태 확인
+note right: 외부 API 호출 전\n상태 체크
+
+alt Circuit Breaker CLOSED
+    LOC -> KAKAO: 장소 상세 정보 조회
+    note right: 실시간 영업 정보
+    
+    LOC -> GOOGLE: Places Details API
+    note right: 리뷰, 평점 정보
+    
+    LOC -> LOC: 정보 검증 및 통합
+    note right: 양쪽 API 결과\n비교 검증
+    
+    LOC -> CACHEE: 검증된 정보 갱신
+    note right: 캐시 무효화 후\n새 데이터 저장
+else Circuit Breaker OPEN
+    LOC -> CACHEE: 캐시된 정보 반환
+    note right: 장애 시 캐시 데이터\n우선 제공
+end
+
+== 4. 지역 기반 추천 ==
+U -> GW: GET /places/recommendations/regional\n(지역코드, 선호도, 시간대)
+note right: 지역 특성과 사용자\n선호도 기반 추천
+GW -> LOC: 지역 기반 추천 요청
+
+LOC -> CACHEE: 추천 캐시 조회\n(recommend:regional:{region}:{preferences})
+note right: TTL: 30분
+
+alt 캐시 미스 시
+    LOC -> LOC: Circuit Breaker 체크
+    
+    group 병렬 API 호출
+        LOC -> KAKAO: 지역 인기 장소 조회
+        note right: 카카오 트렌드 API
+        LOC -> GOOGLE: 지역 추천 장소 조회
+        note right: Google 추천 API
+    end
+    
+    LOC -> LOC: 추천 알고리즘 적용
+    note right: 사용자 선호도와\n지역 특성 매칭
+    
+    LOC -> CACHE: 추천 결과 캐싱
+end
+
+== Circuit Breaker 동작 ==
+note over LOC
+Circuit Breaker 설정
+- Failure Threshold: 5회
+- Reset Timeout: 60초
+- Monitoring Period: 60초
+end note
+
+== 캐시 전략 ==
+note over CACHE
+Cache TTL 설정
+- 주변 검색: 5분
+- 다국어 검색: 10분
+- 장소 상세: 1시간
+- 지역 추천: 30분
+end note
+
+@enduml

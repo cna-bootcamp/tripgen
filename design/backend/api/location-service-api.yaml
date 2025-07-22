@@ -1,0 +1,1125 @@
+openapi: 3.0.3
+info:
+  title: Location Service API
+  description: 장소 검색, 정보 조회, 추천 서비스를 제공하는 API
+  version: 1.0.0
+  contact:
+    name: TripGen Team
+    email: support@tripgen.com
+
+servers:
+  - url: https://api.tripgen.com/v1
+    description: Production server
+  - url: http://localhost:8083
+    description: Development server
+
+tags:
+  - name: places
+    description: 장소 검색 및 정보 조회
+  - name: recommendations
+    description: 장소 추천
+  - name: validation
+    description: 장소 정보 검증
+
+paths:
+  /places/search/nearby:
+    get:
+      tags:
+        - places
+      summary: 주변 장소 검색
+      description: 현재 위치 기준으로 거리, 카테고리, 이동수단별 장소 검색
+      operationId: searchNearbyPlaces
+      x-user-story: RQ-LOC-001
+      x-controller: LocationController
+      x-mcp-provider: auto
+      x-cache-ttl: 3600
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          description: 검색 중심점 위도
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 37.5665
+        - name: longitude
+          in: query
+          required: true
+          description: 검색 중심점 경도
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 126.9780
+        - name: radius
+          in: query
+          required: false
+          description: 검색 반경 (미터)
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 50000
+            default: 1000
+        - name: categories
+          in: query
+          required: false
+          description: 장소 카테고리 (복수 선택 가능)
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - restaurant
+                - cafe
+                - tourist_attraction
+                - accommodation
+                - shopping
+                - entertainment
+                - transportation
+                - hospital
+                - pharmacy
+                - bank
+                - convenience_store
+          style: form
+          explode: true
+        - name: transport_mode
+          in: query
+          required: false
+          description: 이동수단별 접근성 필터
+          schema:
+            type: string
+            enum:
+              - walking
+              - driving
+              - transit
+              - cycling
+            default: walking
+        - name: max_travel_time
+          in: query
+          required: false
+          description: 최대 이동 시간 (분)
+          schema:
+            type: integer
+            minimum: 5
+            maximum: 120
+        - name: sort_by
+          in: query
+          required: false
+          description: 정렬 기준
+          schema:
+            type: string
+            enum:
+              - distance
+              - rating
+              - popularity
+              - relevance
+            default: distance
+        - name: page
+          in: query
+          required: false
+          description: 페이지 번호
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          required: false
+          description: 페이지 크기
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: language
+          in: query
+          required: false
+          description: 결과 언어 코드
+          schema:
+            type: string
+            pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+            default: ko
+            example: ko
+      responses:
+        '200':
+          description: 검색 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /places/{placeId}:
+    get:
+      tags:
+        - places
+      summary: 장소 상세 정보 조회
+      description: 특정 장소의 상세 정보 조회 (영업시간, 평점, 리뷰 포함)
+      operationId: getPlaceDetails
+      x-user-story: RQ-LOC-002
+      x-controller: LocationController
+      x-mcp-provider: auto
+      x-cache-ttl: 1800
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          description: 장소 ID
+          schema:
+            type: string
+        - name: include_reviews
+          in: query
+          required: false
+          description: 리뷰 포함 여부
+          schema:
+            type: boolean
+            default: true
+        - name: include_photos
+          in: query
+          required: false
+          description: 사진 포함 여부
+          schema:
+            type: boolean
+            default: true
+        - name: language
+          in: query
+          required: false
+          description: 결과 언어 코드
+          schema:
+            type: string
+            pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+            default: ko
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /places/{placeId}/validate:
+    post:
+      tags:
+        - validation
+      summary: 장소 정보 실시간 검증
+      description: 장소의 영업시간, 영업 상태, 최신 정보 검증
+      operationId: validatePlaceInfo
+      x-user-story: RQ-LOC-002
+      x-controller: LocationController
+      x-mcp-provider: auto
+      x-circuit-breaker-timeout: 5000
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          description: 장소 ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationRequest'
+      responses:
+        '200':
+          description: 검증 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /places/recommendations/regional:
+    get:
+      tags:
+        - recommendations
+      summary: 지역 특성 기반 장소 추천
+      description: 지역의 특성과 사용자 선호도를 기반으로 장소 추천
+      operationId: getRegionalRecommendations
+      x-user-story: RQ-LOC-003
+      x-controller: LocationController
+      x-mcp-provider: auto
+      x-cache-ttl: 7200
+      parameters:
+        - name: region_code
+          in: query
+          required: true
+          description: 지역 코드
+          schema:
+            type: string
+            example: "KR-11"
+        - name: user_preferences
+          in: query
+          required: false
+          description: 사용자 선호 카테고리
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: time_of_day
+          in: query
+          required: false
+          description: 시간대별 추천
+          schema:
+            type: string
+            enum:
+              - morning
+              - afternoon
+              - evening
+              - night
+        - name: season
+          in: query
+          required: false
+          description: 계절별 추천
+          schema:
+            type: string
+            enum:
+              - spring
+              - summer
+              - autumn
+              - winter
+        - name: weather
+          in: query
+          required: false
+          description: 날씨별 추천
+          schema:
+            type: string
+            enum:
+              - sunny
+              - cloudy
+              - rainy
+              - snowy
+        - name: limit
+          in: query
+          required: false
+          description: 추천 개수
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 30
+            default: 10
+        - name: language
+          in: query
+          required: false
+          description: 결과 언어 코드
+          schema:
+            type: string
+            pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+            default: ko
+      responses:
+        '200':
+          description: 추천 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /places/search/multilingual:
+    get:
+      tags:
+        - places
+      summary: 다국어 장소 검색
+      description: 여러 언어로 장소 검색 지원
+      operationId: searchMultilingual
+      x-user-story: RQ-LOC-004
+      x-controller: LocationController
+      x-mcp-provider: auto
+      x-cache-ttl: 3600
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: 검색어
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+        - name: source_language
+          in: query
+          required: false
+          description: 검색어 언어 (자동 감지 시 생략)
+          schema:
+            type: string
+            pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+        - name: target_languages
+          in: query
+          required: false
+          description: 결과 언어 목록
+          schema:
+            type: array
+            items:
+              type: string
+              pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+            default: ["ko", "en", "ja", "zh"]
+          style: form
+          explode: true
+        - name: location
+          in: query
+          required: false
+          description: 검색 중심 위치 (latitude,longitude)
+          schema:
+            type: string
+            pattern: '^-?\d+\.?\d*,-?\d+\.?\d*$'
+            example: "37.5665,126.9780"
+        - name: radius
+          in: query
+          required: false
+          description: 검색 반경 (미터)
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 50000
+            default: 5000
+        - name: page
+          in: query
+          required: false
+          description: 페이지 번호
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          required: false
+          description: 페이지 크기
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: 검색 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultilingualSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    PlaceSearchResponse:
+      type: object
+      required:
+        - places
+        - pagination
+        - search_metadata
+      properties:
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        search_metadata:
+          $ref: '#/components/schemas/SearchMetadata'
+
+    PlaceSummary:
+      type: object
+      required:
+        - id
+        - name
+        - location
+        - category
+      properties:
+        id:
+          type: string
+          description: 장소 고유 ID
+        name:
+          type: string
+          description: 장소명
+        description:
+          type: string
+          description: 간단한 설명
+        category:
+          type: string
+          description: 장소 카테고리
+        sub_categories:
+          type: array
+          items:
+            type: string
+          description: 세부 카테고리
+        location:
+          $ref: '#/components/schemas/Location'
+        distance:
+          type: number
+          format: double
+          description: 검색 중심점으로부터의 거리 (미터)
+        travel_time:
+          type: object
+          properties:
+            walking:
+              type: integer
+              description: 도보 이동 시간 (분)
+            driving:
+              type: integer
+              description: 차량 이동 시간 (분)
+            transit:
+              type: integer
+              description: 대중교통 이동 시간 (분)
+        rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+          description: 평점
+        review_count:
+          type: integer
+          description: 리뷰 수
+        price_level:
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: 가격대 (1=저렴, 4=비쌈)
+        is_open_now:
+          type: boolean
+          description: 현재 영업 중 여부
+        thumbnail_url:
+          type: string
+          format: uri
+          description: 썸네일 이미지 URL
+        tags:
+          type: array
+          items:
+            type: string
+          description: 태그 목록
+
+    PlaceDetails:
+      type: object
+      required:
+        - id
+        - name
+        - location
+        - category
+      properties:
+        id:
+          type: string
+          description: 장소 고유 ID
+        name:
+          type: string
+          description: 장소명
+        description:
+          type: string
+          description: 상세 설명
+        category:
+          type: string
+          description: 장소 카테고리
+        sub_categories:
+          type: array
+          items:
+            type: string
+        location:
+          $ref: '#/components/schemas/Location'
+        contact:
+          $ref: '#/components/schemas/Contact'
+        business_hours:
+          $ref: '#/components/schemas/BusinessHours'
+        rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        review_summary:
+          $ref: '#/components/schemas/ReviewSummary'
+        price_info:
+          $ref: '#/components/schemas/PriceInfo'
+        amenities:
+          type: array
+          items:
+            type: string
+          description: 편의시설 목록
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Photo'
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        popular_times:
+          type: array
+          items:
+            $ref: '#/components/schemas/PopularTime'
+        website:
+          type: string
+          format: uri
+        reservation_url:
+          type: string
+          format: uri
+        tags:
+          type: array
+          items:
+            type: string
+        last_updated:
+          type: string
+          format: date-time
+          description: 정보 최종 업데이트 시간
+
+    Location:
+      type: object
+      required:
+        - latitude
+        - longitude
+        - address
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        address:
+          type: string
+          description: 전체 주소
+        street_address:
+          type: string
+          description: 도로명 주소
+        postal_code:
+          type: string
+          description: 우편번호
+        country:
+          type: string
+          description: 국가 코드
+        region:
+          type: string
+          description: 지역/도시
+        district:
+          type: string
+          description: 구/군
+        neighborhood:
+          type: string
+          description: 동/읍/면
+
+    Contact:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: 전화번호
+        email:
+          type: string
+          format: email
+        social_media:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+
+    BusinessHours:
+      type: object
+      properties:
+        regular_hours:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/TimeSlot'
+        special_hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpecialHour'
+        timezone:
+          type: string
+          description: 시간대
+          example: "Asia/Seoul"
+        is_24_hours:
+          type: boolean
+          description: 24시간 영업 여부
+
+    TimeSlot:
+      type: object
+      properties:
+        open:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+          example: "09:00"
+        close:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+          example: "22:00"
+        break_start:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        break_end:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+
+    SpecialHour:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        hours:
+          $ref: '#/components/schemas/TimeSlot'
+        is_closed:
+          type: boolean
+
+    ReviewSummary:
+      type: object
+      properties:
+        average_rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        total_reviews:
+          type: integer
+        rating_distribution:
+          type: object
+          properties:
+            '5':
+              type: integer
+            '4':
+              type: integer
+            '3':
+              type: integer
+            '2':
+              type: integer
+            '1':
+              type: integer
+        highlights:
+          type: array
+          items:
+            type: string
+          description: 리뷰 하이라이트 키워드
+
+    PriceInfo:
+      type: object
+      properties:
+        price_level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        average_price:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: "KRW"
+        price_range:
+          type: object
+          properties:
+            min:
+              type: number
+              format: double
+            max:
+              type: number
+              format: double
+
+    Photo:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+        thumbnail_url:
+          type: string
+          format: uri
+        caption:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        uploaded_at:
+          type: string
+          format: date-time
+
+    Review:
+      type: object
+      required:
+        - id
+        - rating
+        - text
+        - created_at
+      properties:
+        id:
+          type: string
+        author:
+          type: string
+        rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        text:
+          type: string
+        language:
+          type: string
+        helpful_count:
+          type: integer
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+        created_at:
+          type: string
+          format: date-time
+
+    PopularTime:
+      type: object
+      properties:
+        day_of_week:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: 요일 (0=일요일, 6=토요일)
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+        popularity:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 혼잡도 (0-100)
+        wait_time:
+          type: integer
+          description: 예상 대기 시간 (분)
+
+    ValidationRequest:
+      type: object
+      properties:
+        validate_business_hours:
+          type: boolean
+          default: true
+        validate_contact_info:
+          type: boolean
+          default: true
+        validate_reviews:
+          type: boolean
+          default: true
+        validate_photos:
+          type: boolean
+          default: false
+        timestamp:
+          type: string
+          format: date-time
+          description: 검증 기준 시간
+
+    ValidationResponse:
+      type: object
+      required:
+        - place_id
+        - validation_timestamp
+        - results
+      properties:
+        place_id:
+          type: string
+        validation_timestamp:
+          type: string
+          format: date-time
+        results:
+          type: object
+          properties:
+            is_operational:
+              type: boolean
+              description: 영업 중 여부
+            business_hours_valid:
+              type: boolean
+            contact_info_valid:
+              type: boolean
+            last_review_date:
+              type: string
+              format: date
+            data_freshness_score:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: 데이터 신선도 점수
+        warnings:
+          type: array
+          items:
+            type: string
+          description: 검증 경고 메시지
+        data_source:
+          type: string
+          enum: [kakao, google, cached]
+          description: 데이터 소스
+
+    RecommendationResponse:
+      type: object
+      required:
+        - recommendations
+        - region_info
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedPlace'
+        region_info:
+          $ref: '#/components/schemas/RegionInfo'
+        recommendation_metadata:
+          type: object
+          properties:
+            algorithm_version:
+              type: string
+            factors_considered:
+              type: array
+              items:
+                type: string
+            generated_at:
+              type: string
+              format: date-time
+
+    RecommendedPlace:
+      allOf:
+        - $ref: '#/components/schemas/PlaceSummary'
+        - type: object
+          properties:
+            recommendation_score:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 1
+              description: 추천 점수
+            recommendation_reasons:
+              type: array
+              items:
+                type: string
+              description: 추천 이유
+            best_visit_time:
+              type: string
+              description: 최적 방문 시간
+
+    RegionInfo:
+      type: object
+      properties:
+        region_code:
+          type: string
+        region_name:
+          type: string
+        characteristics:
+          type: array
+          items:
+            type: string
+          description: 지역 특성
+        popular_categories:
+          type: array
+          items:
+            type: string
+          description: 인기 카테고리
+        seasonal_highlights:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    MultilingualSearchResponse:
+      type: object
+      required:
+        - results
+        - pagination
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              place:
+                $ref: '#/components/schemas/PlaceSummary'
+              multilingual_names:
+                type: object
+                additionalProperties:
+                  type: string
+                description: 언어별 장소명
+              multilingual_descriptions:
+                type: object
+                additionalProperties:
+                  type: string
+                description: 언어별 설명
+              translation_confidence:
+                type: number
+                format: double
+                minimum: 0
+                maximum: 1
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        detected_language:
+          type: string
+          description: 검색어의 감지된 언어
+        translation_warnings:
+          type: array
+          items:
+            type: string
+
+    SearchMetadata:
+      type: object
+      properties:
+        query_id:
+          type: string
+          description: 검색 쿼리 ID
+        total_results:
+          type: integer
+          description: 전체 결과 수
+        search_time_ms:
+          type: integer
+          description: 검색 소요 시간 (밀리초)
+        data_source:
+          type: string
+          enum: [kakao, google, mixed, cached]
+        api_version:
+          type: string
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - size
+        - total_pages
+        - total_elements
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        size:
+          type: integer
+          minimum: 1
+        total_pages:
+          type: integer
+        total_elements:
+          type: integer
+        has_next:
+          type: boolean
+        has_previous:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: 에러 코드
+        message:
+          type: string
+          description: 에러 메시지
+        details:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+          description: 요청 경로
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "BAD_REQUEST"
+            message: "잘못된 요청 파라미터입니다"
+            timestamp: "2024-01-20T10:30:00Z"
+            path: "/places/search/nearby"
+
+    NotFound:
+      description: 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "NOT_FOUND"
+            message: "요청한 장소를 찾을 수 없습니다"
+            timestamp: "2024-01-20T10:30:00Z"
+
+    TooManyRequests:
+      description: 요청 한도 초과
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "RATE_LIMIT_EXCEEDED"
+            message: "API 요청 한도를 초과했습니다"
+            details:
+              retry_after: 60
+            timestamp: "2024-01-20T10:30:00Z"
+
+    InternalServerError:
+      description: 서버 내부 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "INTERNAL_SERVER_ERROR"
+            message: "서버 처리 중 오류가 발생했습니다"
+            timestamp: "2024-01-20T10:30:00Z"
+
+    ServiceUnavailable:
+      description: 서비스 일시 중단
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "SERVICE_UNAVAILABLE"
+            message: "외부 API 서비스에 연결할 수 없습니다"
+            details:
+              provider: "kakao"
+              retry_after: 30
+            timestamp: "2024-01-20T10:30:00Z"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT 토큰을 사용한 인증
+
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API 키를 사용한 인증
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []

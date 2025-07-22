@@ -1,0 +1,1652 @@
+# Azure DevOps 및 운영 아키텍처 설계
+# 여행 일정 생성 서비스 - TripGen
+
+## 1. CI/CD 파이프라인 설계
+
+### 1.1 GitHub Actions 워크플로우 구조
+
+```yaml
+# .github/workflows/ci-cd-pipeline.yml
+name: TripGen CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: tripgenacr.azurecr.io
+  AKS_CLUSTER: tripgen-aks
+  RESOURCE_GROUP: rg-tripgen-prod
+
+jobs:
+  # 1. 코드 품질 검사
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
+      - name: Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          
+  # 2. 빌드 및 테스트
+  build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [profile-service, itinerary-service, place-service]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          
+      - name: Run Tests
+        run: |
+          cd ${{ matrix.service }}
+          ./mvnw test
+          
+      - name: Build Application
+        run: |
+          cd ${{ matrix.service }}
+          ./mvnw clean package
+          
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.service }}
+          path: '**/target/surefire-reports/'
+          
+  # 3. 컨테이너 빌드 및 푸시
+  docker-build:
+    needs: [code-quality, build-test]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [profile-service, itinerary-service, place-service]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+          
+      - name: Build and Push Docker Image
+        run: |
+          cd ${{ matrix.service }}
+          docker build -t ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }} .
+          docker tag ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }} \
+                     ${{ env.REGISTRY }}/${{ matrix.service }}:latest
+          docker push ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ matrix.service }}:latest
+          
+  # 4. 스테이징 배포
+  deploy-staging:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Deploy to Staging AKS
+        run: |
+          az aks get-credentials --resource-group rg-tripgen-staging \
+                                --name tripgen-aks-staging
+          
+          kubectl set image deployment/profile-service \
+                           profile-service=${{ env.REGISTRY }}/profile-service:${{ github.sha }} \
+                           -n staging
+          kubectl set image deployment/itinerary-service \
+                           itinerary-service=${{ env.REGISTRY }}/itinerary-service:${{ github.sha }} \
+                           -n staging
+          kubectl set image deployment/place-service \
+                           place-service=${{ env.REGISTRY }}/place-service:${{ github.sha }} \
+                           -n staging
+                           
+      - name: Run Integration Tests
+        run: |
+          npm install -g newman
+          newman run tests/postman/integration-tests.json \
+                 --environment tests/postman/staging-env.json
+                 
+  # 5. 프로덕션 배포
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Blue-Green Deployment
+        run: |
+          az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} \
+                                --name ${{ env.AKS_CLUSTER }}
+          
+          # 블루-그린 배포 스크립트 실행
+          ./scripts/blue-green-deploy.sh ${{ github.sha }}
+```
+
+### 1.2 배포 전략
+
+#### Blue-Green 배포 스크립트
+```bash
+#!/bin/bash
+# scripts/blue-green-deploy.sh
+
+NEW_VERSION=$1
+SERVICES=("profile-service" "itinerary-service" "place-service")
+
+# 1. Green 환경에 새 버전 배포
+for service in "${SERVICES[@]}"; do
+    kubectl set image deployment/${service}-green \
+            ${service}=${REGISTRY}/${service}:${NEW_VERSION} \
+            -n production
+done
+
+# 2. Green 환경 헬스체크
+for service in "${SERVICES[@]}"; do
+    kubectl wait --for=condition=ready pod \
+            -l app=${service},version=green \
+            -n production \
+            --timeout=300s
+done
+
+# 3. 트래픽 점진적 전환 (Canary)
+for weight in 10 30 50 70 90 100; do
+    kubectl patch service ${service} -n production \
+            -p '{"spec":{"selector":{"version":"green"}}}'
+    
+    # 메트릭 모니터링
+    sleep 60
+    
+    ERROR_RATE=$(kubectl exec prometheus-0 -n monitoring -- \
+                 promtool query instant \
+                 'rate(http_requests_total{status=~"5.."}[1m])')
+    
+    if [ "$ERROR_RATE" -gt "0.01" ]; then
+        echo "Error rate too high, rolling back..."
+        kubectl patch service ${service} -n production \
+                -p '{"spec":{"selector":{"version":"blue"}}}'
+        exit 1
+    fi
+done
+
+# 4. Blue를 이전 버전으로 업데이트
+for service in "${SERVICES[@]}"; do
+    kubectl set image deployment/${service}-blue \
+            ${service}=${REGISTRY}/${service}:${NEW_VERSION} \
+            -n production
+done
+```
+
+## 2. 모니터링 및 로깅 전략
+
+### 2.1 Azure Monitor 구성
+
+#### Application Insights 설정
+```json
+{
+  "applicationInsights": {
+    "instrumentationKey": "${APPINSIGHTS_KEY}",
+    "samplingSettings": {
+      "enabled": true,
+      "percentage": 10.0
+    },
+    "telemetryModules": {
+      "dependencies": {
+        "enabled": true,
+        "enableAutoCollect": true
+      },
+      "performance": {
+        "enabled": true,
+        "collectCounters": [
+          "\\Processor(_Total)\\% Processor Time",
+          "\\Memory\\Available Bytes",
+          "\\Process(??APP_WIN32_PROC??)\\Private Bytes"
+        ]
+      },
+      "requests": {
+        "enabled": true,
+        "trackExceptions": true
+      }
+    }
+  }
+}
+```
+
+#### 커스텀 메트릭 수집
+```java
+// MetricsCollector.java
+@Component
+public class MetricsCollector {
+    private final TelemetryClient telemetryClient;
+    
+    @EventListener
+    public void handleItineraryCreated(ItineraryCreatedEvent event) {
+        // 커스텀 메트릭 전송
+        telemetryClient.trackMetric("itinerary.created", 1,
+            SampleRate.DEFAULT,
+            null,
+            null,
+            null,
+            Map.of(
+                "destination", event.getDestination(),
+                "duration", event.getDuration(),
+                "processing_time", event.getProcessingTime()
+            )
+        );
+    }
+    
+    @Scheduled(fixedRate = 60000)
+    public void collectBusinessMetrics() {
+        // 비즈니스 메트릭 수집
+        Map<String, Double> metrics = Map.of(
+            "active_users", userService.getActiveUserCount(),
+            "pending_itineraries", itineraryService.getPendingCount(),
+            "cache_hit_ratio", cacheService.getHitRatio()
+        );
+        
+        metrics.forEach(telemetryClient::trackMetric);
+    }
+}
+```
+
+### 2.2 로깅 아키텍처
+
+#### Log Analytics 통합
+```yaml
+# fluent-bit-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: monitoring
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         5
+        Log_Level     info
+        Daemon        off
+        
+    [INPUT]
+        Name              tail
+        Path              /var/log/containers/*.log
+        Parser            docker
+        Tag               kube.*
+        Refresh_Interval  5
+        
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Merge_Log           On
+        Keep_Log            Off
+        
+    [OUTPUT]
+        Name            azure_logs_analytics
+        Match           *
+        Customer_ID     ${WORKSPACE_ID}
+        Shared_Key      ${WORKSPACE_KEY}
+        Log_Type        ContainerLogs
+        
+    [OUTPUT]
+        Name            es
+        Match           app.*
+        Host            elasticsearch.monitoring.svc.cluster.local
+        Port            9200
+        Index           tripgen-logs
+        Type            _doc
+```
+
+### 2.3 모니터링 대시보드
+
+#### Grafana 대시보드 구성
+```json
+{
+  "dashboard": {
+    "title": "TripGen Service Dashboard",
+    "panels": [
+      {
+        "title": "Service Health Overview",
+        "targets": [
+          {
+            "expr": "up{job=~\"profile-service|itinerary-service|place-service\"}",
+            "legendFormat": "{{job}}"
+          }
+        ]
+      },
+      {
+        "title": "Request Rate",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{service}} - {{method}} {{path}}"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m])",
+            "legendFormat": "{{service}} - 5xx errors"
+          }
+        ]
+      },
+      {
+        "title": "Response Time (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, http_request_duration_seconds_bucket)",
+            "legendFormat": "{{service}} - p95"
+          }
+        ]
+      },
+      {
+        "title": "AI Processing Queue",
+        "targets": [
+          {
+            "expr": "rabbitmq_queue_messages{queue=\"ai-processing\"}",
+            "legendFormat": "Pending Messages"
+          }
+        ]
+      },
+      {
+        "title": "Cache Performance",
+        "targets": [
+          {
+            "expr": "redis_hits_total / (redis_hits_total + redis_misses_total)",
+            "legendFormat": "Cache Hit Ratio"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## 3. 알림 및 대응 전략
+
+### 3.1 Alert Rules 정의
+
+```yaml
+# alert-rules.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tripgen-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: service-health
+      interval: 30s
+      rules:
+        # 서비스 다운 알림
+        - alert: ServiceDown
+          expr: up{job=~"profile-service|itinerary-service|place-service"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Service {{ $labels.job }} is down"
+            description: "{{ $labels.job }} has been down for more than 2 minutes"
+            
+        # 높은 에러율 알림
+        - alert: HighErrorRate
+          expr: |
+            rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+            team: backend
+          annotations:
+            summary: "High error rate in {{ $labels.service }}"
+            description: "Error rate is {{ $value | humanizePercentage }}"
+            
+        # 응답 시간 저하
+        - alert: SlowResponse
+          expr: |
+            histogram_quantile(0.95, http_request_duration_seconds_bucket) > 2
+          for: 10m
+          labels:
+            severity: warning
+            team: backend
+          annotations:
+            summary: "Slow response time in {{ $labels.service }}"
+            description: "95th percentile response time is {{ $value }}s"
+            
+        # AI 처리 큐 백로그
+        - alert: AIProcessingBacklog
+          expr: rabbitmq_queue_messages{queue="ai-processing"} > 1000
+          for: 15m
+          labels:
+            severity: warning
+            team: ai
+          annotations:
+            summary: "AI processing queue backlog"
+            description: "{{ $value }} messages pending in queue"
+            
+        # 메모리 사용량
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "High memory usage in {{ $labels.pod }}"
+            description: "Memory usage is {{ $value | humanizePercentage }}"
+            
+        # 데이터베이스 연결 풀
+        - alert: DatabaseConnectionPoolExhausted
+          expr: |
+            hikari_connections_active / hikari_connections_max > 0.9
+          for: 5m
+          labels:
+            severity: critical
+            team: backend
+          annotations:
+            summary: "Database connection pool nearly exhausted"
+            description: "{{ $value | humanizePercentage }} of connections in use"
+```
+
+### 3.2 Action Groups 구성
+
+```json
+{
+  "actionGroups": [
+    {
+      "name": "CriticalAlerts",
+      "shortName": "Critical",
+      "enabled": true,
+      "emailReceivers": [
+        {
+          "name": "OnCallTeam",
+          "emailAddress": "oncall@tripgen.com",
+          "useCommonAlertSchema": true
+        }
+      ],
+      "smsReceivers": [
+        {
+          "name": "OnCallPhone",
+          "countryCode": "82",
+          "phoneNumber": "1234567890"
+        }
+      ],
+      "webhookReceivers": [
+        {
+          "name": "PagerDuty",
+          "serviceUri": "https://events.pagerduty.com/v2/enqueue",
+          "useCommonAlertSchema": true
+        },
+        {
+          "name": "Slack",
+          "serviceUri": "https://hooks.slack.com/services/xxx/yyy/zzz",
+          "useCommonAlertSchema": false
+        }
+      ],
+      "logicAppReceivers": [
+        {
+          "name": "AutoRemediation",
+          "resourceId": "/subscriptions/xxx/resourceGroups/rg-tripgen/providers/Microsoft.Logic/workflows/auto-remediation",
+          "callbackUrl": "https://prod-xx.koreacentral.logic.azure.com/workflows/xxx"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 4. 고가용성 및 재해복구
+
+### 4.1 Multi-Region 구성
+
+```yaml
+# traffic-manager-profile.yaml
+{
+  "trafficManagerProfile": {
+    "name": "tripgen-global",
+    "trafficRoutingMethod": "Performance",
+    "dnsConfig": {
+      "relativeName": "tripgen",
+      "ttl": 30
+    },
+    "monitorConfig": {
+      "protocol": "HTTPS",
+      "port": 443,
+      "path": "/health",
+      "intervalInSeconds": 30,
+      "timeoutInSeconds": 10,
+      "toleratedNumberOfFailures": 3
+    },
+    "endpoints": [
+      {
+        "name": "korea-central",
+        "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+        "targetResourceId": "/subscriptions/xxx/resourceGroups/rg-tripgen-kr/providers/Microsoft.Network/publicIPAddresses/pip-aks-kr",
+        "priority": 1,
+        "weight": 100,
+        "endpointLocation": "Korea Central"
+      },
+      {
+        "name": "japan-east",
+        "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+        "targetResourceId": "/subscriptions/xxx/resourceGroups/rg-tripgen-jp/providers/Microsoft.Network/publicIPAddresses/pip-aks-jp",
+        "priority": 2,
+        "weight": 50,
+        "endpointLocation": "Japan East"
+      }
+    ]
+  }
+}
+```
+
+### 4.2 데이터 복제 전략
+
+```yaml
+# cosmos-db-replication.json
+{
+  "databaseAccount": {
+    "name": "tripgen-cosmos",
+    "consistencyPolicy": {
+      "defaultConsistencyLevel": "BoundedStaleness",
+      "maxStalenessPrefix": 100,
+      "maxIntervalInSeconds": 5
+    },
+    "locations": [
+      {
+        "locationName": "Korea Central",
+        "failoverPriority": 0,
+        "isZoneRedundant": true
+      },
+      {
+        "locationName": "Japan East",
+        "failoverPriority": 1,
+        "isZoneRedundant": true
+      }
+    ],
+    "enableAutomaticFailover": true,
+    "enableMultipleWriteLocations": true,
+    "backupPolicy": {
+      "type": "Continuous",
+      "continuousModeProperties": {
+        "tier": "Continuous30Days"
+      }
+    }
+  }
+}
+```
+
+### 4.3 재해복구 절차
+
+```bash
+#!/bin/bash
+# disaster-recovery.sh
+
+# 1. 헬스체크
+check_primary_region() {
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://tripgen-kr.koreacentral.cloudapp.azure.com/health)
+    if [ $STATUS -ne 200 ]; then
+        return 1
+    fi
+    return 0
+}
+
+# 2. 자동 페일오버
+initiate_failover() {
+    echo "Primary region down, initiating failover..."
+    
+    # Traffic Manager 엔드포인트 비활성화
+    az network traffic-manager endpoint update \
+        --name korea-central \
+        --profile-name tripgen-global \
+        --resource-group rg-tripgen-global \
+        --type azureEndpoints \
+        --endpoint-status Disabled
+    
+    # 데이터베이스 페일오버
+    az cosmosdb failover-priority-change \
+        --name tripgen-cosmos \
+        --resource-group rg-tripgen-global \
+        --failover-policies "Japan East"=0 "Korea Central"=1
+    
+    # 캐시 동기화
+    redis-cli -h tripgen-redis-jp.redis.cache.windows.net SLAVEOF NO ONE
+    
+    # DNS 업데이트
+    az network dns record-set a update \
+        --name api \
+        --zone-name tripgen.com \
+        --resource-group rg-tripgen-dns \
+        --set ARecords[0].ipv4Address=$JAPAN_IP
+    
+    # 알림 전송
+    send_alert "Failover completed to Japan East region"
+}
+
+# 3. 데이터 검증
+verify_data_consistency() {
+    echo "Verifying data consistency..."
+    
+    # 주요 데이터 카운트 확인
+    KR_COUNT=$(curl -s https://tripgen-kr.koreacentral.cloudapp.azure.com/api/health/data-count)
+    JP_COUNT=$(curl -s https://tripgen-jp.japaneast.cloudapp.azure.com/api/health/data-count)
+    
+    if [ "$KR_COUNT" != "$JP_COUNT" ]; then
+        send_alert "Data inconsistency detected: KR=$KR_COUNT, JP=$JP_COUNT"
+        return 1
+    fi
+    
+    return 0
+}
+
+# 4. 복구 후 동기화
+post_recovery_sync() {
+    echo "Starting post-recovery synchronization..."
+    
+    # 변경 데이터 캡처 (CDC) b 동기화
+    az datafactory pipeline create-run \
+        --resource-group rg-tripgen-data \
+        --factory-name tripgen-adf \
+        --pipeline-name disaster-recovery-sync
+    
+    # 캐시 재구성
+    redis-cli -h tripgen-redis-kr.redis.cache.windows.net FLUSHALL
+    redis-cli -h tripgen-redis-kr.redis.cache.windows.net --rdb /backup/redis-jp.rdb
+}
+
+# 메인 실행
+while true; do
+    if ! check_primary_region; then
+        initiate_failover
+        verify_data_consistency
+        break
+    fi
+    sleep 30
+done
+```
+
+## 5. 자동 스케일링 정책
+
+### 5.1 Horizontal Pod Autoscaler (HPA)
+
+```yaml
+# hpa-configs.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: profile-service-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: profile-service
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "1000"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 5
+          periodSeconds: 15
+      selectPolicy: Max
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: itinerary-service-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: itinerary-service
+  minReplicas: 5
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: External
+      external:
+        metric:
+          name: rabbitmq_queue_messages
+          selector:
+            matchLabels:
+              queue: "ai-processing"
+        target:
+          type: AverageValue
+          averageValue: "50"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 10
+          periodSeconds: 60
+```
+
+### 5.2 Cluster Autoscaler 구성
+
+```yaml
+# cluster-autoscaler-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-autoscaler-status
+  namespace: kube-system
+data:
+  nodes.min: "3"
+  nodes.max: "50"
+  scale-down-delay-after-add: "10m"
+  scale-down-unneeded-time: "10m"
+  scale-down-utilization-threshold: "0.5"
+  max-node-provision-time: "15m"
+  max-graceful-termination-sec: "600"
+  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+      - image: mcr.microsoft.com/oss/kubernetes/autoscaler/cluster-autoscaler:v1.26.0
+        name: cluster-autoscaler
+        command:
+          - ./cluster-autoscaler
+          - --v=4
+          - --stderrthreshold=info
+          - --cloud-provider=azure
+          - --skip-nodes-with-local-storage=false
+          - --expander=least-waste
+          - --node-group-auto-discovery=label:cluster-autoscaler-enabled=true,cluster-autoscaler-name=tripgen-aks
+          - --balance-similar-node-groups
+          - --scale-down-delay-after-add=10m
+          - --scale-down-unneeded-time=10m
+          - --scale-down-utilization-threshold=0.5
+        env:
+        - name: ARM_SUBSCRIPTION_ID
+          valueFrom:
+            secretKeyRef:
+              name: cluster-autoscaler-azure
+              key: subscription-id
+        - name: ARM_RESOURCE_GROUP
+          value: rg-tripgen-prod
+        - name: ARM_VM_TYPE
+          value: vmss
+```
+
+### 5.3 KEDA 기반 이벤트 드리븐 스케일링
+
+```yaml
+# keda-scalers.yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ai-processor-scaler
+  namespace: production
+spec:
+  scaleTargetRef:
+    name: ai-processor
+  minReplicaCount: 2
+  maxReplicaCount: 50
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+    - type: rabbitmq
+      metadata:
+        host: amqp://tripgen:password@rabbitmq.production.svc.cluster.local:5672
+        queueName: ai-processing
+        queueLength: "10"
+    - type: azure-monitor
+      metadata:
+        resourceURI: /subscriptions/xxx/resourceGroups/rg-tripgen/providers/Microsoft.Insights/metricAlerts/ai-processing-time
+        metricName: ProcessingTime
+        metricAggregationType: Average
+        targetValue: "30"
+        
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: place-cache-warmer-scaler
+  namespace: production
+spec:
+  scaleTargetRef:
+    name: place-cache-warmer
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: cron
+      metadata:
+        timezone: Asia/Seoul
+        start: "0 6 * * *"
+        end: "0 10 * * *"
+        desiredReplicas: "10"
+    - type: redis
+      metadata:
+        address: tripgen-redis.redis.cache.windows.net:6379
+        password: REDIS_PASSWORD
+        listName: cache-warm-queue
+        listLength: "100"
+```
+
+## 6. 비용 최적화 전략
+
+### 6.1 Reserved Instances 및 Savings Plans
+
+```json
+{
+  "costOptimization": {
+    "reservedInstances": [
+      {
+        "vmSize": "Standard_D4s_v3",
+        "term": "3-year",
+        "paymentOption": "All Upfront",
+        "quantity": 10,
+        "estimatedSavings": "72%"
+      },
+      {
+        "vmSize": "Standard_E8s_v3",
+        "term": "1-year",
+        "paymentOption": "Monthly",
+        "quantity": 5,
+        "estimatedSavings": "45%"
+      }
+    ],
+    "savingsPlans": {
+      "computeSavingsPlan": {
+        "commitment": "$500/hour",
+        "term": "3-year",
+        "scope": "Shared",
+        "estimatedSavings": "65%"
+      }
+    }
+  }
+}
+```
+
+### 6.2 Spot Instances 활용
+
+```yaml
+# spot-node-pool.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spot-instance-config
+  namespace: kube-system
+data:
+  nodepool-config: |
+    {
+      "spotNodePools": [
+        {
+          "name": "spot-batch-processing",
+          "vmSize": "Standard_D8s_v3",
+          "minCount": 0,
+          "maxCount": 20,
+          "spotMaxPrice": 0.15,
+          "evictionPolicy": "Delete",
+          "priority": "Spot",
+          "taints": [
+            {
+              "key": "kubernetes.azure.com/scalesetpriority",
+              "value": "spot",
+              "effect": "NoSchedule"
+            }
+          ],
+          "labels": {
+            "workload-type": "batch",
+            "node-type": "spot"
+          }
+        }
+      ]
+    }
+```
+
+### 6.3 비용 모니터링 및 알림
+
+```python
+# cost-monitor.py
+import os
+from azure.mgmt.costmanagement import CostManagementClient
+from azure.identity import DefaultAzureCredential
+from datetime import datetime, timedelta
+import json
+
+class CostMonitor:
+    def __init__(self):
+        self.credential = DefaultAzureCredential()
+        self.client = CostManagementClient(self.credential)
+        self.subscription_id = os.environ['AZURE_SUBSCRIPTION_ID']
+        
+    def get_daily_costs(self):
+        """일일 비용 조회"""
+        query = {
+            "type": "Usage",
+            "timeframe": "MonthToDate",
+            "dataset": {
+                "granularity": "Daily",
+                "aggregation": {
+                    "totalCost": {
+                        "name": "Cost",
+                        "function": "Sum"
+                    }
+                },
+                "grouping": [
+                    {
+                        "type": "Dimension",
+                        "name": "ServiceName"
+                    }
+                ]
+            }
+        }
+        
+        scope = f'/subscriptions/{self.subscription_id}'
+        result = self.client.query.usage(scope, query)
+        return result
+    
+    def check_budget_alerts(self):
+        """예산 초과 확인"""
+        budgets = {
+            "monthly_total": 50000,
+            "daily_limit": 2000,
+            "service_limits": {
+                "Microsoft.ContainerService": 20000,
+                "Microsoft.Compute": 15000,
+                "Microsoft.Storage": 5000,
+                "Microsoft.Cache": 3000
+            }
+        }
+        
+        current_costs = self.get_current_month_costs()
+        alerts = []
+        
+        # 월간 총 예산 확인
+        if current_costs['total'] > budgets['monthly_total'] * 0.8:
+            alerts.append({
+                "type": "WARNING",
+                "message": f"Monthly budget 80% reached: ${current_costs['total']:.2f}"
+            })
+            
+        # 서비스별 예산 확인
+        for service, limit in budgets['service_limits'].items():
+            if service in current_costs['services']:
+                if current_costs['services'][service] > limit * 0.9:
+                    alerts.append({
+                        "type": "CRITICAL",
+                        "message": f"{service} budget 90% reached: ${current_costs['services'][service]:.2f}"
+                    })
+        
+        return alerts
+    
+    def generate_optimization_report(self):
+        """비용 최적화 리포트 생성"""
+        report = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "recommendations": []
+        }
+        
+        # 미사용 리소스 확인
+        unused_resources = self.find_unused_resources()
+        if unused_resources:
+            report["recommendations"].append({
+                "type": "REMOVE_UNUSED",
+                "resources": unused_resources,
+                "estimated_savings": self.calculate_savings(unused_resources)
+            })
+        
+        # 오버프로비저닝된 리소스 확인
+        overprovisioned = self.find_overprovisioned_resources()
+        if overprovisioned:
+            report["recommendations"].append({
+                "type": "RIGHTSIZE",
+                "resources": overprovisioned,
+                "estimated_savings": self.calculate_rightsizing_savings(overprovisioned)
+            })
+        
+        # Spot Instance 기회 확인
+        spot_opportunities = self.find_spot_opportunities()
+        if spot_opportunities:
+            report["recommendations"].append({
+                "type": "USE_SPOT",
+                "workloads": spot_opportunities,
+                "estimated_savings": self.calculate_spot_savings(spot_opportunities)
+            })
+        
+        return report
+
+# 실행 스크립트
+if __name__ == "__main__":
+    monitor = CostMonitor()
+    
+    # 일일 비용 확인
+    daily_costs = monitor.get_daily_costs()
+    print(f"Today's costs: {json.dumps(daily_costs, indent=2)}")
+    
+    # 예산 알림 확인
+    alerts = monitor.check_budget_alerts()
+    for alert in alerts:
+        print(f"[{alert['type']}] {alert['message']}")
+    
+    # 최적화 리포트 생성
+    report = monitor.generate_optimization_report()
+    with open('cost-optimization-report.json', 'w') as f:
+        json.dump(report, f, indent=2)
+```
+
+### 6.4 자동 비용 최적화
+
+```yaml
+# cost-optimization-automation.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-optimization-rules
+  namespace: kube-system
+data:
+  rules.yaml: |
+    optimizationRules:
+      # 개발/테스트 환경 자동 종료
+      - name: shutdown-dev-environments
+        schedule: "0 20 * * 1-5"  # 평일 오후 8시
+        action: scale-to-zero
+        targets:
+          - namespace: development
+          - namespace: testing
+        exceptions:
+          - deployment: critical-test-runner
+      
+      # 주말 스케일 다운
+      - name: weekend-scale-down
+        schedule: "0 22 * * 5"  # 금요일 오후 10시
+        action: scale-down
+        targets:
+          - namespace: production
+            minReplicas: 1
+            services:
+              - profile-service
+              - place-service
+        restore:
+          schedule: "0 6 * * 1"  # 월요일 오전 6시
+      
+      # 캐시 TTL 최적화
+      - name: optimize-cache-ttl
+        trigger: low-traffic
+        threshold: "< 100 rpm"
+        action: extend-cache-ttl
+        parameters:
+          multiplier: 2
+          maxTTL: 3600
+      
+      # 자동 리소스 정리
+      - name: cleanup-orphaned-resources
+        schedule: "0 2 * * *"  # 매일 오전 2시
+        action: delete-orphaned
+        targets:
+          - persistentVolumes
+          - loadBalancers
+          - publicIPs
+        gracePerio: 7d
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cost-optimizer
+  namespace: kube-system
+spec:
+  schedule: "*/30 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: optimizer
+            image: tripgen/cost-optimizer:latest
+            env:
+            - name: RULES_CONFIG
+              value: /config/rules.yaml
+            command:
+            - python
+            - -m
+            - cost_optimizer
+            - --apply-rules
+            volumeMounts:
+            - name: rules
+              mountPath: /config
+          volumes:
+          - name: rules
+            configMap:
+              name: cost-optimization-rules
+```
+
+## 7. 운영 자동화 스크립트
+
+### 7.1 헬스체크 및 자동 복구
+
+```python
+# health-check-automation.py
+import asyncio
+import aiohttp
+from datetime import datetime
+import logging
+from kubernetes import client, config
+import os
+
+class HealthCheckAutomation:
+    def __init__(self):
+        config.load_incluster_config()
+        self.v1 = client.CoreV1Api()
+        self.apps_v1 = client.AppsV1Api()
+        self.services = [
+            "profile-service",
+            "itinerary-service", 
+            "place-service"
+        ]
+        
+    async def check_service_health(self, service_name):
+        """서비스 헬스체크"""
+        url = f"http://{service_name}.production.svc.cluster.local/actuator/health"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=5) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data.get('status') == 'UP'
+                    return False
+        except Exception as e:
+            logging.error(f"Health check failed for {service_name}: {e}")
+            return False
+    
+    async def auto_remediate(self, service_name, issue_type):
+        """자동 복구 수행"""
+        remediation_actions = {
+            "unhealthy": self.restart_pods,
+            "high_memory": self.increase_memory_limit,
+            "connection_pool_exhausted": self.scale_up_service,
+            "slow_response": self.clear_cache
+        }
+        
+        action = remediation_actions.get(issue_type)
+        if action:
+            await action(service_name)
+            
+    async def restart_pods(self, service_name):
+        """Pod 재시작"""
+        try:
+            # Rolling restart
+            self.apps_v1.patch_namespaced_deployment(
+                name=service_name,
+                namespace="production",
+                body={
+                    "spec": {
+                        "template": {
+                            "metadata": {
+                                "annotations": {
+                                    "kubectl.kubernetes.io/restartedAt": datetime.utcnow().isoformat()
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+            logging.info(f"Initiated rolling restart for {service_name}")
+        except Exception as e:
+            logging.error(f"Failed to restart {service_name}: {e}")
+    
+    async def scale_up_service(self, service_name):
+        """서비스 스케일 업"""
+        try:
+            deployment = self.apps_v1.read_namespaced_deployment(
+                name=service_name,
+                namespace="production"
+            )
+            current_replicas = deployment.spec.replicas
+            new_replicas = min(current_replicas * 2, 30)
+            
+            self.apps_v1.patch_namespaced_deployment_scale(
+                name=service_name,
+                namespace="production",
+                body={"spec": {"replicas": new_replicas}}
+            )
+            logging.info(f"Scaled {service_name} from {current_replicas} to {new_replicas} replicas")
+        except Exception as e:
+            logging.error(f"Failed to scale {service_name}: {e}")
+    
+    async def monitor_and_heal(self):
+        """지속적인 모니터링 및 자동 복구"""
+        while True:
+            tasks = []
+            for service in self.services:
+                tasks.append(self.check_and_remediate(service))
+            
+            await asyncio.gather(*tasks)
+            await asyncio.sleep(30)  # 30초마다 체크
+    
+    async def check_and_remediate(self, service_name):
+        """서비스 상태 확인 및 복구"""
+        health = await self.check_service_health(service_name)
+        
+        if not health:
+            logging.warning(f"{service_name} is unhealthy, attempting auto-remediation")
+            await self.auto_remediate(service_name, "unhealthy")
+            
+            # 복구 후 재확인
+            await asyncio.sleep(60)
+            health = await self.check_service_health(service_name)
+            
+            if not health:
+                # 복구 실패 시 알림
+                await self.send_alert(
+                    f"{service_name} auto-remediation failed",
+                    severity="critical"
+                )
+
+# 실행
+if __name__ == "__main__":
+    automation = HealthCheckAutomation()
+    asyncio.run(automation.monitor_and_heal())
+```
+
+### 7.2 배포 검증 자동화
+
+```bash
+#!/bin/bash
+# deployment-validation.sh
+
+NAMESPACE="production"
+SERVICES=("profile-service" "itinerary-service" "place-service")
+DEPLOYMENT_TIMEOUT=300
+HEALTH_CHECK_RETRIES=10
+
+# 컬러 출력
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# 1. 배포 상태 확인
+check_deployment_status() {
+    local service=$1
+    local ready=$(kubectl get deployment $service -n $NAMESPACE -o jsonpath='{.status.readyReplicas}')
+    local desired=$(kubectl get deployment $service -n $NAMESPACE -o jsonpath='{.spec.replicas}')
+    
+    if [ "$ready" == "$desired" ]; then
+        log_info "$service: $ready/$desired replicas ready"
+        return 0
+    else
+        log_warn "$service: $ready/$desired replicas ready"
+        return 1
+    fi
+}
+
+# 2. 헬스체크 수행
+perform_health_check() {
+    local service=$1
+    local endpoint="http://$service.$NAMESPACE.svc.cluster.local/actuator/health"
+    
+    for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
+        response=$(kubectl run curl-test-$RANDOM --rm -i --restart=Never --image=curlimages/curl -- \
+                  curl -s -o /dev/null -w "%{http_code}" $endpoint 2>/dev/null)
+        
+        if [ "$response" == "200" ]; then
+            log_info "$service health check passed"
+            return 0
+        else
+            log_warn "$service health check attempt $i/$HEALTH_CHECK_RETRIES failed (HTTP $response)"
+            sleep 10
+        fi
+    done
+    
+    log_error "$service health check failed after $HEALTH_CHECK_RETRIES attempts"
+    return 1
+}
+
+# 3. 스모크 테스트 실행
+run_smoke_tests() {
+    log_info "Running smoke tests..."
+    
+    # Profile Service 테스트
+    profile_test=$(kubectl run test-profile-$RANDOM --rm -i --restart=Never --image=curlimages/curl -- \
+                   curl -s -X POST http://profile-service.$NAMESPACE.svc.cluster.local/api/profiles \
+                   -H "Content-Type: application/json" \
+                   -d '{"email":"test@example.com","preferences":{"budget":"MEDIUM"}}' 2>/dev/null)
+    
+    if [[ $profile_test == *"profileId"* ]]; then
+        log_info "Profile creation test passed"
+    else
+        log_error "Profile creation test failed"
+        return 1
+    fi
+    
+    # Place Service 테스트
+    place_test=$(kubectl run test-place-$RANDOM --rm -i --restart=Never --image=curlimages/curl -- \
+                 curl -s "http://place-service.$NAMESPACE.svc.cluster.local/api/places/search?query=Seoul" 2>/dev/null)
+    
+    if [[ $place_test == *"places"* ]]; then
+        log_info "Place search test passed"
+    else
+        log_error "Place search test failed"
+        return 1
+    fi
+    
+    return 0
+}
+
+# 4. 성능 기준 확인
+check_performance_baseline() {
+    log_info "Checking performance baseline..."
+    
+    # Prometheus 쿼리로 응답 시간 확인
+    response_time=$(kubectl exec -n monitoring prometheus-0 -- \
+                    promtool query instant \
+                    'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))' | \
+                    awk '{print $2}')
+    
+    if (( $(echo "$response_time < 2.0" | bc -l) )); then
+        log_info "Performance baseline met: p95 response time = ${response_time}s"
+        return 0
+    else
+        log_warn "Performance baseline not met: p95 response time = ${response_time}s"
+        return 1
+    fi
+}
+
+# 5. 롤백 함수
+rollback_deployment() {
+    local service=$1
+    log_warn "Rolling back $service..."
+    
+    kubectl rollout undo deployment/$service -n $NAMESPACE
+    kubectl rollout status deployment/$service -n $NAMESPACE --timeout=${DEPLOYMENT_TIMEOUT}s
+}
+
+# 메인 검증 프로세스
+main() {
+    log_info "Starting deployment validation..."
+    
+    validation_failed=false
+    
+    for service in "${SERVICES[@]}"; do
+        log_info "Validating $service..."
+        
+        # 배포 상태 확인
+        if ! check_deployment_status $service; then
+            log_error "$service deployment not ready"
+            validation_failed=true
+            rollback_deployment $service
+            continue
+        fi
+        
+        # 헬스체크
+        if ! perform_health_check $service; then
+            validation_failed=true
+            rollback_deployment $service
+            continue
+        fi
+    done
+    
+    # 전체 서비스 검증 후 통합 테스트
+    if [ "$validation_failed" = false ]; then
+        if ! run_smoke_tests; then
+            log_error "Smoke tests failed"
+            validation_failed=true
+        fi
+        
+        if ! check_performance_baseline; then
+            log_warn "Performance baseline not met, but continuing..."
+        fi
+    fi
+    
+    if [ "$validation_failed" = true ]; then
+        log_error "Deployment validation failed!"
+        
+        # Slack 알림
+        curl -X POST $SLACK_WEBHOOK_URL \
+             -H 'Content-type: application/json' \
+             -d '{
+                   "text": "🚨 Deployment validation failed for TripGen services",
+                   "attachments": [{
+                     "color": "danger",
+                     "fields": [{
+                       "title": "Environment",
+                       "value": "Production",
+                       "short": true
+                     }]
+                   }]
+                 }'
+        
+        exit 1
+    else
+        log_info "✅ Deployment validation completed successfully!"
+        
+        # Slack 알림
+        curl -X POST $SLACK_WEBHOOK_URL \
+             -H 'Content-type: application/json' \
+             -d '{
+                   "text": "✅ Deployment validation successful for TripGen services",
+                   "attachments": [{
+                     "color": "good",
+                     "fields": [{
+                       "title": "Environment",
+                       "value": "Production",
+                       "short": true
+                     }]
+                   }]
+                 }'
+    fi
+}
+
+# 실행
+main
+```
+
+## 8. 운영 모니터링 대시보드 구성
+
+### 8.1 Grafana 대시보드 JSON
+
+```json
+{
+  "dashboard": {
+    "title": "TripGen Operations Dashboard",
+    "uid": "tripgen-ops",
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Availability",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [{
+          "expr": "avg_over_time(up{job=~\".*-service\"}[5m]) * 100",
+          "legendFormat": "{{job}}"
+        }]
+      },
+      {
+        "id": 2,
+        "title": "Request Rate by Service",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [{
+          "expr": "sum(rate(http_requests_total[5m])) by (service)",
+          "legendFormat": "{{service}}"
+        }]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+        "targets": [{
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) * 100",
+          "legendFormat": "{{service}}"
+        }]
+      },
+      {
+        "id": 4,
+        "title": "Response Time Percentiles",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))",
+            "legendFormat": "{{service}} - p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))",
+            "legendFormat": "{{service}} - p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))",
+            "legendFormat": "{{service}} - p99"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "AI Processing Queue",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "targets": [{
+          "expr": "rabbitmq_queue_messages{queue=\"ai-processing\"}",
+          "legendFormat": "Pending Messages"
+        }]
+      },
+      {
+        "id": 6,
+        "title": "Resource Utilization",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "avg(container_cpu_usage_seconds_total{namespace=\"production\"}) by (pod) * 100",
+            "legendFormat": "{{pod}} - CPU"
+          },
+          {
+            "expr": "avg(container_memory_usage_bytes{namespace=\"production\"}) by (pod) / avg(container_spec_memory_limit_bytes{namespace=\"production\"}) by (pod) * 100",
+            "legendFormat": "{{pod}} - Memory"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Database Connections",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [{
+          "expr": "hikari_connections_active / hikari_connections_max * 100",
+          "legendFormat": "{{service}} - Connection Pool Usage"
+        }]
+      },
+      {
+        "id": 8,
+        "title": "Cache Performance",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "redis_hits_total / (redis_hits_total + redis_misses_total) * 100",
+            "legendFormat": "Cache Hit Ratio"
+          },
+          {
+            "expr": "rate(redis_commands_total[5m])",
+            "legendFormat": "Commands/sec"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Cost Tracking",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [{
+          "expr": "azure_cost_daily_usd",
+          "legendFormat": "{{service_name}}"
+        }]
+      }
+    ]
+  }
+}
+```
+
+이러한 DevOps 및 운영 아키텍처를 통해 TripGen 서비스는 안정적이고 효율적인 운영이 가능하며, 자동화된 배포, 모니터링, 스케일링, 비용 최적화가 구현됩니다.

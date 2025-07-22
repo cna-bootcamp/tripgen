@@ -1,0 +1,55 @@
+@startuml
+!theme mono
+
+title AI일정생성플로우 - 외부 시퀀스 다이어그램
+
+participant "User" as U
+participant "API Gateway" as GW
+participant "Itinerary Service" as IS
+participant "Location Service" as LS
+participant "Redis Cache" as RC
+participant "Job Queue" as JQ
+participant "카카오 MCP" as KM
+participant "구글 MCP" as GM
+
+U -> GW: POST /api/itinerary/trips/{tripId}/itineraries (AI 일정 생성 요청)
+note right: 여행 ID, 생성 옵션, 추가 요구사항 전달
+
+GW -> IS: AI 일정 생성 요청 전달
+
+IS -> RC: 프로파일 정보 조회 (멤버 선호도, 건강상태 등)
+note right: 캐시에서 빠른 조회
+
+IS -> JQ: AI 일정 생성 작업 등록
+note right: 비동기 처리를 위한 작업 큐 등록
+
+JQ -> LS: 여행 지역 장소 정보 요청 (비동기)
+note right: 관광지, 맛집, 숙박 등 카테고리별 정보 수집
+
+LS ->> KM: 카카오 로컬 API 호출 (다중 장소 검색)
+note right: 지역 기반 장소 검색
+
+LS ->> GM: 구글 Places API 호출 (추가 정보 수집)
+note right: 평점, 리뷰, 사진 등
+
+JQ ->> IS: AI 모델로 일정 생성 (수집된 정보 기반)
+note right: 프로파일, 장소 정보, 사용자 추가 요구사항을 기반으로 최적 일정 생성
+
+IS ->> RC: 생성된 일정 캐싱 (임시 저장)
+note right: 처리 결과 캐싱
+
+U -> GW: GET /api/itinerary/trips/{tripId}/itineraries/{jobId}/status (처리 상태 확인)
+note right: 주기적 상태 확인
+
+GW -> IS: 작업 상태 조회
+
+IS -> JQ: 작업 진행 상태 확인
+
+U -> GW: GET /api/itinerary/trips/{tripId}/itineraries (생성된 일정 조회)
+note right: 작업 완료 후 조회
+
+GW -> IS: 일정 목록 조회
+
+IS -> RC: 캐시된 일정 정보 조회
+
+@enduml

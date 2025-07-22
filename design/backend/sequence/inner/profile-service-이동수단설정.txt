@@ -1,0 +1,246 @@
+@startuml
+!theme mono
+title 프로파일 서비스 - 이동수단 설정 내부 시퀀스
+
+actor User as U
+participant TransportController as TC
+participant TransportService as TS
+participant TransportRepository as TR
+participant RedisCache as RC
+participant ValidationUtils as VU
+
+== 이동수단 조회 (GET /api/profile/trips/{tripId}/transport) ==
+
+U -> TC: GET /api/profile/trips/{tripId}/transport
+activate TC
+
+TC -> TS: getTransportSettings(tripId)
+activate TS
+
+TS -> RC: get("transport:settings:" + tripId)
+activate RC
+RC --> TS: 캐시된 데이터 또는 null
+deactivate RC
+
+alt 캐시 히트
+    TS --> TC: List<TransportSetting>
+else 캐시 미스
+    TS -> TR: findByTripId(tripId)
+    activate TR
+    TR --> TS: List<TransportSetting>
+    deactivate TR
+    
+    TS -> RC: set("transport:settings:" + tripId, settings, 1800)
+    activate RC
+    deactivate RC
+    
+    TS --> TC: List<TransportSetting>
+end
+
+deactivate TS
+TC --> U: 200 OK + List<TransportSetting>
+deactivate TC
+
+== 이동수단 설정 등록 (POST /api/profile/trips/{tripId}/transport) ==
+
+U -> TC: POST /api/profile/trips/{tripId}/transport + TransportSettingRequest
+activate TC
+
+TC -> VU: validateTransportRequest(request)
+activate VU
+VU --> TC: 유효성 검증 결과
+deactivate VU
+
+alt 유효성 검증 실패
+    TC --> U: 400 Bad Request + 오류 메시지
+else 유효성 검증 성공
+    TC -> TS: createTransportSetting(tripId, request)
+    activate TS
+    
+    alt isDefault가 true인 경우
+        note right: 기존 기본 이동수단 해제 필요
+        TS -> TR: findByTripIdAndIsDefault(tripId, true)
+        activate TR
+        TR --> TS: 기존 기본 이동수단 (있다면)
+        deactivate TR
+        
+        opt 기존 기본 이동수단이 존재하는 경우
+            TS -> TR: updateDefaultStatus(existingDefault.id, false)
+            activate TR
+            deactivate TR
+            note right: 기존 기본 설정 해제
+        end
+    end
+    
+    alt 날짜 지정된 이동수단인 경우
+        note right: 같은 날짜에 이미 설정된 이동수단 확인
+        TS -> TR: findByTripIdAndDate(tripId, request.date)
+        activate TR
+        TR --> TS: 같은 날짜 기존 설정 (있다면)
+        deactivate TR
+        
+        opt 같은 날짜에 기존 설정 존재
+            TS -> TR: deleteById(existingSetting.id)
+            activate TR
+            deactivate TR
+            note right: 기존 날짜별 설정 삭제
+        end
+    end
+    
+    TS -> TR: save(newTransportSetting)
+    activate TR
+    TR --> TS: 저장된 TransportSetting
+    deactivate TR
+    
+    note right: 캐시 무효화
+    TS -> RC: delete("transport:settings:" + tripId)
+    activate RC
+    deactivate RC
+    
+    TS --> TC: 생성된 TransportSetting
+    deactivate TS
+    
+    TC --> U: 201 Created + TransportSetting
+end
+deactivate TC
+
+== 이동수단 설정 수정 (PUT /api/profile/trips/{tripId}/transport/{transportId}) ==
+
+U -> TC: PUT /api/profile/trips/{tripId}/transport/{transportId} + TransportSettingRequest
+activate TC
+
+TC -> VU: validateTransportRequest(request)
+activate VU
+VU --> TC: 유효성 검증 결과
+deactivate VU
+
+alt 유효성 검증 실패
+    TC --> U: 400 Bad Request + 오류 메시지
+else 유효성 검증 성공
+    TC -> TS: updateTransportSetting(tripId, transportId, request)
+    activate TS
+    
+    TS -> TR: findByIdAndTripId(transportId, tripId)
+    activate TR
+    TR --> TS: 기존 TransportSetting 또는 null
+    deactivate TR
+    
+    alt 이동수단 설정이 존재하지 않음
+        TS --> TC: null
+        TC --> U: 404 Not Found
+    else 이동수단 설정 존재
+        alt 기본 이동수단으로 변경하는 경우
+            TS -> TR: findByTripIdAndIsDefault(tripId, true)
+            activate TR
+            TR --> TS: 기존 기본 이동수단 (있다면)
+            deactivate TR
+            
+            opt 기존 기본 이동수단이 다른 설정인 경우
+                TS -> TR: updateDefaultStatus(existingDefault.id, false)
+                activate TR
+                deactivate TR
+            end
+        end
+        
+        alt 날짜가 변경되는 경우
+            TS -> TR: findByTripIdAndDate(tripId, request.date)
+            activate TR
+            TR --> TS: 같은 날짜 기존 설정 (있다면)
+            deactivate TR
+            
+            opt 같은 날짜에 다른 설정 존재
+                TS -> TR: deleteById(conflictingSetting.id)
+                activate TR
+                deactivate TR
+            end
+        end
+        
+        TS -> TR: save(updatedTransportSetting)
+        activate TR
+        TR --> TS: 수정된 TransportSetting
+        deactivate TR
+        
+        TS -> RC: delete("transport:settings:" + tripId)
+        activate RC
+        deactivate RC
+        
+        TS --> TC: 수정된 TransportSetting
+    end
+    
+    deactivate TS
+    
+    TC --> U: 200 OK + TransportSetting
+end
+deactivate TC
+
+== 이동수단 설정 삭제 (DELETE /api/profile/trips/{tripId}/transport/{transportId}) ==
+
+U -> TC: DELETE /api/profile/trips/{tripId}/transport/{transportId}
+activate TC
+
+TC -> TS: deleteTransportSetting(tripId, transportId)
+activate TS
+
+TS -> TR: findByIdAndTripId(transportId, tripId)
+activate TR
+TR --> TS: 기존 TransportSetting 또는 null
+deactivate TR
+
+alt 이동수단 설정이 존재하지 않음
+    TS --> TC: false
+    TC --> U: 404 Not Found
+else 이동수단 설정 존재
+    note right: 기본 이동수단 삭제 시 경고
+    alt 기본 이동수단을 삭제하는 경우
+        TS -> TR: countByTripId(tripId)
+        activate TR
+        TR --> TS: 전체 이동수단 설정 개수
+        deactivate TR
+        
+        opt 다른 이동수단 설정이 존재하는 경우
+            note right: 다른 설정을 기본으로 자동 설정
+            TS -> TR: findFirstByTripIdAndIdNot(tripId, transportId)
+            activate TR
+            TR --> TS: 다음 우선순위 이동수단
+            deactivate TR
+            
+            TS -> TR: updateDefaultStatus(nextTransport.id, true)
+            activate TR
+            deactivate TR
+        end
+    end
+    
+    TS -> TR: deleteById(transportId)
+    activate TR
+    deactivate TR
+    
+    TS -> RC: delete("transport:settings:" + tripId)
+    activate RC
+    deactivate RC
+    
+    TS --> TC: true (삭제 성공)
+end
+
+deactivate TS
+TC --> U: 204 No Content
+deactivate TC
+
+== 비즈니스 규칙 검증 ==
+
+note over VU
+이동수단 유효성 검증 규칙:
+1. transportType은 PUBLIC_TRANSPORT, PRIVATE_CAR, WALKING, BICYCLE, TAXI 중 하나
+2. date가 지정된 경우 여행 기간 내 날짜여야 함
+3. isDefault가 true인 경우 기존 기본 설정과 충돌 확인
+4. 같은 날짜에 중복 설정 방지
+end note
+
+note over RC
+캐시 관리 전략:
+- Key: "transport:settings:{tripId}"
+- TTL: 1800초 (30분)
+- 설정 변경 시 즉시 무효화
+- 조회 시 캐시 우선 확인
+end note
+
+@enduml

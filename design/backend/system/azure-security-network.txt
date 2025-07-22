@@ -1,0 +1,940 @@
+# Azure 여행 일정 생성 서비스 - 네트워크 및 보안 아키텍처
+
+## 1. 제로 트러스트 보안 모델
+
+### 1.1 핵심 원칙
+```
+- "절대 신뢰하지 않고, 항상 검증한다"
+- 모든 트래픽을 잠재적 위협으로 간주
+- 최소 권한 원칙 적용
+- 지속적인 검증 및 모니터링
+```
+
+### 1.2 구현 전략
+```
+1. 신원 확인
+   - Azure AD 기반 강력한 인증
+   - 조건부 액세스 정책
+   - MFA (Multi-Factor Authentication)
+
+2. 디바이스 보안
+   - 관리되는 디바이스만 접근 허용
+   - 디바이스 컴플라이언스 체크
+   - Microsoft Intune 통합
+
+3. 애플리케이션 보안
+   - 애플리케이션별 접근 제어
+   - API 레벨 보안
+   - 마이크로 세그멘테이션
+
+4. 데이터 보안
+   - 데이터 분류 및 레이블링
+   - 암호화 (전송 중/저장 중)
+   - DLP (Data Loss Prevention)
+```
+
+## 2. Virtual Network (VNet) 설계
+
+### 2.1 VNet 구조
+```
+Hub VNet (10.0.0.0/16)
+├── Management Subnet (10.0.1.0/24)
+│   ├── Azure Bastion
+│   └── Jump Servers
+├── Shared Services Subnet (10.0.2.0/24)
+│   ├── Azure Firewall
+│   └── DNS Servers
+└── Gateway Subnet (10.0.255.0/24)
+    └── VPN/ExpressRoute Gateway
+
+Spoke VNet - Production (10.1.0.0/16)
+├── Web Tier Subnet (10.1.1.0/24)
+│   ├── Application Gateway
+│   └── WAF
+├── App Tier Subnet (10.1.2.0/24)
+│   ├── Profile Service
+│   ├── Itinerary Service
+│   └── Place Service
+├── Data Tier Subnet (10.1.3.0/24)
+│   ├── PostgreSQL Flexible Server
+│   └── Redis Cache
+├── Integration Subnet (10.1.4.0/24)
+│   ├── Service Bus
+│   └── Event Grid
+└── Private Endpoint Subnet (10.1.5.0/24)
+    └── Private Endpoints for PaaS Services
+
+Spoke VNet - Development (10.2.0.0/16)
+└── [Mirror of Production structure]
+```
+
+### 2.2 서브넷 세부 설계
+```yaml
+Management Subnet:
+  purpose: 관리 및 운영 도구
+  services:
+    - Azure Bastion Host
+    - Management VMs
+  nsg_rules:
+    - Allow: HTTPS (443) from Internet to Bastion
+    - Allow: RDP/SSH from Bastion to VMs
+    - Deny: All other inbound
+
+Web Tier Subnet:
+  purpose: 외부 접근점
+  services:
+    - Application Gateway with WAF
+    - API Management (optional)
+  nsg_rules:
+    - Allow: HTTP/HTTPS (80/443) from Internet
+    - Allow: Health probes from Azure Load Balancer
+    - Deny: All other inbound
+
+App Tier Subnet:
+  purpose: 마이크로서비스 실행
+  services:
+    - AKS Node Pool
+    - Container Instances
+  nsg_rules:
+    - Allow: HTTPS (443) from Web Tier
+    - Allow: Internal service communication
+    - Deny: Direct Internet access
+
+Data Tier Subnet:
+  purpose: 데이터베이스 및 캐시
+  services:
+    - PostgreSQL Flexible Server
+    - Redis Cache
+  nsg_rules:
+    - Allow: PostgreSQL (5432) from App Tier
+    - Allow: Redis (6379) from App Tier
+    - Deny: All other access
+
+Private Endpoint Subnet:
+  purpose: PaaS 서비스 프라이빗 연결
+  services:
+    - Private Endpoints for Storage
+    - Private Endpoints for Key Vault
+    - Private Endpoints for Service Bus
+  nsg_rules:
+    - Allow: HTTPS (443) from App Tier
+    - Deny: All other access
+```
+
+## 3. Network Security Groups (NSG) 규칙
+
+### 3.1 계층별 NSG 정책
+```yaml
+NSG-Web-Tier:
+  inbound_rules:
+    - priority: 100
+      name: Allow-HTTPS-Internet
+      source: Internet
+      destination: Web-Subnet
+      port: 443
+      protocol: TCP
+      action: Allow
+    
+    - priority: 110
+      name: Allow-HTTP-Internet
+      source: Internet
+      destination: Web-Subnet
+      port: 80
+      protocol: TCP
+      action: Allow
+    
+    - priority: 200
+      name: Allow-HealthProbe
+      source: AzureLoadBalancer
+      destination: Web-Subnet
+      port: Any
+      protocol: Any
+      action: Allow
+    
+    - priority: 4096
+      name: Deny-All
+      source: Any
+      destination: Any
+      port: Any
+      protocol: Any
+      action: Deny
+
+NSG-App-Tier:
+  inbound_rules:
+    - priority: 100
+      name: Allow-Web-Tier
+      source: Web-Subnet
+      destination: App-Subnet
+      port: 443
+      protocol: TCP
+      action: Allow
+    
+    - priority: 110
+      name: Allow-Internal-Communication
+      source: App-Subnet
+      destination: App-Subnet
+      port: Any
+      protocol: Any
+      action: Allow
+    
+    - priority: 4096
+      name: Deny-All
+      source: Any
+      destination: Any
+      port: Any
+      protocol: Any
+      action: Deny
+
+NSG-Data-Tier:
+  inbound_rules:
+    - priority: 100
+      name: Allow-PostgreSQL
+      source: App-Subnet
+      destination: Data-Subnet
+      port: 5432
+      protocol: TCP
+      action: Allow
+    
+    - priority: 110
+      name: Allow-Redis
+      source: App-Subnet
+      destination: Data-Subnet
+      port: 6379
+      protocol: TCP
+      action: Allow
+    
+    - priority: 4096
+      name: Deny-All
+      source: Any
+      destination: Any
+      port: Any
+      protocol: Any
+      action: Deny
+```
+
+### 3.2 애플리케이션 보안 그룹 (ASG)
+```yaml
+ASG-ProfileService:
+  description: Profile 마이크로서비스 그룹
+  members: Profile Service Pods/Containers
+
+ASG-ItineraryService:
+  description: Itinerary 마이크로서비스 그룹
+  members: Itinerary Service Pods/Containers
+
+ASG-PlaceService:
+  description: Place 마이크로서비스 그룹
+  members: Place Service Pods/Containers
+
+# ASG 기반 규칙 예시
+NSG-App-Tier-Enhanced:
+  inbound_rules:
+    - name: Allow-Profile-to-Database
+      source: ASG-ProfileService
+      destination: Data-Subnet
+      port: 5432
+      protocol: TCP
+      action: Allow
+    
+    - name: Allow-Itinerary-to-Cache
+      source: ASG-ItineraryService
+      destination: Data-Subnet
+      port: 6379
+      protocol: TCP
+      action: Allow
+```
+
+## 4. Azure Key Vault 시크릿 관리
+
+### 4.1 Key Vault 구조
+```yaml
+KeyVault-TripGen-Prod:
+  location: Korea Central
+  sku: Premium (HSM-backed)
+  access_policies:
+    - object_id: AKS-Service-Principal
+      permissions:
+        secrets: [get, list]
+        certificates: [get, list]
+    
+    - object_id: DevOps-Service-Principal
+      permissions:
+        secrets: [get, list, set, delete]
+        certificates: [get, list, create, delete]
+
+  network_rules:
+    default_action: Deny
+    ip_rules: []
+    virtual_network_rules:
+      - subnet_id: App-Tier-Subnet
+      - subnet_id: Private-Endpoint-Subnet
+```
+
+### 4.2 시크릿 관리 전략
+```yaml
+Secret Categories:
+  1. Database Credentials:
+     - postgresql-admin-password
+     - postgresql-app-password
+     - redis-primary-key
+     
+  2. API Keys:
+     - openai-api-key
+     - google-maps-api-key
+     - weather-api-key
+     
+  3. Service Principal:
+     - aks-sp-client-id
+     - aks-sp-client-secret
+     
+  4. Certificates:
+     - tls-cert-tripgen
+     - api-gateway-ssl-cert
+     
+  5. Connection Strings:
+     - servicebus-connection-string
+     - storage-connection-string
+
+Rotation Policy:
+  - Database Passwords: 90 days
+  - API Keys: 180 days
+  - Service Principal: 365 days
+  - Certificates: Before expiry - 30 days
+
+Integration Pattern:
+  - Use AAD Pod Identity for AKS
+  - Key Vault CSI Driver for secret mounting
+  - Managed Identity for Azure services
+```
+
+### 4.3 Key Vault 보안 설정
+```yaml
+Security Configuration:
+  - Soft Delete: Enabled (90 days retention)
+  - Purge Protection: Enabled
+  - RBAC Authorization: Enabled
+  - Private Endpoint: Required
+  - Firewall Rules: Whitelist only
+  - Diagnostic Logs: Enabled
+  - Threat Detection: Enabled
+
+Access Pattern:
+  Application -> Managed Identity -> Key Vault Private Endpoint -> Secrets
+```
+
+## 5. Azure Active Directory (AAD) 인증 플로우
+
+### 5.1 인증 아키텍처
+```yaml
+External Users:
+  flow: User -> App Gateway -> AAD B2C -> API
+  methods:
+    - Social Login (Google, Facebook)
+    - Email/Password
+    - Phone Number OTP
+  
+Internal Services:
+  flow: Service -> Managed Identity -> AAD -> Resource
+  methods:
+    - System Assigned Managed Identity
+    - User Assigned Managed Identity
+
+Admin Users:
+  flow: Admin -> AAD -> Conditional Access -> PIM -> Resource
+  methods:
+    - MFA Required
+    - Device Compliance
+    - Location Based Access
+```
+
+### 5.2 OAuth 2.0 / OIDC 구현
+```yaml
+Authorization Server:
+  endpoint: https://login.microsoftonline.com/{tenant-id}
+  
+Token Endpoints:
+  - /oauth2/v2.0/authorize
+  - /oauth2/v2.0/token
+  - /.well-known/openid-configuration
+
+Client Configuration:
+  Frontend SPA:
+    flow: Authorization Code + PKCE
+    redirect_uri: https://tripgen.com/callback
+    scopes: 
+      - openid
+      - profile
+      - api://tripgen-api/user.read
+      - api://tripgen-api/itinerary.write
+
+API Configuration:
+  Profile Service:
+    audience: api://tripgen-profile-service
+    scopes:
+      - profile.read
+      - profile.write
+      - profile.admin
+
+  Itinerary Service:
+    audience: api://tripgen-itinerary-service
+    scopes:
+      - itinerary.read
+      - itinerary.write
+      - itinerary.generate
+
+  Place Service:
+    audience: api://tripgen-place-service
+    scopes:
+      - place.read
+      - place.search
+      - place.recommend
+```
+
+### 5.3 조건부 액세스 정책
+```yaml
+CA-Policy-External-Users:
+  conditions:
+    users: All external users
+    apps: TripGen Web App
+    locations: All locations
+  grant_controls:
+    - Require MFA
+    - Require approved client app
+    - Session: 8 hours
+
+CA-Policy-Admin-Access:
+  conditions:
+    users: Admin group
+    apps: Azure Portal, TripGen Admin
+    locations: All locations
+  grant_controls:
+    - Require MFA
+    - Require compliant device
+    - Require all controls
+    - Session: 1 hour
+
+CA-Policy-Service-Accounts:
+  conditions:
+    users: Service accounts
+    apps: All cloud apps
+    locations: Azure datacenter IPs only
+  grant_controls:
+    - Block access outside Azure
+```
+
+## 6. Application Gateway with WAF
+
+### 6.1 Application Gateway 구성
+```yaml
+AppGateway-TripGen:
+  sku: WAF_v2
+  capacity: 2 (autoscale 2-10)
+  zones: [1, 2, 3]
+  
+  frontend_ip:
+    public_ip: 20.x.x.x
+    private_ip: 10.1.1.10
+  
+  listeners:
+    - name: https-listener
+      protocol: HTTPS
+      port: 443
+      ssl_certificate: tripgen-ssl-cert
+      host_names:
+        - api.tripgen.com
+        - "*.api.tripgen.com"
+  
+  backend_pools:
+    - name: profile-service-pool
+      targets: 
+        - 10.1.2.10
+        - 10.1.2.11
+    
+    - name: itinerary-service-pool
+      targets:
+        - 10.1.2.20
+        - 10.1.2.21
+    
+    - name: place-service-pool
+      targets:
+        - 10.1.2.30
+        - 10.1.2.31
+  
+  routing_rules:
+    - name: profile-routing
+      path: /api/v1/profiles/*
+      backend_pool: profile-service-pool
+      
+    - name: itinerary-routing
+      path: /api/v1/itineraries/*
+      backend_pool: itinerary-service-pool
+      
+    - name: place-routing
+      path: /api/v1/places/*
+      backend_pool: place-service-pool
+```
+
+### 6.2 WAF 정책
+```yaml
+WAF-Policy-TripGen:
+  mode: Prevention
+  
+  managed_rules:
+    - ruleset: OWASP 3.2
+      rules:
+        - SQL Injection Protection
+        - Cross-Site Scripting (XSS)
+        - Local/Remote File Inclusion
+        - PHP Injection
+        - HTTP Protocol Violations
+        - HTTP Protocol Anomalies
+    
+    - ruleset: Microsoft Bot Manager 1.0
+      rules:
+        - Good Bots: Allow
+        - Bad Bots: Block
+        - Unknown Bots: Challenge
+  
+  custom_rules:
+    - name: Rate-Limit-API
+      priority: 1
+      rule_type: RateLimitRule
+      match_conditions:
+        - variable: RequestUri
+          operator: Contains
+          values: ["/api/"]
+      action: Block
+      rate_limit: 100 requests/minute
+    
+    - name: Block-Suspicious-Agents
+      priority: 2
+      rule_type: MatchRule
+      match_conditions:
+        - variable: RequestHeaders.User-Agent
+          operator: Contains
+          values: ["bot", "crawler", "scraper"]
+      action: Block
+    
+    - name: Geo-Blocking
+      priority: 3
+      rule_type: MatchRule
+      match_conditions:
+        - variable: RemoteAddr
+          operator: GeoMatch
+          values: ["CN", "RU", "KP"]
+      action: Block
+  
+  exclusions:
+    - variable: RequestBodyPostArgNames
+      selector: api_key
+      operator: Equals
+```
+
+## 7. Private Link 및 Service Endpoints
+
+### 7.1 Private Link 구성
+```yaml
+Private Endpoints:
+  - name: pe-keyvault-tripgen
+    resource: Key Vault
+    subnet: Private-Endpoint-Subnet
+    private_ip: 10.1.5.10
+    dns_zone: privatelink.vaultcore.azure.net
+  
+  - name: pe-postgresql-tripgen
+    resource: PostgreSQL Server
+    subnet: Private-Endpoint-Subnet
+    private_ip: 10.1.5.20
+    dns_zone: privatelink.postgres.database.azure.com
+  
+  - name: pe-redis-tripgen
+    resource: Redis Cache
+    subnet: Private-Endpoint-Subnet
+    private_ip: 10.1.5.30
+    dns_zone: privatelink.redis.cache.windows.net
+  
+  - name: pe-servicebus-tripgen
+    resource: Service Bus
+    subnet: Private-Endpoint-Subnet
+    private_ip: 10.1.5.40
+    dns_zone: privatelink.servicebus.windows.net
+  
+  - name: pe-storage-tripgen
+    resource: Storage Account
+    subnet: Private-Endpoint-Subnet
+    private_ip: 10.1.5.50
+    dns_zone: privatelink.blob.core.windows.net
+```
+
+### 7.2 DNS 구성
+```yaml
+Private DNS Zones:
+  - zone: privatelink.vaultcore.azure.net
+    links:
+      - Hub-VNet
+      - Spoke-Prod-VNet
+      - Spoke-Dev-VNet
+    
+  - zone: privatelink.postgres.database.azure.com
+    links:
+      - Spoke-Prod-VNet
+      - Spoke-Dev-VNet
+    
+  - zone: privatelink.redis.cache.windows.net
+    links:
+      - Spoke-Prod-VNet
+      - Spoke-Dev-VNet
+
+DNS Resolution:
+  App -> Private DNS Zone -> Private Endpoint -> PaaS Service
+```
+
+## 8. Azure Firewall 구성
+
+### 8.1 Firewall 정책
+```yaml
+AzureFirewall-TripGen:
+  sku: Premium
+  availability_zones: [1, 2, 3]
+  threat_intelligence: Alert and Deny
+  
+  network_rules:
+    - name: Allow-AKS-Dependencies
+      priority: 100
+      rules:
+        - source: App-Subnet
+          destination: AzureCloud.KoreaCentral
+          ports: [443, 9000]
+          protocols: [TCP]
+    
+    - name: Allow-NTP
+      priority: 110
+      rules:
+        - source: VNet-Address-Space
+          destination: "*"
+          ports: [123]
+          protocols: [UDP]
+  
+  application_rules:
+    - name: Allow-Azure-Services
+      priority: 100
+      rules:
+        - source: App-Subnet
+          target_fqdns:
+            - "*.azure.com"
+            - "*.microsoft.com"
+            - "*.windows.net"
+          protocols: [HTTPS]
+    
+    - name: Allow-Container-Registry
+      priority: 110
+      rules:
+        - source: App-Subnet
+          target_fqdns:
+            - "*.azurecr.io"
+            - "gcr.io"
+            - "docker.io"
+          protocols: [HTTPS]
+    
+    - name: Allow-External-APIs
+      priority: 120
+      rules:
+        - source: App-Subnet
+          target_fqdns:
+            - "api.openai.com"
+            - "maps.googleapis.com"
+            - "api.openweathermap.org"
+          protocols: [HTTPS]
+  
+  nat_rules:
+    - name: DNAT-SSH-Bastion
+      priority: 100
+      rules:
+        - source: "*"
+          destination: Firewall-Public-IP
+          translated_address: 10.0.1.10
+          translated_port: 22
+          ports: [22]
+          protocols: [TCP]
+```
+
+### 8.2 Firewall 로깅 및 모니터링
+```yaml
+Diagnostic Settings:
+  logs:
+    - AzureFirewallApplicationRule
+    - AzureFirewallNetworkRule
+    - AzureFirewallDnsProxy
+  
+  metrics:
+    - AllMetrics
+  
+  destination:
+    - Log Analytics Workspace
+    - Storage Account (Archive)
+    - Event Hub (SIEM Integration)
+
+Alerts:
+  - name: High-Threat-Detection
+    condition: ThreatIntelligenceLog where Severity == "High"
+    action: Email Security Team
+  
+  - name: Repeated-Denied-Access
+    condition: NetworkRule where Action == "Deny" > 100/hour
+    action: Create Incident
+```
+
+## 9. 데이터 암호화 정책
+
+### 9.1 암호화 전략
+```yaml
+Encryption at Rest:
+  Storage:
+    method: Azure Storage Service Encryption
+    key_type: Microsoft Managed Keys
+    algorithm: AES-256
+  
+  Database:
+    method: Transparent Data Encryption (TDE)
+    key_type: Customer Managed Keys (CMK)
+    key_vault: KeyVault-TripGen-Prod
+    algorithm: AES-256
+  
+  Redis Cache:
+    method: Redis Encryption at Rest
+    key_type: Microsoft Managed Keys
+    persistence: RDB + AOF
+
+Encryption in Transit:
+  External Traffic:
+    protocol: TLS 1.2+
+    cipher_suites:
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+  
+  Internal Traffic:
+    service_mesh: Istio with mTLS
+    mode: STRICT
+    certificate_rotation: Automatic (24h)
+  
+  Database Connections:
+    ssl_mode: Required
+    min_tls_version: 1.2
+```
+
+### 9.2 키 관리
+```yaml
+Key Hierarchy:
+  Root Key (KEK):
+    storage: Azure Key Vault HSM
+    rotation: Annual
+    backup: Geo-redundant
+  
+  Data Encryption Keys (DEK):
+    storage: Encrypted with KEK
+    rotation: 90 days
+    scope: Per service/database
+
+Key Rotation Process:
+  1. Generate new key version in Key Vault
+  2. Update application configuration
+  3. Re-encrypt data with new key
+  4. Verify encryption
+  5. Disable old key version
+  6. Archive old key (compliance)
+```
+
+## 10. 네트워크 트래픽 제어
+
+### 10.1 트래픽 흐름
+```
+Internet -> Azure Front Door -> Application Gateway (WAF) 
+         -> Internal Load Balancer -> AKS Ingress 
+         -> Service Mesh (Istio) -> Microservices
+         -> Private Endpoints -> Azure PaaS Services
+```
+
+### 10.2 트래픽 정책
+```yaml
+Ingress Control:
+  - Rate Limiting: 100 req/min per IP
+  - Geographic Restrictions: Block high-risk countries
+  - DDoS Protection: Standard tier
+  - Bot Protection: Challenge unknown bots
+
+Egress Control:
+  - Default Deny: Block all outbound by default
+  - Explicit Allow: Whitelist required destinations
+  - URL Filtering: Category-based blocking
+  - Data Exfiltration Prevention: Monitor large transfers
+
+East-West Traffic:
+  - Service Mesh: Istio with mTLS
+  - Network Policies: Kubernetes NetworkPolicy
+  - Micro-segmentation: Pod-to-Pod restrictions
+  - Traffic Encryption: Mandatory TLS
+```
+
+### 10.3 모니터링 및 감사
+```yaml
+Network Watcher:
+  - NSG Flow Logs: Enabled
+  - Traffic Analytics: Enabled
+  - Connection Monitor: Critical paths
+  - Packet Capture: On-demand
+
+Azure Monitor:
+  - Metrics:
+    - Bandwidth utilization
+    - Connection count
+    - Dropped packets
+    - Latency
+  
+  - Logs:
+    - Application Gateway access logs
+    - WAF logs
+    - NSG flow logs
+    - Firewall logs
+  
+  - Alerts:
+    - Unusual traffic patterns
+    - Security rule violations
+    - Performance degradation
+    - DDoS attack detection
+
+Security Center:
+  - Network Recommendations
+  - Security Score
+  - Threat Detection
+  - Compliance Assessment
+```
+
+## 11. 재해 복구 및 비즈니스 연속성
+
+### 11.1 네트워크 복원력
+```yaml
+Multi-Region Setup:
+  Primary: Korea Central
+  Secondary: Japan East
+  
+  Replication:
+    - VNet Peering: Global VNet Peering
+    - Traffic Manager: Automatic failover
+    - Data Sync: Async replication
+```
+
+### 11.2 백업 및 복구
+```yaml
+Configuration Backup:
+  - NSG Rules: ARM Templates
+  - Firewall Policies: Policy as Code
+  - Route Tables: Terraform State
+  - Key Vault: Geo-redundant backup
+
+Recovery Procedures:
+  - RTO: 4 hours
+  - RPO: 1 hour
+  - Automated failover for stateless services
+  - Manual failover for stateful services
+```
+
+## 12. 규정 준수 및 거버넌스
+
+### 12.1 규정 준수
+```yaml
+Standards:
+  - ISO 27001/27017/27018
+  - SOC 2 Type II
+  - PCI DSS (if processing payments)
+  - GDPR (for EU users)
+  - Korea PIPA
+
+Azure Policy:
+  - Enforce HTTPS only
+  - Require network isolation
+  - Mandate encryption
+  - Restrict public endpoints
+  - Enforce tagging standards
+```
+
+### 12.2 거버넌스
+```yaml
+RBAC Model:
+  - Network Administrator
+  - Security Administrator
+  - Application Developer
+  - DevOps Engineer
+  - Auditor (read-only)
+
+Change Management:
+  - Infrastructure as Code
+  - Pull Request workflow
+  - Automated testing
+  - Approval process
+  - Audit trail
+```
+
+## 13. 비용 최적화
+
+### 13.1 네트워크 비용 관리
+```yaml
+Cost Optimization:
+  - Use Private Endpoints to reduce data transfer costs
+  - Implement Azure Front Door for global caching
+  - Right-size Application Gateway based on traffic
+  - Use VNet Peering instead of VPN where possible
+  - Monitor and optimize bandwidth usage
+
+Reserved Capacity:
+  - Application Gateway: 1-year reservation
+  - Azure Firewall: 1-year reservation
+  - Public IP addresses: Static allocation
+```
+
+## 14. 구현 로드맵
+
+### Phase 1: 기본 네트워크 구축 (Week 1-2)
+- VNet 및 서브넷 생성
+- NSG 기본 규칙 설정
+- Private DNS Zone 구성
+
+### Phase 2: 보안 계층 구현 (Week 3-4)
+- Application Gateway + WAF 배포
+- Azure Firewall 구성
+- Key Vault 설정
+
+### Phase 3: 인증 및 권한 (Week 5-6)
+- Azure AD 통합
+- 조건부 액세스 정책
+- Managed Identity 구성
+
+### Phase 4: 모니터링 및 최적화 (Week 7-8)
+- 모니터링 대시보드 구축
+- 알림 규칙 설정
+- 성능 최적화
+
+## 15. 베스트 프랙티스 체크리스트
+
+### 네트워크 보안
+- [ ] 모든 서브넷에 NSG 적용
+- [ ] 기본 거부 규칙 설정
+- [ ] 최소 권한 원칙 적용
+- [ ] 정기적인 규칙 검토
+
+### 접근 제어
+- [ ] Private Endpoint 사용
+- [ ] Service Endpoint 정책 적용
+- [ ] Just-In-Time 액세스
+- [ ] Privileged Identity Management
+
+### 모니터링
+- [ ] 중앙 집중식 로깅
+- [ ] 실시간 위협 감지
+- [ ] 자동화된 대응
+- [ ] 정기적인 보안 평가
+
+### 데이터 보호
+- [ ] 전송 중 암호화
+- [ ] 저장 중 암호화
+- [ ] 키 순환 정책
+- [ ] 백업 암호화

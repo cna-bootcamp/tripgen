@@ -1,0 +1,322 @@
+@startuml
+!theme mono
+
+title 프로파일 서비스 - 여행 기본정보 설정 내부 시퀀스
+
+actor "클라이언트" as Client
+participant "TripController" as Controller
+participant "TripService" as Service
+participant "TripRepository" as Repository
+participant "MemberRepository" as MemberRepo
+participant "GeocodingService" as GeoService
+participant "RedisTemplate" as Cache
+database "MySQL Database" as DB
+
+== 1. 여행 목록 조회 (GET /api/profile/trips) ==
+
+Client -> Controller : GET /api/profile/trips
+activate Controller
+
+Controller -> Service : getTrips()
+activate Service
+
+' 캐시에서 여행 목록 조회 시도
+Service -> Cache : get("profile:trips:list")
+activate Cache
+Cache --> Service : 캐시 미스 or 캐시 히트
+deactivate Cache
+
+alt 캐시 히트
+    Service --> Controller : List<Trip>
+else 캐시 미스
+    Service -> Repository : findAll()
+    activate Repository
+    Repository -> DB : SELECT * FROM trips
+    DB --> Repository : trip records
+    Repository --> Service : List<Trip>
+    deactivate Repository
+    
+    ' 조회 결과를 캐시에 저장 (TTL: 24시간)
+    Service -> Cache : setex("profile:trips:list", trips, 86400)
+    activate Cache
+    Cache --> Service : 캐시 저장 완료
+    deactivate Cache
+    
+    Service --> Controller : List<Trip>
+end
+
+Controller --> Client : 200 OK + List<Trip>
+deactivate Service
+deactivate Controller
+
+== 2. 여행 등록 (POST /api/profile/trips) ==
+
+Client -> Controller : POST /api/profile/trips + TripRequest
+activate Controller
+
+' 요청 데이터 검증
+Controller -> Controller : 입력값 유효성 검사
+note right of Controller
+<b>유효성 검사 항목</b>
+- 여행명 필수 및 길이 제한
+- 시작일 < 종료일
+- 과거 날짜 검증
+- 여행 기간 최대 365일 제한
+end note
+
+alt 유효성 검사 실패
+    Controller --> Client : 400 Bad Request + 에러 메시지
+else 유효성 검사 성공
+    Controller -> Service : createTrip(tripRequest)
+    activate Service
+    
+    ' 멤버 ID 검증 (memberIds가 있는 경우)
+    opt memberIds가 존재하는 경우
+        Service -> MemberRepo : findAllById(memberIds)
+        activate MemberRepo
+        MemberRepo -> DB : SELECT * FROM members WHERE id IN (...)
+        DB --> MemberRepo : member records
+        MemberRepo --> Service : List<Member>
+        deactivate MemberRepo
+        
+        Service -> Service : 멤버 존재 여부 검증
+        alt 존재하지 않는 멤버 ID 발견
+            Service --> Controller : BusinessException("존재하지 않는 멤버")
+            Controller --> Client : 400 Bad Request + 에러 메시지
+        end
+    end
+    
+    ' 위치 정보 지오코딩 (주소가 있고 좌표가 없는 경우)
+    opt 출발지 또는 도착지에 주소만 있는 경우
+        Service -> GeoService : geocodeAddress(address)
+        activate GeoService
+        GeoService --> Service : coordinates (lat, lng)
+        deactivate GeoService
+        
+        alt 지오코딩 실패
+            Service --> Controller : BusinessException("주소 변환 실패")
+            Controller --> Client : 400 Bad Request + 에러 메시지
+        end
+    end
+    
+    ' 여행 데이터 저장
+    Service -> Repository : save(trip)
+    activate Repository
+    Repository -> DB : INSERT INTO trips (...)
+    DB --> Repository : saved trip with ID
+    Repository --> Service : Trip
+    deactivate Repository
+    
+    ' 캐시 무효화 및 새 데이터 저장
+    Service -> Cache : delete("profile:trips:list")
+    activate Cache
+    Cache --> Service : 목록 캐시 삭제 완료
+    deactivate Cache
+    
+    Service -> Cache : setex("profile:trip:" + tripId, trip, 86400)
+    activate Cache
+    Cache --> Service : 개별 캐시 저장 완료
+    deactivate Cache
+    
+    Service --> Controller : Trip
+    deactivate Service
+    
+    Controller --> Client : 201 Created + Trip
+end
+deactivate Controller
+
+== 3. 특정 여행 조회 (GET /api/profile/trips/{tripId}) ==
+
+Client -> Controller : GET /api/profile/trips/{tripId}
+activate Controller
+
+Controller -> Service : getTripById(tripId)
+activate Service
+
+' 캐시에서 먼저 조회
+Service -> Cache : get("profile:trip:" + tripId)
+activate Cache
+Cache --> Service : 캐시 결과
+deactivate Cache
+
+alt 캐시 히트
+    Service --> Controller : Trip
+else 캐시 미스
+    Service -> Repository : findById(tripId)
+    activate Repository
+    Repository -> DB : SELECT * FROM trips WHERE id = ?
+    DB --> Repository : trip record or null
+    Repository --> Service : Optional<Trip>
+    deactivate Repository
+    
+    alt 여행이 존재하지 않음
+        Service --> Controller : BusinessException("여행을 찾을 수 없음")
+        Controller --> Client : 404 Not Found
+    else 여행 존재
+        ' 조회된 여행을 캐시에 저장
+        Service -> Cache : setex("profile:trip:" + tripId, trip, 86400)
+        activate Cache
+        Cache --> Service : 캐시 저장 완료
+        deactivate Cache
+        
+        Service --> Controller : Trip
+    end
+end
+
+Controller --> Client : 200 OK + Trip
+deactivate Service
+deactivate Controller
+
+== 4. 여행 정보 수정 (PUT /api/profile/trips/{tripId}) ==
+
+Client -> Controller : PUT /api/profile/trips/{tripId} + TripRequest
+activate Controller
+
+' 요청 데이터 검증 (등록과 동일)
+Controller -> Controller : 입력값 유효성 검사
+
+alt 유효성 검사 실패
+    Controller --> Client : 400 Bad Request + 에러 메시지
+else 유효성 검사 성공
+    Controller -> Service : updateTrip(tripId, tripRequest)
+    activate Service
+    
+    ' 기존 여행 존재 여부 확인
+    Service -> Repository : findById(tripId)
+    activate Repository
+    Repository -> DB : SELECT * FROM trips WHERE id = ?
+    DB --> Repository : trip record or null
+    Repository --> Service : Optional<Trip>
+    deactivate Repository
+    
+    alt 여행이 존재하지 않음
+        Service --> Controller : BusinessException("여행을 찾을 수 없음")
+        Controller --> Client : 404 Not Found
+    else 여행 존재
+        ' 멤버 ID 검증 (변경된 경우)
+        opt 멤버 ID가 변경된 경우
+            Service -> MemberRepo : findAllById(newMemberIds)
+            activate MemberRepo
+            MemberRepo -> DB : SELECT * FROM members WHERE id IN (...)
+            DB --> MemberRepo : member records
+            MemberRepo --> Service : List<Member>
+            deactivate MemberRepo
+            
+            Service -> Service : 멤버 존재 여부 검증
+            alt 존재하지 않는 멤버 ID 발견
+                Service --> Controller : BusinessException("존재하지 않는 멤버")
+                Controller --> Client : 400 Bad Request + 에러 메시지
+            end
+        end
+        
+        ' 위치 정보 지오코딩 (주소가 변경된 경우)
+        opt 주소 정보가 변경된 경우
+            Service -> GeoService : geocodeAddress(newAddress)
+            activate GeoService
+            GeoService --> Service : coordinates (lat, lng)
+            deactivate GeoService
+            
+            alt 지오코딩 실패
+                Service --> Controller : BusinessException("주소 변환 실패")
+                Controller --> Client : 400 Bad Request + 에러 메시지
+            end
+        end
+        
+        ' 여행 정보 업데이트
+        Service -> Repository : save(updatedTrip)
+        activate Repository
+        Repository -> DB : UPDATE trips SET ... WHERE id = ?
+        DB --> Repository : updated trip
+        Repository --> Service : Trip
+        deactivate Repository
+        
+        ' 캐시 무효화 및 업데이트
+        Service -> Cache : delete("profile:trips:list")
+        activate Cache
+        Cache --> Service : 목록 캐시 삭제 완료
+        deactivate Cache
+        
+        Service -> Cache : setex("profile:trip:" + tripId, updatedTrip, 86400)
+        activate Cache
+        Cache --> Service : 개별 캐시 업데이트 완료
+        deactivate Cache
+        
+        Service --> Controller : Trip
+    end
+    
+    deactivate Service
+    Controller --> Client : 200 OK + Trip
+end
+deactivate Controller
+
+== 5. 여행 삭제 (DELETE /api/profile/trips/{tripId}) ==
+
+Client -> Controller : DELETE /api/profile/trips/{tripId}
+activate Controller
+
+Controller -> Service : deleteTrip(tripId)
+activate Service
+
+' 삭제할 여행 존재 여부 확인
+Service -> Repository : findById(tripId)
+activate Repository
+Repository -> DB : SELECT * FROM trips WHERE id = ?
+DB --> Repository : trip record or null
+Repository --> Service : Optional<Trip>
+deactivate Repository
+
+alt 여행이 존재하지 않음
+    Service --> Controller : BusinessException("여행을 찾을 수 없음")
+    Controller --> Client : 404 Not Found
+else 여행 존재
+    ' 여행과 관련된 종속 데이터 확인 (필요시)
+    note right of Service
+    <b>비즈니스 규칙</b>
+    - 진행 중인 일정이 있는 여행은 삭제 불가
+    - 삭제 시 관련 이동수단 설정도 함께 삭제
+    end note
+    
+    ' 여행 삭제 실행
+    Service -> Repository : deleteById(tripId)
+    activate Repository
+    Repository -> DB : DELETE FROM trips WHERE id = ?
+    Repository -> DB : DELETE FROM transport_settings WHERE trip_id = ?
+    DB --> Repository : 삭제 완료
+    deactivate Repository
+    
+    ' 관련 캐시 모두 삭제
+    Service -> Cache : delete("profile:trips:list")
+    activate Cache
+    Cache --> Service : 목록 캐시 삭제 완료
+    deactivate Cache
+    
+    Service -> Cache : delete("profile:trip:" + tripId)
+    activate Cache
+    Cache --> Service : 개별 캐시 삭제 완료
+    deactivate Cache
+    
+    Service --> Controller : 삭제 완료
+end
+
+deactivate Service
+Controller --> Client : 204 No Content
+deactivate Controller
+
+== 캐시 전략 요약 ==
+
+note over Cache
+<b>캐시 키 패턴</b>
+- profile:trips:list (여행 목록, TTL: 24시간)
+- profile:trip:{tripId} (개별 여행, TTL: 24시간)
+
+<b>캐시 무효화 전략</b>
+- 생성/수정/삭제 시 관련 캐시 즉시 무효화
+- Write-through 패턴으로 일관성 보장
+- 조회 시 Cache-aside 패턴 적용
+
+<b>예외 처리</b>
+- 캐시 장애 시에도 DB 조회로 서비스 지속
+- 캐시 타임아웃 설정으로 장애 격리
+end note
+
+@enduml

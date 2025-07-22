@@ -1,0 +1,223 @@
+@startuml
+!theme mono
+
+title 일정 서비스 - 일정 관리 내부 시퀀스
+
+actor User as "사용자"
+participant Controller as "ItineraryController"
+participant QuerySvc as "ItineraryQueryService"
+participant CommandSvc as "ItineraryCommandService"
+participant Cache as "Redis Cache"
+participant ReadDB as "Read Database\n(MongoDB)"
+participant WriteDB as "Write Database\n(MySQL)"
+participant EventBus as "Event Bus"
+participant SyncHandler as "ReadModelSyncHandler"
+
+== 1. 일정 목록 조회 (Query 패턴) ==
+
+User -> Controller: GET /api/itinerary/trips/{tripId}/itineraries
+note right: RQ-ITIN-001: 일일 상세 일정 조회\n특정 여행의 모든 일정 조회
+
+activate Controller
+Controller -> QuerySvc: getItineraries(tripId, date?)
+activate QuerySvc
+
+QuerySvc -> Cache: get("itineraries:" + tripId)
+activate Cache
+alt 캐시 히트
+    Cache --> QuerySvc: 캐시된 일정 목록
+    note right: Redis에서 빠른 응답\n읽기 최적화된 데이터
+else 캐시 미스
+    Cache --> QuerySvc: null
+    
+    QuerySvc -> ReadDB: findByTripId(tripId)
+    activate ReadDB
+    ReadDB --> QuerySvc: 일정 목록 (비정규화된 형태)
+    deactivate ReadDB
+    
+    QuerySvc -> Cache: set("itineraries:" + tripId, data, 300s)
+    Cache --> QuerySvc: cached
+end
+deactivate Cache
+
+QuerySvc --> Controller: List<ItineraryReadModel>
+deactivate QuerySvc
+
+Controller --> User: 200 OK + 일정 목록
+deactivate Controller
+
+== 2. 특정 일정 상세 조회 (Query 패턴) ==
+
+User -> Controller: GET /api/itinerary/trips/{tripId}/itineraries/{itineraryId}
+
+activate Controller
+Controller -> QuerySvc: getItineraryById(tripId, itineraryId)
+activate QuerySvc
+
+QuerySvc -> Cache: get("itinerary:" + itineraryId)
+activate Cache
+alt 캐시 히트
+    Cache --> QuerySvc: 캐시된 일정 상세
+else 캐시 미스
+    Cache --> QuerySvc: null
+    
+    QuerySvc -> ReadDB: findByIdAndTripId(itineraryId, tripId)
+    activate ReadDB
+    ReadDB --> QuerySvc: 일정 상세 (장소/경로 포함)
+    deactivate ReadDB
+    
+    QuerySvc -> Cache: set("itinerary:" + itineraryId, data, 600s)
+    Cache --> QuerySvc: cached
+end
+deactivate Cache
+
+QuerySvc --> Controller: ItineraryDetailReadModel
+deactivate QuerySvc
+
+Controller --> User: 200 OK + 일정 상세
+deactivate Controller
+
+== 3. 일정 수정 (Command 패턴) ==
+
+User -> Controller: PUT /api/itinerary/trips/{tripId}/itineraries/{itineraryId}
+note right: 생성된 일정을 수동으로 편집\n제목, 장소 순서, 시간 수정
+
+activate Controller
+Controller -> CommandSvc: updateItinerary(tripId, itineraryId, updateRequest)
+activate CommandSvc
+
+CommandSvc -> WriteDB: beginTransaction()
+activate WriteDB
+
+CommandSvc -> WriteDB: findByIdForUpdate(itineraryId)
+WriteDB --> CommandSvc: ItineraryEntity
+
+alt 일정이 존재하고 권한 확인
+    CommandSvc -> WriteDB: updateItinerary(entity)
+    CommandSvc -> WriteDB: updatePlaceOrders(places)
+    CommandSvc -> WriteDB: commitTransaction()
+    WriteDB --> CommandSvc: 수정된 일정
+    
+    CommandSvc -> EventBus: publish(ItineraryUpdatedEvent)
+    activate EventBus
+    note right: 이벤트 발행으로 Read Model 동기화
+    EventBus --> CommandSvc: event published
+    deactivate EventBus
+    
+    CommandSvc -> Cache: delete("itinerary:" + itineraryId)
+    CommandSvc -> Cache: delete("itineraries:" + tripId)
+    activate Cache
+    Cache --> CommandSvc: cache invalidated
+    deactivate Cache
+    note right: 캐시 무효화로 일관성 보장
+    
+else 일정이 존재하지 않거나 권한 없음
+    CommandSvc -> WriteDB: rollbackTransaction()
+    WriteDB --> CommandSvc: rollback completed
+    CommandSvc --> Controller: 404 Not Found / 403 Forbidden
+end
+
+deactivate WriteDB
+CommandSvc --> Controller: UpdatedItinerary
+deactivate CommandSvc
+
+Controller --> User: 200 OK + 수정된 일정
+deactivate Controller
+
+== 4. Read Model 동기화 (이벤트 핸들링) ==
+
+EventBus -> SyncHandler: ItineraryUpdatedEvent
+activate SyncHandler
+
+SyncHandler -> WriteDB: getItineraryWithPlaces(itineraryId)
+activate WriteDB
+WriteDB --> SyncHandler: 정규화된 데이터
+deactivate WriteDB
+
+SyncHandler -> ReadDB: upsertItineraryReadModel(readModel)
+activate ReadDB
+note right: 비정규화된 읽기 최적화 모델로 변환\n장소, 경로 정보 포함하여 저장
+ReadDB --> SyncHandler: sync completed
+deactivate ReadDB
+
+SyncHandler -> Cache: delete("itinerary:" + itineraryId)
+SyncHandler -> Cache: delete("itineraries:" + tripId)
+activate Cache
+Cache --> SyncHandler: cache invalidated
+deactivate Cache
+
+deactivate SyncHandler
+
+== 5. 일정 삭제 (Command 패턴) ==
+
+User -> Controller: DELETE /api/itinerary/trips/{tripId}/itineraries/{itineraryId}
+
+activate Controller
+Controller -> CommandSvc: deleteItinerary(tripId, itineraryId)
+activate CommandSvc
+
+CommandSvc -> WriteDB: beginTransaction()
+activate WriteDB
+
+CommandSvc -> WriteDB: findByIdForUpdate(itineraryId)
+WriteDB --> CommandSvc: ItineraryEntity
+
+alt 일정이 존재하고 권한 확인
+    CommandSvc -> WriteDB: deleteItineraryPlaces(itineraryId)
+    CommandSvc -> WriteDB: deleteItinerary(itineraryId)
+    CommandSvc -> WriteDB: commitTransaction()
+    WriteDB --> CommandSvc: deletion completed
+    
+    CommandSvc -> EventBus: publish(ItineraryDeletedEvent)
+    activate EventBus
+    EventBus --> CommandSvc: event published
+    deactivate EventBus
+    
+    CommandSvc -> Cache: delete("itinerary:" + itineraryId)
+    CommandSvc -> Cache: delete("itineraries:" + tripId)
+    activate Cache
+    Cache --> CommandSvc: cache invalidated
+    deactivate Cache
+    
+else 일정이 존재하지 않거나 권한 없음
+    CommandSvc -> WriteDB: rollbackTransaction()
+    WriteDB --> CommandSvc: rollback completed
+    CommandSvc --> Controller: 404 Not Found / 403 Forbidden
+end
+
+deactivate WriteDB
+CommandSvc --> Controller: deletion success
+deactivate CommandSvc
+
+Controller --> User: 204 No Content
+deactivate Controller
+
+== 6. Read Model 삭제 동기화 ==
+
+EventBus -> SyncHandler: ItineraryDeletedEvent
+activate SyncHandler
+
+SyncHandler -> ReadDB: deleteItineraryReadModel(itineraryId)
+activate ReadDB
+ReadDB --> SyncHandler: deletion completed
+deactivate ReadDB
+
+SyncHandler -> Cache: delete("itinerary:" + itineraryId)
+SyncHandler -> Cache: delete("itineraries:" + tripId)
+activate Cache
+Cache --> SyncHandler: cache invalidated
+deactivate Cache
+
+deactivate SyncHandler
+
+== 에러 처리 시나리오 ==
+
+note over Controller, SyncHandler: 공통 에러 처리
+note over Controller: - 400 Bad Request: 잘못된 요청 데이터
+note over Controller: - 404 Not Found: 존재하지 않는 일정
+note over Controller: - 500 Internal Server Error: 시스템 오류
+note over WriteDB: - 트랜잭션 롤백으로 데이터 일관성 보장
+note over Cache: - 캐시 실패 시에도 DB 조회로 서비스 가용성 유지
+note over SyncHandler: - 이벤트 처리 실패 시 재시도 메커니즘
+
+@enduml
