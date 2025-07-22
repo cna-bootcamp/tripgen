@@ -1,0 +1,204 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { fill: #1a1a1a; font-family: Arial; font-size: 18px; font-weight: bold; }
+      .layer-title { fill: #ffffff; font-family: Arial; font-size: 12px; font-weight: bold; }
+      .service-title { fill: #1a1a1a; font-family: Arial; font-size: 10px; font-weight: bold; }
+      .pattern-text { fill: #666666; font-family: Arial; font-size: 8px; }
+      .small-text { fill: #888888; font-family: Arial; font-size: 7px; }
+      
+      .client-layer { fill: #e8f0fe; stroke: #4285f4; stroke-width: 1; }
+      .gateway-layer { fill: #e8f5e8; stroke: #34a853; stroke-width: 1; }
+      .service-layer { fill: #fef7e0; stroke: #fbbc05; stroke-width: 1; }
+      .data-layer { fill: #fce8e6; stroke: #ea4335; stroke-width: 1; }
+      
+      .service-box { fill: #ffffff; stroke: #dadce0; stroke-width: 1; }
+      .connection-line { stroke: #4285f4; stroke-width: 1; fill: none; }
+      .data-flow { stroke: #34a853; stroke-width: 1; fill: none; stroke-dasharray: 3,3; }
+      
+      .profile { fill: #e3f2fd; stroke: #2196f3; stroke-width: 1; }
+      .itinerary { fill: #e8f5e8; stroke: #4caf50; stroke-width: 1; }
+      .location { fill: #fff3e0; stroke: #ff9800; stroke-width: 1; }
+      .ai { fill: #f3e5f5; stroke: #9c27b0; stroke-width: 1; }
+      .notification { fill: #ffebee; stroke: #f44336; stroke-width: 1; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect x="0" y="0" width="800" height="600" fill="#fafafa"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="title">통합 클라우드 아키텍처 - 여행 일정 서비스</text>
+  
+  <!-- Client Layer -->
+  <rect x="50" y="50" width="700" height="50" rx="5" class="client-layer"/>
+  <rect x="60" y="55" width="80" height="15" rx="7" fill="#4285f4"/>
+  <text x="100" y="65" text-anchor="middle" class="layer-title">클라이언트</text>
+  
+  <rect x="200" y="60" width="80" height="30" rx="3" class="service-box"/>
+  <text x="240" y="75" text-anchor="middle" class="service-title">웹 앱</text>
+  <text x="240" y="85" text-anchor="middle" class="small-text">React/Vue</text>
+  
+  <rect x="300" y="60" width="80" height="30" rx="3" class="service-box"/>
+  <text x="340" y="75" text-anchor="middle" class="service-title">모바일 앱</text>
+  <text x="340" y="85" text-anchor="middle" class="small-text">Flutter</text>
+  
+  <!-- Gateway Layer -->
+  <rect x="50" y="120" width="700" height="60" rx="5" class="gateway-layer"/>
+  <rect x="60" y="125" width="100" height="15" rx="7" fill="#34a853"/>
+  <text x="110" y="135" text-anchor="middle" class="layer-title">API Gateway</text>
+  
+  <rect x="200" y="135" width="100" height="40" rx="3" class="service-box"/>
+  <text x="250" y="150" text-anchor="middle" class="service-title">API Gateway</text>
+  <text x="250" y="160" text-anchor="middle" class="pattern-text">Gateway Offloading</text>
+  <text x="250" y="170" text-anchor="middle" class="small-text">Auth, Rate Limit</text>
+  
+  <rect x="320" y="135" width="100" height="40" rx="3" class="service-box"/>
+  <text x="370" y="150" text-anchor="middle" class="service-title">Circuit Breaker</text>
+  <text x="370" y="160" text-anchor="middle" class="pattern-text">Fault Tolerance</text>
+  <text x="370" y="170" text-anchor="middle" class="small-text">Service Protection</text>
+  
+  <!-- Service Layer -->
+  <rect x="50" y="200" width="700" height="150" rx="5" class="service-layer"/>
+  <rect x="60" y="205" width="120" height="15" rx="7" fill="#fbbc05"/>
+  <text x="120" y="215" text-anchor="middle" class="layer-title">마이크로서비스</text>
+  
+  <!-- Profile Service -->
+  <rect x="70" y="230" width="110" height="80" rx="5" class="profile"/>
+  <text x="125" y="245" text-anchor="middle" class="service-title">프로필 서비스</text>
+  <text x="125" y="255" text-anchor="middle" class="pattern-text">CQRS</text>
+  <text x="125" y="265" text-anchor="middle" class="pattern-text">Cache-Aside</text>
+  <text x="125" y="275" text-anchor="middle" class="pattern-text">Sharding</text>
+  <text x="125" y="290" text-anchor="middle" class="small-text">사용자 프로필</text>
+  <text x="125" y="300" text-anchor="middle" class="small-text">건강상태 선호도</text>
+  
+  <!-- Itinerary Service -->
+  <rect x="200" y="230" width="110" height="80" rx="5" class="itinerary"/>
+  <text x="255" y="245" text-anchor="middle" class="service-title">일정 서비스</text>
+  <text x="255" y="255" text-anchor="middle" class="pattern-text">Saga Pattern</text>
+  <text x="255" y="265" text-anchor="middle" class="pattern-text">Event Sourcing</text>
+  <text x="255" y="275" text-anchor="middle" class="pattern-text">Pub-Sub</text>
+  <text x="255" y="290" text-anchor="middle" class="small-text">일정 생성 관리</text>
+  <text x="255" y="300" text-anchor="middle" class="small-text">AI 최적화</text>
+  
+  <!-- Location Service -->
+  <rect x="330" y="230" width="110" height="80" rx="5" class="location"/>
+  <text x="385" y="245" text-anchor="middle" class="service-title">위치 서비스</text>
+  <text x="385" y="255" text-anchor="middle" class="pattern-text">Circuit Breaker</text>
+  <text x="385" y="265" text-anchor="middle" class="pattern-text">Adapter</text>
+  <text x="385" y="275" text-anchor="middle" class="pattern-text">Bulkhead</text>
+  <text x="385" y="290" text-anchor="middle" class="small-text">MCP API 통합</text>
+  <text x="385" y="300" text-anchor="middle" class="small-text">위치 검증</text>
+  
+  <!-- AI Service -->
+  <rect x="460" y="230" width="110" height="80" rx="5" class="ai"/>
+  <text x="515" y="245" text-anchor="middle" class="service-title">AI 서비스</text>
+  <text x="515" y="255" text-anchor="middle" class="pattern-text">Async Request</text>
+  <text x="515" y="265" text-anchor="middle" class="pattern-text">Priority Queue</text>
+  <text x="515" y="280" text-anchor="middle" class="small-text">개인화 일정</text>
+  <text x="515" y="290" text-anchor="middle" class="small-text">ML 모델 관리</text>
+  <text x="515" y="300" text-anchor="middle" class="small-text">배치 처리</text>
+  
+  <!-- Notification Service -->
+  <rect x="590" y="230" width="110" height="80" rx="5" class="notification"/>
+  <text x="645" y="245" text-anchor="middle" class="service-title">알림 서비스</text>
+  <text x="645" y="255" text-anchor="middle" class="pattern-text">Competing</text>
+  <text x="645" y="265" text-anchor="middle" class="pattern-text">Consumers</text>
+  <text x="645" y="280" text-anchor="middle" class="small-text">실시간 알림</text>
+  <text x="645" y="290" text-anchor="middle" class="small-text">이메일/SMS</text>
+  <text x="645" y="300" text-anchor="middle" class="small-text">푸시 알림</text>
+  
+  <!-- Data Layer -->
+  <rect x="50" y="370" width="700" height="100" rx="5" class="data-layer"/>
+  <rect x="60" y="375" width="80" height="15" rx="7" fill="#ea4335"/>
+  <text x="100" y="385" text-anchor="middle" class="layer-title">데이터</text>
+  
+  <!-- Databases -->
+  <rect x="80" y="395" width="70" height="30" rx="3" fill="#db4437"/>
+  <text x="115" y="410" text-anchor="middle" class="service-title" fill="white">프로필 DB</text>
+  <text x="115" y="420" text-anchor="middle" class="small-text" fill="white">PostgreSQL</text>
+  
+  <rect x="170" y="395" width="70" height="30" rx="3" fill="#db4437"/>
+  <text x="205" y="410" text-anchor="middle" class="service-title" fill="white">일정 DB</text>
+  <text x="205" y="420" text-anchor="middle" class="small-text" fill="white">PostgreSQL</text>
+  
+  <rect x="260" y="395" width="70" height="30" rx="3" fill="#db4437"/>
+  <text x="295" y="410" text-anchor="middle" class="service-title" fill="white">위치 DB</text>
+  <text x="295" y="420" text-anchor="middle" class="small-text" fill="white">MongoDB</text>
+  
+  <!-- Cache -->
+  <rect x="350" y="395" width="70" height="30" rx="3" fill="#ff6d01"/>
+  <text x="385" y="410" text-anchor="middle" class="service-title" fill="white">Redis</text>
+  <text x="385" y="420" text-anchor="middle" class="small-text" fill="white">Cache</text>
+  
+  <!-- Message Queue -->
+  <rect x="440" y="395" width="70" height="30" rx="3" fill="#9c27b0"/>
+  <text x="475" y="410" text-anchor="middle" class="service-title" fill="white">Kafka</text>
+  <text x="475" y="420" text-anchor="middle" class="small-text" fill="white">Events</text>
+  
+  <!-- File Storage -->
+  <rect x="530" y="395" width="70" height="30" rx="3" fill="#ff6d01"/>
+  <text x="565" y="410" text-anchor="middle" class="service-title" fill="white">S3/MinIO</text>
+  <text x="565" y="420" text-anchor="middle" class="small-text" fill="white">Files</text>
+  
+  <!-- External Services -->
+  <rect x="50" y="490" width="700" height="80" rx="5" fill="#f3e8ff" stroke="#9c27b0"/>
+  <rect x="60" y="495" width="100" height="15" rx="7" fill="#9c27b0"/>
+  <text x="110" y="505" text-anchor="middle" class="layer-title">외부 서비스</text>
+  
+  <rect x="200" y="520" width="80" height="30" rx="3" class="service-box"/>
+  <text x="240" y="535" text-anchor="middle" class="service-title">카카오맵</text>
+  <text x="240" y="545" text-anchor="middle" class="small-text">MCP 국내</text>
+  
+  <rect x="300" y="520" width="80" height="30" rx="3" class="service-box"/>
+  <text x="340" y="535" text-anchor="middle" class="service-title">구글맵</text>
+  <text x="340" y="545" text-anchor="middle" class="small-text">MCP 해외</text>
+  
+  <rect x="400" y="520" width="80" height="30" rx="3" class="service-box"/>
+  <text x="440" y="535" text-anchor="middle" class="service-title">ML 플랫폼</text>
+  <text x="440" y="545" text-anchor="middle" class="small-text">TensorFlow</text>
+  
+  <rect x="500" y="520" width="80" height="30" rx="3" class="service-box"/>
+  <text x="540" y="535" text-anchor="middle" class="service-title">알림 서비스</text>
+  <text x="540" y="545" text-anchor="middle" class="small-text">SendGrid</text>
+  
+  <!-- Connections -->
+  <line x1="240" y1="90" x2="250" y2="135" class="connection-line"/>
+  <line x1="340" y1="90" x2="370" y2="135" class="connection-line"/>
+  
+  <line x1="250" y1="175" x2="125" y2="230" class="connection-line"/>
+  <line x1="250" y1="175" x2="255" y2="230" class="connection-line"/>
+  <line x1="370" y1="175" x2="385" y2="230" class="connection-line"/>
+  <line x1="370" y1="175" x2="515" y2="230" class="connection-line"/>
+  <line x1="370" y1="175" x2="645" y2="230" class="connection-line"/>
+  
+  <line x1="125" y1="310" x2="115" y2="395" class="data-flow"/>
+  <line x1="255" y1="310" x2="205" y2="395" class="data-flow"/>
+  <line x1="385" y1="310" x2="295" y2="395" class="data-flow"/>
+  <line x1="385" y1="310" x2="385" y2="395" class="data-flow"/>
+  <line x1="515" y1="310" x2="475" y2="395" class="data-flow"/>
+  
+  <line x1="385" y1="310" x2="240" y2="520" class="connection-line"/>
+  <line x1="385" y1="310" x2="340" y2="520" class="connection-line"/>
+  <line x1="515" y1="310" x2="440" y2="520" class="connection-line"/>
+  <line x1="645" y1="310" x2="540" y2="520" class="connection-line"/>
+  
+  <!-- Legend -->
+  <rect x="620" y="140" width="120" height="80" rx="3" fill="#ffffff" stroke="#dadce0"/>
+  <text x="680" y="155" text-anchor="middle" class="service-title">범례</text>
+  
+  <line x1="630" y1="165" x2="645" y2="165" class="connection-line"/>
+  <text x="650" y="169" class="small-text">API 호출</text>
+  
+  <line x1="630" y1="175" x2="645" y2="175" class="data-flow"/>
+  <text x="650" y="179" class="small-text">데이터 플로우</text>
+  
+  <rect x="630" y="185" width="15" height="8" class="profile"/>
+  <text x="650" y="191" class="small-text">마이크로서비스</text>
+  
+  <rect x="630" y="195" width="15" height="8" fill="#db4437"/>
+  <text x="650" y="201" class="small-text">데이터베이스</text>
+  
+  <rect x="630" y="205" width="15" height="8" fill="#ff6d01"/>
+  <text x="650" y="211" class="small-text">캐시/저장소</text>
+</svg>

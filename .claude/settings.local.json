@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:cna-bootcamp.github.io)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

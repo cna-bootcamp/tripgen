@@ -1,0 +1,197 @@
+<svg width="375" height="812" viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+  <!-- Mobile First Design - 375px width (iPhone standard) -->
+  <!-- Background -->
+  <rect width="375" height="812" fill="#f8f9fa"/>
+  
+  <!-- Header -->
+  <g id="header">
+    <!-- Status bar area -->
+    <rect x="0" y="0" width="375" height="44" fill="#ffffff"/>
+    
+    <!-- App header -->
+    <rect x="0" y="44" width="375" height="60" fill="#ffffff" stroke="#e9ecef" stroke-width="1"/>
+    
+    <!-- App title -->
+    <text x="20" y="84" font-family="system-ui, -apple-system" font-size="24" font-weight="600" fill="#212529">TripGen</text>
+    
+    <!-- Settings button -->
+    <circle cx="335" cy="74" r="20" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+    <circle cx="335" cy="69" r="2" fill="#6c757d"/>
+    <circle cx="335" cy="74" r="2" fill="#6c757d"/>
+    <circle cx="335" cy="79" r="2" fill="#6c757d"/>
+  </g>
+  
+  <!-- Summary Cards Section -->
+  <g id="summary-cards">
+    <!-- Section title -->
+    <text x="20" y="134" font-family="system-ui, -apple-system" font-size="18" font-weight="600" fill="#212529">여행 현황</text>
+    
+    <!-- Cards container -->
+    <g transform="translate(20, 150)">
+      <!-- Current Trip Card -->
+      <rect x="0" y="0" width="110" height="80" rx="8" fill="#007bff" stroke="#0056b3" stroke-width="1"/>
+      <text x="8" y="20" font-family="system-ui, -apple-system" font-size="12" fill="#ffffff">진행중</text>
+      <text x="8" y="35" font-family="system-ui, -apple-system" font-size="24" font-weight="700" fill="#ffffff">1</text>
+      <text x="8" y="48" font-family="system-ui, -apple-system" font-size="10" fill="#cce7ff">여행</text>
+      
+      <!-- Planned Trips Card -->
+      <rect x="125" y="0" width="110" height="80" rx="8" fill="#ffffff" stroke="#dee2e6" stroke-width="1"/>
+      <text x="133" y="20" font-family="system-ui, -apple-system" font-size="12" fill="#6c757d">계획중</text>
+      <text x="133" y="35" font-family="system-ui, -apple-system" font-size="24" font-weight="700" fill="#007bff">3</text>
+      <text x="133" y="48" font-family="system-ui, -apple-system" font-size="10" fill="#6c757d">여행</text>
+      
+      <!-- Completed Trips Card -->
+      <rect x="250" y="0" width="105" height="80" rx="8" fill="#ffffff" stroke="#dee2e6" stroke-width="1"/>
+      <text x="258" y="20" font-family="system-ui, -apple-system" font-size="12" fill="#6c757d">완료</text>
+      <text x="258" y="35" font-family="system-ui, -apple-system" font-size="24" font-weight="700" fill="#28a745">7</text>
+      <text x="258" y="48" font-family="system-ui, -apple-system" font-size="10" fill="#6c757d">여행</text>
+    </g>
+  </g>
+  
+  <!-- Current Trip Card -->
+  <g id="current-trip">
+    <text x="20" y="274" font-family="system-ui, -apple-system" font-size="18" font-weight="600" fill="#212529">현재 여행</text>
+    
+    <!-- Trip card -->
+    <rect x="20" y="290" width="335" height="120" rx="12" fill="#ffffff" stroke="#dee2e6" stroke-width="1"/>
+    
+    <!-- Trip info -->
+    <text x="35" y="315" font-family="system-ui, -apple-system" font-size="16" font-weight="600" fill="#212529">제주도 3박 4일</text>
+    <text x="35" y="335" font-family="system-ui, -apple-system" font-size="14" fill="#6c757d">2024.07.21 - 2024.07.24</text>
+    
+    <!-- Progress bar -->
+    <rect x="35" y="350" width="270" height="6" rx="3" fill="#e9ecef"/>
+    <rect x="35" y="350" width="135" height="6" rx="3" fill="#007bff"/>
+    <text x="35" y="375" font-family="system-ui, -apple-system" font-size="12" fill="#6c757d">2일차 진행 중 (50%)</text>
+    
+    <!-- View button -->
+    <rect x="310" y="320" width="30" height="20" rx="4" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+    <text x="320" y="332" font-family="system-ui, -apple-system" font-size="10" fill="#007bff" text-anchor="middle">보기</text>
+  </g>
+  
+  <!-- Quick Actions -->
+  <g id="quick-actions">
+    <text x="20" y="454" font-family="system-ui, -apple-system" font-size="18" font-weight="600" fill="#212529">빠른 작업</text>
+    
+    <!-- Action buttons container -->
+    <g transform="translate(20, 470)">
+      <!-- New Trip Button -->
+      <rect x="0" y="0" width="165" height="60" rx="8" fill="#007bff"/>
+      <text x="20" y="25" font-family="system-ui, -apple-system" font-size="14" font-weight="600" fill="#ffffff">새 여행 만들기</text>
+      <text x="20" y="40" font-family="system-ui, -apple-system" font-size="11" fill="#cce7ff">일정 생성하기</text>
+      <!-- Plus icon -->
+      <circle cx="135" cy="30" r="12" fill="#ffffff" fill-opacity="0.2"/>
+      <line x1="130" y1="30" x2="140" y2="30" stroke="#ffffff" stroke-width="2"/>
+      <line x1="135" y1="25" x2="135" y2="35" stroke="#ffffff" stroke-width="2"/>
+      
+      <!-- Search Places Button -->
+      <rect x="175" y="0" width="160" height="60" rx="8" fill="#ffffff" stroke="#dee2e6" stroke-width="1"/>
+      <text x="195" y="25" font-family="system-ui, -apple-system" font-size="14" font-weight="600" fill="#212529">장소 찾기</text>
+      <text x="195" y="40" font-family="system-ui, -apple-system" font-size="11" fill="#6c757d">주변 탐색</text>
+      <!-- Search icon -->
+      <circle cx="305" cy="30" r="8" fill="none" stroke="#007bff" stroke-width="2"/>
+      <path d="m311 36 3 3" stroke="#007bff" stroke-width="2"/>
+    </g>
+  </g>
+  
+  <!-- Recent Trips List -->
+  <g id="recent-trips">
+    <text x="20" y="574" font-family="system-ui, -apple-system" font-size="18" font-weight="600" fill="#212529">최근 여행</text>
+    
+    <!-- Trip list items -->
+    <g transform="translate(20, 590)">
+      <!-- Trip 1 -->
+      <rect x="0" y="0" width="335" height="70" rx="8" fill="#ffffff" stroke="#e9ecef" stroke-width="1"/>
+      <circle cx="25" cy="25" r="8" fill="#28a745"/>
+      <text x="45" y="22" font-family="system-ui, -apple-system" font-size="14" font-weight="500" fill="#212529">부산 2박 3일</text>
+      <text x="45" y="38" font-family="system-ui, -apple-system" font-size="12" fill="#6c757d">2024.06.15 - 2024.06.17</text>
+      <text x="45" y="52" font-family="system-ui, -apple-system" font-size="11" fill="#28a745">완료</text>
+      <text x="310" y="35" font-family="system-ui, -apple-system" font-size="12" fill="#6c757d">></text>
+      
+      <!-- Trip 2 -->
+      <rect x="0" y="80" width="335" height="70" rx="8" fill="#ffffff" stroke="#e9ecef" stroke-width="1"/>
+      <circle cx="25" cy="105" r="8" fill="#28a745"/>
+      <text x="45" y="102" font-family="system-ui, -apple-system" font-size="14" font-weight="500" fill="#212529">강릉 1박 2일</text>
+      <text x="45" y="118" font-family="system-ui, -apple-system" font-size="12" fill="#6c757d">2024.05.20 - 2024.05.21</text>
+      <text x="45" y="132" font-family="system-ui, -apple-system" font-size="11" fill="#28a745">완료</text>
+      <text x="310" y="115" font-family="system-ui, -apple-system" font-size="12" fill="#6c757d">></text>
+    </g>
+  </g>
+  
+  <!-- Bottom Navigation -->
+  <g id="bottom-navigation">
+    <rect x="0" y="732" width="375" height="80" fill="#ffffff" stroke="#e9ecef" stroke-width="1"/>
+    
+    <!-- Tab items -->
+    <g transform="translate(0, 742)">
+      <!-- Home tab (active) -->
+      <g transform="translate(37.5, 0)">
+        <rect x="-25" y="0" width="50" height="50" fill="transparent"/>
+        <rect x="-12" y="8" width="24" height="16" rx="2" fill="#007bff"/>
+        <rect x="-8" y="12" width="6" height="6" fill="#ffffff"/>
+        <rect x="2" y="12" width="6" height="6" fill="#ffffff"/>
+        <rect x="-8" y="18" width="16" height="2" fill="#ffffff"/>
+        <text x="0" y="38" font-family="system-ui, -apple-system" font-size="10" fill="#007bff" text-anchor="middle">홈</text>
+      </g>
+      
+      <!-- Trips tab -->
+      <g transform="translate(112.5, 0)">
+        <rect x="-25" y="0" width="50" height="50" fill="transparent"/>
+        <rect x="-10" y="8" width="20" height="16" rx="2" fill="none" stroke="#6c757d" stroke-width="1.5"/>
+        <line x1="-6" y1="12" x2="6" y2="12" stroke="#6c757d" stroke-width="1"/>
+        <line x1="-6" y1="16" x2="2" y2="16" stroke="#6c757d" stroke-width="1"/>
+        <line x1="-6" y1="20" x2="6" y2="20" stroke="#6c757d" stroke-width="1"/>
+        <text x="0" y="38" font-family="system-ui, -apple-system" font-size="10" fill="#6c757d" text-anchor="middle">여행</text>
+      </g>
+      
+      <!-- Search tab -->
+      <g transform="translate(187.5, 0)">
+        <rect x="-25" y="0" width="50" height="50" fill="transparent"/>
+        <circle cx="0" cy="16" r="8" fill="none" stroke="#6c757d" stroke-width="1.5"/>
+        <path d="m6 22 4 4" stroke="#6c757d" stroke-width="1.5"/>
+        <text x="0" y="38" font-family="system-ui, -apple-system" font-size="10" fill="#6c757d" text-anchor="middle">검색</text>
+      </g>
+      
+      <!-- Profile tab -->
+      <g transform="translate(262.5, 0)">
+        <rect x="-25" y="0" width="50" height="50" fill="transparent"/>
+        <circle cx="0" cy="14" r="6" fill="none" stroke="#6c757d" stroke-width="1.5"/>
+        <path d="M-8,26 Q0,20 8,26" fill="none" stroke="#6c757d" stroke-width="1.5"/>
+        <text x="0" y="38" font-family="system-ui, -apple-system" font-size="10" fill="#6c757d" text-anchor="middle">프로필</text>
+      </g>
+      
+      <!-- Settings tab -->
+      <g transform="translate(337.5, 0)">
+        <rect x="-25" y="0" width="50" height="50" fill="transparent"/>
+        <circle cx="0" cy="16" r="3" fill="#6c757d"/>
+        <circle cx="0" cy="16" r="8" fill="none" stroke="#6c757d" stroke-width="1.5"/>
+        <line x1="0" y1="6" x2="0" y2="8" stroke="#6c757d" stroke-width="1.5"/>
+        <line x1="0" y1="24" x2="0" y2="26" stroke="#6c757d" stroke-width="1.5"/>
+        <line x1="10" y1="16" x2="8" y2="16" stroke="#6c757d" stroke-width="1.5"/>
+        <line x1="-8" y1="16" x2="-10" y2="16" stroke="#6c757d" stroke-width="1.5"/>
+        <text x="0" y="38" font-family="system-ui, -apple-system" font-size="10" fill="#6c757d" text-anchor="middle">설정</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Responsive Design Media Query Simulation -->
+  <!-- Desktop Layout (1024px+) would expand horizontally with sidebar -->
+  <style>
+    @media (min-width: 768px) {
+      /* Tablet layout adjustments */
+    }
+    @media (min-width: 1024px) {
+      /* Desktop layout with sidebar */
+    }
+  </style>
+  
+  <!-- Component Labels for Development -->
+  <g id="component-labels" opacity="0.3">
+    <text x="10" y="20" font-family="monospace" font-size="8" fill="#dc3545">Header</text>
+    <text x="10" y="140" font-family="monospace" font-size="8" fill="#dc3545">Summary Cards</text>
+    <text x="10" y="280" font-family="monospace" font-size="8" fill="#dc3545">Current Trip Card</text>
+    <text x="10" y="460" font-family="monospace" font-size="8" fill="#dc3545">Quick Actions</text>
+    <text x="10" y="580" font-family="monospace" font-size="8" fill="#dc3545">Recent Trips List</text>
+    <text x="10" y="750" font-family="monospace" font-size="8" fill="#dc3545">Bottom Navigation</text>
+  </g>
+</svg>

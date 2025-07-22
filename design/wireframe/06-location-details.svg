@@ -1,0 +1,113 @@
+<svg width="360" height="800" viewBox="0 0 360 800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Location Details Screen -->
+  <defs>
+    <style>
+      .container { fill: #f8f9fa; stroke: #dee2e6; stroke-width: 1; }
+      .header { fill: #007bff; }
+      .card { fill: #ffffff; stroke: #dee2e6; stroke-width: 1; }
+      .recommendation-card { fill: #e3f2fd; stroke: #2196f3; stroke-width: 1; }
+      .text-primary { fill: #007bff; font-family: Arial; font-size: 14px; font-weight: bold; }
+      .text-secondary { fill: #6c757d; font-family: Arial; font-size: 12px; }
+      .text-dark { fill: #343a40; font-family: Arial; font-size: 12px; }
+      .text-white { fill: #ffffff; font-family: Arial; font-size: 14px; }
+      .text-small { fill: #6c757d; font-family: Arial; font-size: 10px; }
+      .text-recommendation { fill: #1976d2; font-family: Arial; font-size: 11px; }
+      .btn { fill: #007bff; stroke: #0056b3; stroke-width: 1; }
+      .btn-success { fill: #28a745; stroke: #1e7e34; stroke-width: 1; }
+      .btn-outline { fill: none; stroke: #007bff; stroke-width: 1; }
+      .icon { fill: #6c757d; }
+      .star-filled { fill: #ffc107; }
+      .star-empty { fill: #e9ecef; }
+      .badge-open { fill: #28a745; }
+      .badge-closed { fill: #dc3545; }
+    </style>
+  </defs>
+  
+  <!-- Device Frame -->
+  <rect x="0" y="0" width="360" height="800" class="container"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="360" height="60" class="header"/>
+  <text x="50" y="35" class="text-white" font-weight="bold">장소 상세정보</text>
+  <!-- Back Button -->
+  <text x="20" y="38" class="text-white" font-size="16px">←</text>
+  <!-- Favorite & Share Icons -->
+  <text x="290" y="38" class="text-white" font-size="16px">♡</text>
+  <text x="315" y="38" class="text-white" font-size="16px">⤴</text>
+
+  <!-- Hero Image/Gallery -->
+  <rect x="0" y="60" width="360" height="150" fill="#e9ecef" stroke="#dee2e6"/>
+  <text x="180" y="130" text-anchor="middle" class="text-secondary" font-size="16px">📸 이미지 갤러리</text>
+  <text x="180" y="150" text-anchor="middle" class="text-small">사진 5장 • 스와이프하여 보기</text>
+  <!-- Gallery indicators -->
+  <circle cx="160" cy="190" r="4" fill="#007bff"/>
+  <circle cx="175" cy="190" r="4" fill="#dee2e6"/>
+  <circle cx="190" cy="190" r="4" fill="#dee2e6"/>
+  <circle cx="205" cy="190" r="4" fill="#dee2e6"/>
+
+  <!-- Basic Info Card -->
+  <rect x="20" y="220" width="320" height="120" rx="12" class="card"/>
+  <text x="30" y="245" class="text-primary" font-size="18px" font-weight="bold">해동용궁사</text>
+  <text x="30" y="265" class="text-secondary">부산 기장군의 대표 해변 사찰</text>
+  
+  <!-- Rating -->
+  <text x="30" y="285" class="star-filled" font-size="14px">★★★★☆</text>
+  <text x="110" y="285" class="text-dark">4.3 (구글 1,247개)</text>
+  <text x="30" y="305" class="star-filled" font-size="14px">★★★★☆</text>
+  <text x="110" y="305" class="text-dark">4.5 (카카오 892개)</text>
+  
+  <!-- Operating Status -->
+  <rect x="30" y="315" width="45" height="20" rx="10" class="badge-open"/>
+  <text x="52" y="328" class="text-white" font-size="10px" text-anchor="middle">영업중</text>
+  <text x="85" y="328" class="text-dark" font-size="10px">24시간 개방</text>
+
+  <!-- AI Recommendation Reason Card - Added -->
+  <rect x="20" y="350" width="320" height="80" rx="12" class="recommendation-card"/>
+  <text x="30" y="375" class="text-primary" font-weight="bold">🤖 AI 추천 사유</text>
+  <text x="30" y="395" class="text-recommendation">✓ 멤버 선호도: 문화/자연 (85% 일치)</text>
+  <text x="30" y="410" class="text-recommendation">✓ 연령대 적합: 전 연령 방문 가능</text>
+  <text x="30" y="425" class="text-recommendation">✓ 접근성: 주차 용이, 도보 5분 거리</text>
+
+  <!-- Address Section -->
+  <rect x="20" y="440" width="320" height="80" rx="12" class="card"/>
+  <text x="30" y="465" class="text-primary" font-weight="bold">📍 위치 정보</text>
+  <text x="30" y="485" class="text-dark">부산광역시 기장군 기장읍 용궁길 86</text>
+  <text x="30" y="505" class="text-secondary">지도검색어: "해동용궁사 기장"</text>
+
+  <!-- Contact & Hours Card -->
+  <rect x="20" y="530" width="155" height="100" rx="12" class="card"/>
+  <text x="30" y="555" class="text-primary" font-weight="bold">📞 연락처</text>
+  <text x="30" y="575" class="text-dark">051-722-7744</text>
+  <text x="30" y="595" class="text-secondary" font-size="10px">터치하여 전화걸기</text>
+  <text x="30" y="615" class="text-secondary" font-size="10px">오늘 06:00-18:00</text>
+
+  <!-- Parking Info Card -->
+  <rect x="185" y="530" width="155" height="100" rx="12" class="card"/>
+  <text x="195" y="555" class="text-primary" font-weight="bold">🅿️ 주차장</text>
+  <text x="195" y="575" class="text-dark">무료 주차 가능</text>
+  <text x="195" y="595" class="text-secondary" font-size="10px">주차장 약 100대</text>
+  <text x="195" y="615" class="text-secondary" font-size="10px">검색: "해동용궁사 주차장"</text>
+
+  <!-- Reviews Section -->
+  <rect x="20" y="640" width="320" height="100" rx="12" class="card"/>
+  <text x="30" y="665" class="text-primary" font-weight="bold">💬 최근 리뷰 (3개월 이내)</text>
+  
+  <!-- Review 1 -->
+  <text x="30" y="685" class="text-dark" font-size="11px">⭐ 4.5 "바다 뷰가 정말 아름다워요!"</text>
+  <text x="30" y="700" class="text-small">김○○ • 2일 전</text>
+  
+  <!-- Review 2 -->
+  <text x="30" y="720" class="text-dark" font-size="11px">⭐ 4.0 "일출 보기 좋은 곳입니다"</text>
+  <text x="30" y="735" class="text-small">이○○ • 1주 전</text>
+
+  <!-- Action Buttons -->
+  <rect x="20" y="750" width="100" height="40" rx="20" class="btn-success"/>
+  <text x="70" y="775" class="text-white" font-size="12px" text-anchor="middle">일정에 추가</text>
+  
+  <rect x="130" y="750" width="100" height="40" rx="20" class="btn"/>
+  <text x="180" y="775" class="text-white" font-size="12px" text-anchor="middle">길찾기</text>
+  
+  <rect x="240" y="750" width="100" height="40" rx="20" class="btn-outline"/>
+  <text x="290" y="775" class="text-primary" font-size="12px" text-anchor="middle">공유하기</text>
+
+</svg>

@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 18px; font-weight: 600; fill: #1a1a1a; }
+      .label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; fill: #333; }
+      .text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; fill: #666; }
+      .small-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 10px; fill: #999; }
+      .button-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; font-weight: 500; fill: #007AFF; }
+      .active-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: #fff; }
+      .rating { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; fill: #FF8C00; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="375" height="812" fill="#F8F9FA"/>
+  
+  <!-- Status Bar -->
+  <rect width="375" height="44" fill="#fff"/>
+  <text x="20" y="28" class="title">장소 검색</text>
+  <circle cx="340" cy="22" r="8" fill="none" stroke="#666" stroke-width="1"/>
+  <path d="M337 19 L337 25 M340 16 L340 28 M343 19 L343 25" stroke="#666" stroke-width="1"/>
+
+  <!-- Search Bar -->
+  <g transform="translate(16, 54)">
+    <rect width="343" height="44" rx="12" fill="#fff" stroke="#E5E5E7" stroke-width="1"/>
+    <circle cx="20" cy="22" r="7" fill="none" stroke="#999" stroke-width="1.5"/>
+    <path d="M25 27 L29 31" stroke="#999" stroke-width="1.5"/>
+    <text x="40" y="27" class="text" fill="#999">키워드 또는 장소명을 입력하세요</text>
+    
+    <!-- Voice Search Button -->
+    <rect x="295" y="12" width="20" height="20" rx="6" fill="#007AFF"/>
+    <circle cx="305" cy="18" r="3" fill="white"/>
+    <rect x="303" y="21" width="4" height="6" fill="white"/>
+    
+    <!-- Filter Button -->
+    <rect x="320" y="12" width="20" height="20" rx="6" fill="none" stroke="#007AFF" stroke-width="1"/>
+    <path d="M326 16 L334 16 M328 19 L332 19 M330 22 L332 22" stroke="#007AFF" stroke-width="1"/>
+  </g>
+
+  <!-- Category Tabs -->
+  <g transform="translate(16, 108)">
+    <text x="0" y="18" class="label">카테고리</text>
+    
+    <!-- Active Tab: Restaurant -->
+    <rect x="0" y="28" width="70" height="32" rx="16" fill="#007AFF"/>
+    <text x="35" y="47" class="active-text" text-anchor="middle">음식점</text>
+    
+    <!-- Inactive Tabs -->
+    <rect x="78" y="28" width="55" height="32" rx="16" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+    <text x="105.5" y="47" class="button-text" text-anchor="middle">카페</text>
+    
+    <rect x="141" y="28" width="65" height="32" rx="16" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+    <text x="173.5" y="47" class="button-text" text-anchor="middle">관광지</text>
+    
+    <rect x="214" y="28" width="55" height="32" rx="16" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+    <text x="241.5" y="47" class="button-text" text-anchor="middle">쇼핑</text>
+    
+    <rect x="277" y="28" width="66" height="32" rx="16" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+    <text x="310" y="47" class="button-text" text-anchor="middle">+ 더보기</text>
+  </g>
+
+  <!-- Distance & Transport Settings -->
+  <g transform="translate(16, 178)">
+    <rect width="343" height="60" rx="12" fill="#fff" stroke="#E5E5E7" stroke-width="1"/>
+    
+    <!-- Distance Settings -->
+    <text x="16" y="26" class="label">검색 범위</text>
+    <rect x="16" y="32" width="100" height="20" rx="10" fill="#F0F0F0"/>
+    <text x="66" y="44" class="text" text-anchor="middle">20분 이내</text>
+    
+    <!-- Transport Mode -->
+    <text x="176" y="26" class="label">이동 수단</text>
+    <g transform="translate(176, 32)">
+      <!-- Walking -->
+      <rect x="0" y="0" width="32" height="20" rx="10" fill="#007AFF"/>
+      <path d="M12 6 L12 10 M10 8 L14 8 M12 10 L12 14 M10 14 L14 14" stroke="white" stroke-width="1"/>
+      
+      <!-- Public Transport -->
+      <rect x="36" y="0" width="32" height="20" rx="10" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+      <rect x="44" y="4" width="16" height="12" rx="2" fill="none" stroke="#999" stroke-width="1"/>
+      
+      <!-- Car -->
+      <rect x="72" y="0" width="32" height="20" rx="10" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+      <path d="M82 8 L88 8 L90 10 L90 14 L88 16 L82 16 L80 14 L80 10 Z" fill="none" stroke="#999" stroke-width="1"/>
+      <circle cx="83" cy="14" r="1.5" fill="#999"/>
+      <circle cx="87" cy="14" r="1.5" fill="#999"/>
+    </g>
+  </g>
+
+  <!-- Sort & View Toggle -->
+  <g transform="translate(16, 248)">
+    <rect width="160" height="32" rx="8" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+    <path d="M16 12 L16 20 M12 16 L20 16" stroke="#666" stroke-width="1"/>
+    <text x="30" y="21" class="text">거리순 정렬</text>
+    <path d="M140 16 L150 16 M145 12 L150 16 L145 20" stroke="#666" stroke-width="1"/>
+    
+    <!-- Map Toggle -->
+    <rect x="183" y="0" width="160" height="32" rx="8" fill="#007AFF"/>
+    <text x="263" y="21" class="active-text" text-anchor="middle">지도 보기</text>
+    <rect x="194" y="8" width="16" height="16" rx="2" fill="white"/>
+    <circle cx="202" cy="16" r="2" fill="#007AFF"/>
+  </g>
+
+  <!-- Search Results -->
+  <g transform="translate(16, 290)">
+    <text x="0" y="18" class="label">검색 결과 (24개)</text>
+    
+    <!-- Result Item 1 -->
+    <g transform="translate(0, 28)">
+      <rect width="343" height="100" rx="12" fill="#fff" stroke="#E5E5E7" stroke-width="1"/>
+      
+      <!-- Restaurant Image Placeholder -->
+      <rect x="12" y="12" width="76" height="76" rx="8" fill="#F0F0F0"/>
+      <text x="50" y="54" class="small-text" text-anchor="middle">이미지</text>
+      
+      <!-- Content -->
+      <text x="100" y="26" class="label">김치찌개 전문점</text>
+      <text x="100" y="40" class="text">한식 • 도보 3분 (220m)</text>
+      
+      <!-- Rating -->
+      <rect x="100" y="48" width="40" height="16" rx="8" fill="#FFF4E6"/>
+      <text x="120" y="58" class="rating" text-anchor="middle">★ 4.5</text>
+      
+      <!-- Status Indicators -->
+      <rect x="148" y="48" width="45" height="16" rx="8" fill="#E8F5E8"/>
+      <text x="170.5" y="58" class="text" text-anchor="middle" fill="#22C55E">영업중</text>
+      
+      <rect x="201" y="48" width="35" height="16" rx="8" fill="#FEF3CD"/>
+      <text x="218.5" y="58" class="text" text-anchor="middle" fill="#F59E0B">보통</text>
+      
+      <!-- Business Hours -->
+      <text x="100" y="76" class="small-text">오늘 09:00-21:00 • 리뷰 342개</text>
+      
+      <!-- Favorite Button -->
+      <rect x="307" y="12" width="24" height="24" rx="12" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+      <path d="M319 17 L321.5 22 L327 22 L322.7 25.5 L324.2 31 L319 27.5 L313.8 31 L315.3 25.5 L311 22 L316.5 22 Z" fill="none" stroke="#999" stroke-width="1"/>
+    </g>
+
+    <!-- Result Item 2 -->
+    <g transform="translate(0, 138)">
+      <rect width="343" height="100" rx="12" fill="#fff" stroke="#E5E5E7" stroke-width="1"/>
+      
+      <!-- Restaurant Image Placeholder -->
+      <rect x="12" y="12" width="76" height="76" rx="8" fill="#F0F0F0"/>
+      <text x="50" y="54" class="small-text" text-anchor="middle">이미지</text>
+      
+      <!-- Content -->
+      <text x="100" y="26" class="label">맛있는 갈비집</text>
+      <text x="100" y="40" class="text">한식 • 차량 5분 (1.2km)</text>
+      
+      <!-- Rating -->
+      <rect x="100" y="48" width="40" height="16" rx="8" fill="#FFF4E6"/>
+      <text x="120" y="58" class="rating" text-anchor="middle">★ 4.8</text>
+      
+      <!-- Status Indicators -->
+      <rect x="148" y="48" width="45" height="16" rx="8" fill="#FEE2E2"/>
+      <text x="170.5" y="58" class="text" text-anchor="middle" fill="#EF4444">휴무</text>
+      
+      <rect x="201" y="48" width="35" height="16" rx="8" fill="#E5E5E7"/>
+      <text x="218.5" y="58" class="text" text-anchor="middle" fill="#999">-</text>
+      
+      <!-- Business Hours -->
+      <text x="100" y="76" class="small-text">내일 11:00-22:00 • 리뷰 128개</text>
+      
+      <!-- Favorite Button (Active) -->
+      <rect x="307" y="12" width="24" height="24" rx="12" fill="#FFE5CC" stroke="#FF8C00" stroke-width="1"/>
+      <path d="M319 17 L321.5 22 L327 22 L322.7 25.5 L324.2 31 L319 27.5 L313.8 31 L315.3 25.5 L311 22 L316.5 22 Z" fill="#FF8C00"/>
+    </g>
+
+    <!-- Result Item 3 -->
+    <g transform="translate(0, 248)">
+      <rect width="343" height="100" rx="12" fill="#fff" stroke="#E5E5E7" stroke-width="1"/>
+      
+      <!-- Restaurant Image Placeholder -->
+      <rect x="12" y="12" width="76" height="76" rx="8" fill="#F0F0F0"/>
+      <text x="50" y="54" class="small-text" text-anchor="middle">이미지</text>
+      
+      <!-- Content -->
+      <text x="100" y="26" class="label">홍대 파스타</text>
+      <text x="100" y="40" class="text">양식 • 대중교통 8분 (550m)</text>
+      
+      <!-- Rating -->
+      <rect x="100" y="48" width="40" height="16" rx="8" fill="#FFF4E6"/>
+      <text x="120" y="58" class="rating" text-anchor="middle">★ 4.2</text>
+      
+      <!-- Status Indicators -->
+      <rect x="148" y="48" width="45" height="16" rx="8" fill="#E8F5E8"/>
+      <text x="170.5" y="58" class="text" text-anchor="middle" fill="#22C55E">영업중</text>
+      
+      <rect x="201" y="48" width="35" height="16" rx="8" fill="#FEE2E2"/>
+      <text x="218.5" y="58" class="text" text-anchor="middle" fill="#EF4444">혼잡</text>
+      
+      <!-- Business Hours -->
+      <text x="100" y="76" class="small-text">오늘 11:30-23:00 • 리뷰 89개</text>
+      
+      <!-- Favorite Button -->
+      <rect x="307" y="12" width="24" height="24" rx="12" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+      <path d="M319 17 L321.5 22 L327 22 L322.7 25.5 L324.2 31 L319 27.5 L313.8 31 L315.3 25.5 L311 22 L316.5 22 Z" fill="none" stroke="#999" stroke-width="1"/>
+    </g>
+
+    <!-- Load More -->
+    <rect x="0" y="358" width="343" height="44" rx="12" fill="none" stroke="#E5E5E7" stroke-width="1"/>
+    <text x="171.5" y="384" class="button-text" text-anchor="middle">더 많은 결과 보기</text>
+  </g>
+
+  <!-- Filter Panel (Overlay) - Hidden by default -->
+  <g transform="translate(16, 100)" opacity="0">
+    <rect width="343" height="300" rx="16" fill="white" stroke="#E5E5E7" stroke-width="1"/>
+    <rect width="343" height="52" rx="16" fill="#F8F9FA"/>
+    <text x="20" y="30" class="label">상세 필터</text>
+    <circle cx="307" cy="26" r="12" fill="none" stroke="#999" stroke-width="1"/>
+    <path d="M301 20 L313 32 M313 20 L301 32" stroke="#999" stroke-width="1"/>
+    
+    <!-- Filter Options -->
+    <text x="20" y="70" class="text">거리 설정</text>
+    <rect x="20" y="80" width="303" height="4" rx="2" fill="#E5E5E7"/>
+    <circle cx="100" cy="82" r="8" fill="#007AFF"/>
+    
+    <text x="20" y="110" class="text">가격대</text>
+    <rect x="20" y="120" width="70" height="28" rx="14" fill="#007AFF"/>
+    <text x="55" y="137" class="active-text" text-anchor="middle">₩</text>
+    <rect x="98" y="120" width="70" height="28" rx="14" fill="none" stroke="#E5E5E7"/>
+    <text x="133" y="137" class="button-text" text-anchor="middle">₩₩</text>
+    
+    <text x="20" y="170" class="text">평점</text>
+    <rect x="20" y="180" width="120" height="28" rx="14" fill="#007AFF"/>
+    <text x="80" y="197" class="active-text" text-anchor="middle">4.0 이상</text>
+    
+    <text x="20" y="220" class="text">영업 상태</text>
+    <rect x="20" y="230" width="100" height="28" rx="14" fill="#007AFF"/>
+    <text x="70" y="247" class="active-text" text-anchor="middle">영업중만</text>
+    
+    <!-- Apply Button -->
+    <rect x="20" y="270" width="303" height="44" rx="12" fill="#007AFF"/>
+    <text x="171.5" y="296" class="active-text" text-anchor="middle">필터 적용하기</text>
+  </g>
+
+  <!-- Bottom Navigation -->
+  <g transform="translate(0, 750)">
+    <rect width="375" height="62" fill="#fff" stroke="#E5E5E7" stroke-width="1"/>
+    
+    <!-- Home -->
+    <g transform="translate(37.5, 16)">
+      <rect x="8" y="0" width="16" height="12" fill="none" stroke="#999" stroke-width="1"/>
+      <path d="M0 6 L16 6 L8 0 Z" fill="none" stroke="#999" stroke-width="1"/>
+      <text x="16" y="26" class="small-text" text-anchor="middle">홈</text>
+    </g>
+    
+    <!-- Schedule -->
+    <g transform="translate(112.5, 16)">
+      <rect x="4" y="0" width="16" height="18" rx="2" fill="none" stroke="#999" stroke-width="1"/>
+      <path d="M8 4 L16 4 M8 8 L16 8 M8 12 L12 12" stroke="#999" stroke-width="1"/>
+      <text x="12" y="26" class="small-text" text-anchor="middle">일정</text>
+    </g>
+    
+    <!-- Search (Active) -->
+    <g transform="translate(187.5, 16)">
+      <circle cx="8" r="7" fill="none" stroke="#007AFF" stroke-width="2"/>
+      <path d="M13 13 L18 18" stroke="#007AFF" stroke-width="2"/>
+      <text x="12" y="26" class="small-text" text-anchor="middle" fill="#007AFF">검색</text>
+    </g>
+    
+    <!-- Map -->
+    <g transform="translate(262.5, 16)">
+      <rect x="2" y="2" width="20" height="14" rx="2" fill="none" stroke="#999" stroke-width="1"/>
+      <circle cx="12" cy="9" r="2" fill="#999"/>
+      <text x="12" y="26" class="small-text" text-anchor="middle">지도</text>
+    </g>
+    
+    <!-- Profile -->
+    <g transform="translate(337.5, 16)">
+      <circle cx="0" cy="4" r="4" fill="none" stroke="#999" stroke-width="1"/>
+      <path d="M-8 14 C-8 10 -4 8 0 8 S8 10 8 14" fill="none" stroke="#999" stroke-width="1"/>
+      <text x="0" y="26" class="small-text" text-anchor="middle">내정보</text>
+    </g>
+  </g>
+
+</svg>
