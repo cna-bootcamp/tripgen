@@ -1,0 +1,125 @@
+@startuml
+!theme mono
+
+title 일정 서비스(Itinerary Service) 간단한 클래스 다이어그램
+
+package "com.unicorn.tripgen.itinerary" {
+    
+    ' ===== Domain Layer =====
+    package "domain" {
+        class Itinerary
+        class DailyActivity
+        class Route
+        class ActivityTime
+        class Attachment
+        
+        enum ItineraryStatus
+        enum TransportType
+        enum AttachmentType
+        
+        interface ItineraryRepository
+        interface DomainEventPublisher
+    }
+    
+    ' ===== Application Layer =====
+    package "application" {
+        ' Command Side
+        package "command" {
+            class CreateItineraryCommand
+            class UpdateItineraryCommand
+            class DeleteItineraryCommand
+            class GenerateItineraryCommand
+            
+            class CreateItineraryCommandHandler
+            class UpdateItineraryCommandHandler
+            class DeleteItineraryCommandHandler
+            class GenerateItineraryCommandHandler
+        }
+        
+        ' Query Side
+        package "query" {
+            class GetItineraryQuery
+            class ListItinerariesQuery
+            
+            class GetItineraryQueryHandler
+            class ListItinerariesQueryHandler
+        }
+        
+        ' Services
+        class ItineraryService
+        class ItineraryGenerationService
+        class RouteCalculationService
+        class PlaceDetailService
+        
+        ' Saga
+        class ItinerarySagaOrchestrator
+        class ItinerarySagaState
+    }
+    
+    ' ===== Infrastructure Layer =====
+    package "infrastructure" {
+        ' Repository Implementations
+        class ItineraryRepositoryImpl
+        class RouteRepositoryImpl
+        class AttachmentRepositoryImpl
+        
+        ' External Services
+        class ProfileServiceClient
+        class LocationServiceClient
+        class McpLocationAdapter
+        class AIServiceAdapter
+        
+        ' Messaging
+        class RedisEventPublisher
+        class SagaRepository
+        
+        ' Job Queue
+        class JobQueueService
+        class ItineraryGenerationJob
+    }
+    
+    ' ===== Presentation Layer =====
+    package "presentation" {
+        class ItineraryController
+        class ItineraryActivityController
+        class RouteController
+        class AttachmentController
+    }
+    
+    ' ===== DTO Layer =====
+    package "dto" {
+        class ItineraryRequest
+        class ItineraryResponse
+        class ActivityRequest
+        class ActivityResponse
+        class RouteResponse
+        class AttachmentResponse
+    }
+}
+
+' 주요 관계 정의
+' Domain 관계
+Itinerary "1" -- "*" DailyActivity : contains
+DailyActivity "1" -- "0..1" Route : has route to next
+DailyActivity "*" -- "*" Attachment : has
+Itinerary ..> ItineraryStatus : uses
+
+' Application Layer 관계
+CreateItineraryCommandHandler ..> ItineraryRepository : uses
+ItineraryService ..> ItineraryRepository : uses
+ItinerarySagaOrchestrator ..> ProfileServiceClient : calls
+ItinerarySagaOrchestrator ..> LocationServiceClient : calls
+ItineraryGenerationService ..> AIServiceAdapter : uses
+RouteCalculationService ..> McpLocationAdapter : uses
+
+' Infrastructure 관계
+ItineraryRepositoryImpl ..|> ItineraryRepository : implements
+RedisEventPublisher ..|> DomainEventPublisher : implements
+JobQueueService ..> ItineraryGenerationJob : manages
+
+' Presentation 관계
+ItineraryController ..> ItineraryService : uses
+ItineraryController ..> CreateItineraryCommand : creates
+ItineraryController ..> ItineraryResponse : returns
+
+@enduml

@@ -1,0 +1,131 @@
+@startuml
+!theme mono
+
+title 프로파일 서비스(Profile Service) 간단한 클래스 다이어그램
+
+package "com.unicorn.tripgen.profile" {
+    
+    ' ===== Domain Layer =====
+    package "domain" {
+        class Member
+        class Trip
+        class TripMember
+        class TravelStyle
+        class TravelPace
+        class TransportPreference
+        
+        enum MemberRole
+        enum TripStatus
+        enum TravelTheme
+        enum TransportType
+        enum PaceType
+        
+        interface MemberRepository
+        interface TripRepository
+    }
+    
+    ' ===== Service Layer =====
+    package "service" {
+        class MemberService
+        class TripService
+        class TripMemberService
+        class TravelStyleService
+        class TransportService
+        
+        interface CacheService
+        interface ValidationService
+    }
+    
+    ' ===== Repository Layer =====
+    package "repository" {
+        class MemberRepositoryImpl
+        class TripRepositoryImpl
+        class TripMemberRepositoryImpl
+        class TravelStyleRepositoryImpl
+        
+        ' JPA Entities
+        class MemberEntity
+        class TripEntity
+        class TripMemberEntity
+        class TravelStyleEntity
+    }
+    
+    ' ===== Controller Layer =====
+    package "controller" {
+        class MemberController
+        class TripController
+        class TripMemberController
+        class TravelStyleController
+        class TransportController
+    }
+    
+    ' ===== DTO Layer =====
+    package "dto" {
+        ' Request DTOs
+        class MemberRequest
+        class TripRequest
+        class TripMemberRequest
+        class TravelStyleRequest
+        class TransportRequest
+        
+        ' Response DTOs
+        class MemberResponse
+        class TripResponse
+        class TripMemberResponse
+        class TravelStyleResponse
+        class TransportResponse
+    }
+    
+    ' ===== Mapper Layer =====
+    package "mapper" {
+        class MemberMapper
+        class TripMapper
+        class TripMemberMapper
+        class TravelStyleMapper
+    }
+    
+    ' ===== Infrastructure Layer =====
+    package "infrastructure" {
+        class RedisCacheService
+        class ProfileValidationService
+        class EventPublisher
+    }
+}
+
+' 주요 관계 정의
+' Domain 관계
+Trip "1" -- "*" TripMember : has
+Member "1" -- "*" TripMember : participates
+Trip "1" -- "1" TravelStyle : has
+Trip "1" -- "*" TransportPreference : has
+TripMember ..> MemberRole : uses
+Trip ..> TripStatus : uses
+
+' Service Layer 관계
+MemberService ..> MemberRepository : uses
+TripService ..> TripRepository : uses
+TripService ..> CacheService : uses
+MemberService ..> ValidationService : uses
+
+' Repository 관계
+MemberRepositoryImpl ..|> MemberRepository : implements
+TripRepositoryImpl ..|> TripRepository : implements
+MemberRepositoryImpl ..> MemberEntity : manages
+TripRepositoryImpl ..> TripEntity : manages
+
+' Controller 관계
+MemberController ..> MemberService : uses
+TripController ..> TripService : uses
+MemberController ..> MemberRequest : receives
+MemberController ..> MemberResponse : returns
+
+' Mapper 관계
+MemberMapper ..> Member : converts to
+MemberMapper ..> MemberEntity : converts from
+MemberMapper ..> MemberResponse : converts to
+
+' Infrastructure 관계
+RedisCacheService ..|> CacheService : implements
+ProfileValidationService ..|> ValidationService : implements
+
+@enduml

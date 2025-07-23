@@ -3,8 +3,30 @@
 
 title 장소 서비스(Location Service) 클래스 다이어그램 - Clean Architecture
 
-' 공통 컴포넌트 임포트
-!include common-base.txt
+' 공통 인터페이스 정의 (common-base.txt에서 필요한 부분만)
+interface Identifiable<ID> {
+    + getId(): ID
+}
+
+interface Auditable {
+    + getCreatedAt(): LocalDateTime
+    + getUpdatedAt(): LocalDateTime
+    + getCreatedBy(): String
+    + getUpdatedBy(): String
+}
+
+interface Cacheable {
+    + getCacheKey(): String
+    + getCacheTtl(): Duration
+}
+
+abstract class BaseConfig {
+    # environment: String
+    # applicationName: String
+    + getEnvironment(): String
+    + isProduction(): Boolean
+    + isDevelopment(): Boolean
+}
 
 package "com.unicorn.tripgen.location" {
     

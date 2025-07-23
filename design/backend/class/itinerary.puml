@@ -3,8 +3,34 @@
 
 title 일정 서비스(Itinerary Service) 클래스 다이어그램 - Clean Architecture with CQRS & Saga
 
-' 공통 컴포넌트 임포트
-!include common-base.txt
+' 공통 인터페이스 정의 (common-base.txt에서 필요한 부분만)
+interface Identifiable<ID> {
+    + getId(): ID
+}
+
+interface Auditable {
+    + getCreatedAt(): LocalDateTime
+    + getUpdatedAt(): LocalDateTime
+    + getCreatedBy(): String
+    + getUpdatedBy(): String
+}
+
+interface Versionable {
+    + getVersion(): Long
+}
+
+interface Cacheable {
+    + getCacheKey(): String
+    + getCacheTtl(): Duration
+}
+
+abstract class BaseConfig {
+    # environment: String
+    # applicationName: String
+    + getEnvironment(): String
+    + isProduction(): Boolean
+    + isDevelopment(): Boolean
+}
 
 package "com.unicorn.tripgen.itinerary" {
     
@@ -782,8 +808,7 @@ package "com.unicorn.tripgen.itinerary" {
         ' ----- Repository 레이어 -----
         package "repository" {
             ' JPA Entities
-            @Entity
-            class ItineraryEntity {
+            class ItineraryEntity <<Entity>> {
                 - id: String
                 - tripId: String
                 - date: LocalDate
@@ -799,8 +824,7 @@ package "com.unicorn.tripgen.itinerary" {
                 - updatedBy: String
             }
             
-            @Entity
-            class ActivityEntity {
+            class ActivityEntity <<Entity>> {
                 - id: String
                 - itineraryId: String
                 - placeId: String
@@ -818,8 +842,7 @@ package "com.unicorn.tripgen.itinerary" {
                 - updatedAt: LocalDateTime
             }
             
-            @Entity
-            class AttachmentEntity {
+            class AttachmentEntity <<Entity>> {
                 - id: String
                 - placeId: String
                 - type: String
@@ -836,8 +859,7 @@ package "com.unicorn.tripgen.itinerary" {
                 - createdBy: String
             }
             
-            @Entity
-            class RouteEntity {
+            class RouteEntity <<Entity>> {
                 - id: String
                 - fromPlaceId: String
                 - toPlaceId: String
@@ -927,15 +949,13 @@ package "com.unicorn.tripgen.itinerary" {
         
         ' ----- Config 레이어 -----
         package "config" {
-            @Configuration
-            class ItineraryServiceConfig extends BaseConfig {
+            class ItineraryServiceConfig <<Configuration>> extends BaseConfig {
                 + dataSource(): DataSource
                 + entityManagerFactory(): LocalContainerEntityManagerFactoryBean
                 + transactionManager(): PlatformTransactionManager
             }
             
-            @Configuration
-            class AsyncConfig {
+            class AsyncConfig <<Configuration>> {
                 - corePoolSize: Integer
                 - maxPoolSize: Integer
                 - queueCapacity: Integer
@@ -943,36 +963,31 @@ package "com.unicorn.tripgen.itinerary" {
                 + asyncExceptionHandler(): AsyncUncaughtExceptionHandler
             }
             
-            @Configuration
-            class CacheConfig {
+            class CacheConfig <<Configuration>> {
                 + cacheManager(): CacheManager
                 + redisCacheConfiguration(): RedisCacheConfiguration
                 + keyGenerator(): KeyGenerator
             }
             
-            @Configuration
-            class CircuitBreakerConfig {
+            class CircuitBreakerConfig <<Configuration>> {
                 + profileServiceCircuitBreaker(): CircuitBreaker
                 + locationServiceCircuitBreaker(): CircuitBreaker
                 + defaultCircuitBreakerConfig(): CircuitBreakerConfig
             }
             
-            @Configuration
-            class SecurityConfig {
+            class SecurityConfig <<Configuration>> {
                 + securityFilterChain(http: HttpSecurity): SecurityFilterChain
                 + jwtAuthenticationFilter(): JwtAuthenticationFilter
                 + authenticationManager(): AuthenticationManager
             }
             
-            @Configuration
-            class JobQueueConfig {
+            class JobQueueConfig <<Configuration>> {
                 + jobQueue(): JobQueue
                 + jobProcessor(): JobProcessor
                 + jobScheduler(): JobScheduler
             }
             
-            @Configuration
-            class SagaConfig {
+            class SagaConfig <<Configuration>> {
                 + sagaRepository(): SagaRepository
                 + commandDispatcher(): CommandDispatcher
                 + sagaOrchestrator(): ItinerarySagaOrchestrator

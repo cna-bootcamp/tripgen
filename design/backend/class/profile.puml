@@ -3,8 +3,26 @@
 
 title 여행 프로파일 서비스 - 클래스 다이어그램
 
-' 공통 컴포넌트 import
-!include common-base.txt
+' 공통 인터페이스 정의 (common-base.txt에서 필요한 부분만)
+interface Identifiable<ID> {
+    + getId(): ID
+}
+
+interface Auditable {
+    + getCreatedAt(): LocalDateTime
+    + getUpdatedAt(): LocalDateTime
+    + getCreatedBy(): String
+    + getUpdatedBy(): String
+}
+
+interface Versionable {
+    + getVersion(): Long
+}
+
+interface Cacheable {
+    + getCacheKey(): String
+    + getCacheTtl(): Duration
+}
 
 package "com.unicorn.tripgen.profile" {
     
