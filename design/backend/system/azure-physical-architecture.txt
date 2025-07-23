@@ -1,0 +1,147 @@
+@startuml
+!theme mono
+
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment center
+
+title 여행 상세 일정 생성 서비스 - Azure 물리 아키텍처
+
+' Azure 색상 정의
+!define AZURE_COLOR #0078D4
+!define AZURE_SYMBOL_COLOR #FFFFFF
+
+' 사용자 및 외부 시스템
+actor "여행자" as User
+
+cloud "외부 API" {
+    component "카카오 MCP API" as KakaoAPI #FFA07A
+    component "구글 MCP API" as GoogleAPI #FFA07A
+}
+
+' Azure 리전
+rectangle "Azure Korea Central Region" {
+    
+    ' 프론트엔드 계층
+    rectangle "Frontend Tier" #E6F3FF {
+        component "Azure CDN" as CDN #4682B4
+        component "Azure Blob Storage\n(Static Web)" as BlobStorage #4682B4
+    }
+    
+    ' API Gateway 계층
+    rectangle "API Gateway Tier" #F0F8FF {
+        component "Azure API Management\n(Basic Tier)" as APIM #87CEEB
+    }
+    
+    ' 컴퓨팅 계층
+    rectangle "Compute Tier" #F5FFFA {
+        component "Azure Kubernetes Service\n(Standard_D2s_v3)" as AKS #90EE90 {
+            component "Profile Service\n(2 pods)" as ProfilePod
+            component "Itinerary Service\n(3 pods)" as ItineraryPod
+            component "Location Service\n(2 pods)" as LocationPod
+            component "Spring Cloud Gateway" as SCG
+        }
+    }
+    
+    ' 데이터 계층
+    rectangle "Data Tier" #FFF5EE {
+        database "Azure Database\nfor PostgreSQL\n(Flexible Server)" as PostgreSQL #F08080 {
+            database "profile_db" as ProfileDB
+            database "itinerary_db" as ItineraryDB
+            database "location_db" as LocationDB
+        }
+        
+        component "Azure Cache for Redis\n(Standard C1)" as Redis #F08080
+    }
+    
+    ' 메시징 계층
+    rectangle "Messaging Tier" #F5F5DC {
+        component "Azure Service Bus\n(Standard)" as ServiceBus #DDA0DD
+    }
+    
+    ' 모니터링
+    rectangle "Monitoring" #F0FFF0 {
+        component "Azure Monitor" as Monitor #98FB98
+        component "Application Insights" as AppInsights #98FB98
+    }
+}
+
+' 연결 관계
+User --> CDN : HTTPS
+CDN --> BlobStorage : Static Assets
+User --> APIM : REST API
+
+APIM --> SCG : Internal Network
+SCG --> ProfilePod
+SCG --> ItineraryPod
+SCG --> LocationPod
+
+ProfilePod --> ProfileDB
+ItineraryPod --> ItineraryDB
+LocationPod --> LocationDB
+
+ProfilePod --> Redis : Cache Write
+ItineraryPod --> Redis : Cache Read/Write
+LocationPod --> Redis : Cache Read/Write
+
+ItineraryPod --> ServiceBus : AI Job Queue
+ServiceBus --> ItineraryPod : Job Processing
+
+LocationPod --> KakaoAPI : HTTPS
+LocationPod --> GoogleAPI : HTTPS
+
+' 모니터링 연결
+AKS --> Monitor : Metrics
+AKS --> AppInsights : Logs/Traces
+
+' 범례 및 설명
+legend right
+|= 구성 요소 |= Azure 서비스 |= 스펙 |
+| Frontend | Azure CDN + Blob Storage | Standard |
+| API Gateway | Azure API Management | Basic Tier |
+| Container Platform | Azure Kubernetes Service | Standard_D2s_v3 (3 nodes) |
+| Database | Azure Database for PostgreSQL | Flexible Server, 2 vCores |
+| Cache | Azure Cache for Redis | Standard C1 (1GB) |
+| Message Queue | Azure Service Bus | Standard Tier |
+| Monitoring | Azure Monitor + App Insights | Basic |
+
+<b>예상 월 비용 (MVP 기준)</b>
+• AKS: $300 (3 nodes)
+• PostgreSQL: $150
+• Redis: $50
+• Service Bus: $10
+• API Management: $50
+• 기타: $40
+<b>총계: 약 $600/월</b>
+
+<b>스케일링 전략</b>
+• HPA: CPU 70% 초과 시 자동 스케일
+• 최소/최대 Pod: 2-10 (서비스별)
+• DB: 필요시 vCore 증설
+endlegend
+
+note bottom of AKS
+<b>AKS 구성 상세</b>
+• Node Pool: Standard_D2s_v3 (2 vCPU, 8GB RAM)
+• 초기 노드 수: 3개
+• 자동 스케일링: 3-10 노드
+• Kubernetes 버전: 1.27.x
+• Container Runtime: containerd
+end note
+
+note right of Redis
+<b>Redis 캐시 전략</b>
+• 프로파일 데이터: TTL 24시간
+• 장소 정보: TTL 1시간
+• 검색 결과: TTL 10분
+• Eviction Policy: allkeys-lru
+end note
+
+note left of ServiceBus
+<b>Service Bus 구성</b>
+• Queue: ai-generation-queue
+• Max Delivery: 3회
+• Lock Duration: 5분
+• Message TTL: 1시간
+end note
+
+@enduml
