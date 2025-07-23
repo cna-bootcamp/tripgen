@@ -9,42 +9,6 @@
 **기술 스택**: Spring Boot, Redis Cache, MCP (외부 API), Job Queue
 
 ## 📚 가이드
-링크: https://cna-bootcamp.github.io/clauding-guide/guides/README.md
-
-## 마이크로서비스 구성
-| 서비스 | 역할 | 스케일링 정책 |
-|--------|------|---------------|
-| **Profile Service** | 멤버/여행 정보 관리 | Min 1, Max 10 인스턴스 |
-| **Itinerary Service** | AI 일정 생성/관리 | Min 2, Max 20 인스턴스 |
-| **Location Service** | 장소 검색/검증 | Min 1, Max 15 인스턴스 |
-
-
-## ⚡ 핵심 원칙
-
-### 🔄 병렬 처리 전략
-- **서브 에이전트 활용**: Task 도구로 서비스별 동시 작업
-- **3단계 하이브리드 접근**: 
-  1. 공통 컴포넌트 (순차)
-  2. 서비스별 설계 (병렬) 
-  3. 통합 검증 (순차)
-- **의존성 기반 그룹화**: 의존 관계에 따른 순차/병렬 처리
-- **통합 검증**: 병렬 작업 완료 후 전체 검증
-
-### 🏗️ 마이크로서비스 설계
-- **서비스 독립성**: 캐시를 통한 직접 의존성 최소화  
-- **선택적 비동기**: 장시간 작업(AI 일정 생성)만 비동기
-- **캐시 우선**: Redis를 통한 성능 최적화
-
-### 📝 표준화
-- **PlantUML**: 모든 다이어그램 표준 (`!theme mono`)
-- **OpenAPI 3.0**: API 명세 표준
-- **자동 검증**: PlantUML, OpenAPI 문법 검사 필수
-  - **PlamtUML 스크립트 파일은 PlantUML 문법 검사 가이드를 준용**
-  - PlantUML 문법 검사  가이드:  https://cna-bootcamp.github.io/clauding-guide/guides/tools/plantuml-guide.md
-  - **Window는 스크립트 파일을 생성**하여 수행 
-  
-## 📂 가이드 구조
-
 ### 🚀 1. 실행 프롬프트 (prompt/)
 | 파일 | 설명 | 사용 시점 |
 |------|------|-----------|
@@ -78,3 +42,37 @@
 | [plantuml-guide.md](https://cna-bootcamp.github.io/clauding-guide/guides/tools/plantuml-guide.md) | PlantUML 문법 검사 가이드 | 다이어그램 작성 시 |
 | [openapi-tools.md](https://cna-bootcamp.github.io/clauding-guide/guides/tools/openapi-tools.md) | OpenAPI to CSV 변환 도구 | API 명세 CSV 변환 시 |
 | [openapi-to-csv] | OpenAPI to CSV 변환기 | API 설계서 생성 시 |
+
+
+## 마이크로서비스 구성
+| 서비스 | 역할 | 스케일링 정책 |
+|--------|------|---------------|
+| **Profile Service** | 멤버/여행 정보 관리 | Min 1, Max 10 인스턴스 |
+| **Itinerary Service** | AI 일정 생성/관리 | Min 2, Max 20 인스턴스 |
+| **Location Service** | 장소 검색/검증 | Min 1, Max 15 인스턴스 |
+
+
+## ⚡ 핵심 원칙
+
+### 🔄 병렬 처리 전략
+- **서브 에이전트 활용**: Task 도구로 서비스별 동시 작업
+- **3단계 하이브리드 접근**: 
+  1. 공통 컴포넌트 (순차)
+  2. 서비스별 설계 (병렬) 
+  3. 통합 검증 (순차)
+- **의존성 기반 그룹화**: 의존 관계에 따른 순차/병렬 처리
+- **통합 검증**: 병렬 작업 완료 후 전체 검증
+
+### 🏗️ 마이크로서비스 설계
+- **서비스 독립성**: 캐시를 통한 직접 의존성 최소화  
+- **선택적 비동기**: 장시간 작업(AI 일정 생성)만 비동기
+- **캐시 우선**: Redis를 통한 성능 최적화
+
+### 📝 표준화
+- **PlantUML**: 모든 다이어그램 표준 (`!theme mono`)
+- **OpenAPI 3.0**: API 명세 표준
+- **자동 검증**: PlantUML, OpenAPI 문법 검사 필수
+  - **PlamtUML 스크립트 파일은 PlantUML 문법 검사 가이드를 준용**
+  - PlantUML 문법 검사  가이드:  https://cna-bootcamp.github.io/clauding-guide/guides/tools/plantuml-guide.md
+  - **Window는 스크립트 파일을 생성**하여 수행 
+  
