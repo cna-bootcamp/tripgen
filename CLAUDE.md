@@ -291,6 +291,3 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 - "push" 또는 "푸시" 명령어 입력 시 git add, commit, push를 수행 
 - Commit Message는 한글로 함
 
-
-
-  
