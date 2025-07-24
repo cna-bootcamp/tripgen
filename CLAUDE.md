@@ -179,6 +179,11 @@ AI 기반 여행 상세 일정 생성 서비스 개발
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/common-principles.md
   - 파일명: common-principles.md
 
+- **UI/UX 설계 가이드**
+  - 설명: UI/UX 설계 방법 안내 
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/uiux-design.md
+  - 파일명: uiux-design.md
+
 - **아키텍처 패턴 선정 가이드**
   - 설명: 클라우드 아키텍처 패턴 선정 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/architecture-patterns.md
