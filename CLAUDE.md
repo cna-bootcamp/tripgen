@@ -193,6 +193,11 @@ AI 기반 여행 상세 일정 생성 서비스 개발
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/architecture.md
   - 파일명: architecture.md
 
+- **High Level 아키텍처 정의 가이드**
+  - 설명: 상위수준 아키텍처 정의 방법 안내 
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/architecture-highlevel.md
+  - 파일명: architecture-highlevel.md
+
 - **API 설계 가이드**
   - 설명: API 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/api-design.md
@@ -224,6 +229,11 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 ---
 
 ## 참조 문서
+- 클라우드 아키텍처 패턴 요약표
+  - 설명: 클라우드 디자인 패턴 요약표 
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/Cloud%20Design%20Patterns(%EA%B0%9C%EC%9A%94).md
+  - 파일명: cloud-design-patterns.md
+  
 - **High Level 아키텍처 정의서 템플릿**
   - 설명: MSA 7대 컴포넌트별로 상위 수준의 아키텍처를 정의한 문서   
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/highlevel-architecture-template.md
