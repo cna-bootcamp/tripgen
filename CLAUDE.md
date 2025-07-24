@@ -12,6 +12,7 @@
   - [개발 가이드](#개발-가이드)
   - [참조 문서](#참조-문서)
   - [기술 도구](#기술-도구)
+  - [Git 연동](#git-연동)
 
 ## 스쿼드 소개
 [목표]
@@ -241,7 +242,7 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 
 - **제품별 버전 가이드**
   - 설명: 개발언어, 개발 프레임워크, AI제품 등의 버전 참조를 위한 페이지 링크 제공  
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/version-link.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/제품버전참조.md
   - 파일명: version-link.md
     
 ---
@@ -256,6 +257,12 @@ AI 기반 여행 상세 일정 생성 서비스 개발
   - 설명: OpenAPI 3.0 YAML 파일을 CSV 형식으로 변환하는 도구. openapi-to-csv폴더 하위의 파일 이용함. 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/openapi-tools.md
   - 파일명: openapi-tools.md
+
+---
+
+## Git 연동
+- "push" 또는 "푸시" 명령어 입력시 git add, commit, push를 수행 
+- Commit Message는 한글로 함
 
 
 
