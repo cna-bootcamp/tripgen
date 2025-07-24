@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for Profile Service
+  profile-db:
+    image: postgres:14-alpine
+    container_name: profile-db
+    environment:
+      POSTGRES_DB: profile_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Hi5Jessica!
+    ports:
+      - "5432:5432"
+    volumes:
+      - profile-db-data:/var/lib/postgresql/data
+      - ./scripts/init-profile-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - tripgen-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Itinerary Service
+  itinerary-db:
+    image: postgres:14-alpine
+    container_name: itinerary-db
+    environment:
+      POSTGRES_DB: itinerary_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Hi5Jessica!
+    ports:
+      - "5433:5432"
+    volumes:
+      - itinerary-db-data:/var/lib/postgresql/data
+      - ./scripts/init-itinerary-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - tripgen-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Location Service (with PostGIS)
+  location-db:
+    image: postgis/postgis:14-3.2-alpine
+    container_name: location-db
+    environment:
+      POSTGRES_DB: location_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Hi5Jessica!
+    ports:
+      - "5434:5432"
+    volumes:
+      - location-db-data:/var/lib/postgresql/data
+      - ./scripts/init-location-db.sql:/docker-entrypoint-initdb.d/01-postgis.sql
+      - ./scripts/init-location-db-schema.sql:/docker-entrypoint-initdb.d/02-schema.sql
+    networks:
+      - tripgen-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cluster (simplified for development)
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tripgen-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Commander (Optional - for development)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - tripgen-network
+    depends_on:
+      - redis
+
+  # pgAdmin (Optional - for development)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@tripgen.com
+      PGADMIN_DEFAULT_PASSWORD: Hi5Jessica!
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - tripgen-network
+    depends_on:
+      - profile-db
+      - itinerary-db
+      - location-db
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  profile-db-data:
+  itinerary-db-data:
+  location-db-data:
+  redis-data:
+  pgadmin-data:
+
+networks:
+  tripgen-network:
+    driver: bridge
