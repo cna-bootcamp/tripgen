@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripGen - 지도통합화면</title>
+  <link rel="stylesheet" href="assets/css/common.css">
+  <style>
+    /* 지도통합화면 전용 스타일 */
+    .map-container {
+      position: relative;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 헤더 영역 */
+    .map-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--gray-200);
+      padding: var(--space-4);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: var(--gray-100);
+      border-radius: 8px;
+      color: var(--gray-700);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background: var(--gray-200);
+      color: var(--primary-blue);
+    }
+
+    .title-text {
+      font-size: var(--text-xl);
+      font-weight: var(--font-semibold);
+      color: var(--gray-900);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* 지역 상태 표시 */
+    .region-status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--primary-blue-light);
+      color: white;
+      border-radius: 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+    }
+
+    .region-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    /* 지도 메인 영역 */
+    .map-main {
+      position: absolute;
+      top: 80px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--gray-100);
+    }
+
+    /* 지도 시뮬레이션 */
+    .map-simulation {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, #e8f4fd, #f0f9ff);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 지도 격자 배경 */
+    .map-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      opacity: 0.1;
+      background-image: 
+        linear-gradient(to right, var(--gray-400) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--gray-400) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    /* 지도 마커 */
+    .map-marker {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+
+    .map-marker:hover {
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+
+    .marker-pin {
+      width: 100%;
+      height: 100%;
+      border-radius: 50% 50% 50% 0;
+      border: 3px solid white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .marker-hotel { background: var(--primary-blue); }
+    .marker-tourist { background: var(--secondary-orange); }
+    .marker-restaurant { background: var(--success); }
+    .marker-shopping { background: var(--warning); }
+    .marker-transport { background: var(--info); }
+
+    .marker-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -60%);
+      font-size: 12px;
+      color: white;
+    }
+
+    /* 경로 라인 */
+    .route-line {
+      position: absolute;
+      background: var(--primary-blue);
+      opacity: 0.7;
+      z-index: 50;
+    }
+
+    .route-line.walking {
+      height: 3px;
+      background: repeating-linear-gradient(
+        to right,
+        var(--success) 0,
+        var(--success) 5px,
+        transparent 5px,
+        transparent 10px
+      );
+    }
+
+    .route-line.driving {
+      height: 4px;
+      background: var(--primary-blue);
+    }
+
+    .route-line.transit {
+      height: 3px;
+      background: repeating-linear-gradient(
+        to right,
+        var(--info) 0,
+        var(--info) 8px,
+        transparent 8px,
+        transparent 16px
+      );
+    }
+
+    /* 레이어 컨트롤 */
+    .layer-controls {
+      position: absolute;
+      top: 100px;
+      right: var(--space-4);
+      z-index: 200;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      padding: var(--space-4);
+      min-width: 180px;
+    }
+
+    .layer-title {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--gray-700);
+      margin-bottom: var(--space-3);
+    }
+
+    .layer-option {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) 0;
+      cursor: pointer;
+    }
+
+    .layer-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary-blue);
+    }
+
+    .layer-option label {
+      font-size: var(--text-sm);
+      color: var(--gray-700);
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .layer-count {
+      font-size: var(--text-xs);
+      color: var(--gray-500);
+      background: var(--gray-100);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    /* 지도 컨트롤 */
+    .map-controls {
+      position: absolute;
+      bottom: var(--space-4);
+      right: var(--space-4);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .control-btn {
+      width: 48px;
+      height: 48px;
+      background: white;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 18px;
+      color: var(--gray-700);
+    }
+
+    .control-btn:hover {
+      background: var(--gray-50);
+      color: var(--primary-blue);
+      transform: translateY(-1px);
+    }
+
+    /* 장소 정보 패널 */
+    .place-panel {
+      position: absolute;
+      bottom: var(--space-4);
+      left: var(--space-4);
+      z-index: 200;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+      max-width: 350px;
+      min-width: 300px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .place-panel.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .place-header {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .place-category {
+      display: inline-block;
+      padding: 4px 8px;
+      background: var(--secondary-orange);
+      color: white;
+      border-radius: 12px;
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      margin-bottom: var(--space-2);
+    }
+
+    .place-name {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      color: var(--gray-900);
+      margin-bottom: var(--space-1);
+    }
+
+    .place-rating {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .stars {
+      color: var(--secondary-yellow);
+      font-size: var(--text-sm);
+    }
+
+    .rating-text {
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+    }
+
+    .place-content {
+      padding: var(--space-4);
+    }
+
+    .place-info {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+    }
+
+    .info-icon {
+      width: 16px;
+      text-align: center;
+      color: var(--primary-blue);
+    }
+
+    .place-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--gray-300);
+      background: white;
+      border-radius: 6px;
+      font-size: var(--text-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn.primary {
+      background: var(--primary-blue);
+      color: white;
+      border-color: var(--primary-blue);
+    }
+
+    .action-btn:hover {
+      background: var(--gray-50);
+    }
+
+    .action-btn.primary:hover {
+      background: var(--primary-blue-dark);
+    }
+
+    /* 경로 정보 패널 */
+    .route-panel {
+      position: absolute;
+      top: 100px;
+      left: var(--space-4);
+      z-index: 200;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      width: 280px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .route-header {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--gray-200);
+      position: sticky;
+      top: 0;
+      background: white;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .route-title {
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      color: var(--gray-900);
+      margin-bottom: var(--space-2);
+    }
+
+    .route-summary {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+    }
+
+    .route-list {
+      padding: var(--space-2);
+    }
+
+    .route-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border-radius: 8px;
+      margin-bottom: var(--space-2);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .route-item:hover {
+      background: var(--gray-50);
+    }
+
+    .route-item.active {
+      background: var(--primary-blue);
+      color: white;
+    }
+
+    .route-number {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--gray-700);
+    }
+
+    .route-item.active .route-number {
+      background: white;
+      color: var(--primary-blue);
+    }
+
+    .route-details h4 {
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      margin-bottom: 2px;
+    }
+
+    .route-details p {
+      font-size: var(--text-xs);
+      color: var(--gray-500);
+    }
+
+    .route-item.active .route-details p {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* 모바일 대응 */
+    @media (max-width: 768px) {
+      .layer-controls {
+        right: var(--space-2);
+        top: 90px;
+        min-width: 160px;
+      }
+
+      .place-panel {
+        left: var(--space-2);
+        right: var(--space-2);
+        max-width: none;
+        min-width: auto;
+      }
+
+      .route-panel {
+        left: var(--space-2);
+        right: var(--space-2);
+        width: auto;
+        max-height: 300px;
+      }
+
+      .map-controls {
+        bottom: var(--space-2);
+        right: var(--space-2);
+      }
+
+      .header-content {
+        padding: 0 var(--space-2);
+      }
+
+      .header-controls {
+        gap: var(--space-2);
+      }
+
+      .region-status {
+        padding: var(--space-1) var(--space-3);
+        font-size: var(--text-xs);
+      }
+    }
+
+    /* 애니메이션 */
+    @keyframes markerPulse {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .marker-active {
+      animation: markerPulse 1.5s infinite;
+    }
+
+    @keyframes routeFlow {
+      0% { background-position: 0 0; }
+      100% { background-position: 20px 0; }
+    }
+
+    .route-line.animated {
+      animation: routeFlow 2s linear infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="map-container">
+    <!-- 헤더 -->
+    <header class="map-header">
+      <div class="header-content">
+        <div class="header-title">
+          <button class="back-btn" onclick="goBack()">
+            <span>←</span>
+          </button>
+          <h1 class="title-text">여행 지도</h1>
+        </div>
+        <div class="header-controls">
+          <div class="region-status">
+            <div class="region-indicator"></div>
+            <span id="regionStatus">국내 (카카오맵)</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 지도 메인 -->
+    <main class="map-main">
+      <!-- 지도 시뮬레이션 -->
+      <div class="map-simulation">
+        <div class="map-grid"></div>
+        
+        <!-- 지도 마커들 -->
+        <div class="map-marker" style="top: 30%; left: 25%;" data-place="숙소">
+          <div class="marker-pin marker-hotel">
+            <span class="marker-icon">🏨</span>
+          </div>
+        </div>
+        
+        <div class="map-marker" style="top: 45%; left: 40%;" data-place="관광지1">
+          <div class="marker-pin marker-tourist">
+            <span class="marker-icon">🏛️</span>
+          </div>
+        </div>
+        
+        <div class="map-marker" style="top: 35%; left: 60%;" data-place="음식점1">
+          <div class="marker-pin marker-restaurant">
+            <span class="marker-icon">🍽️</span>
+          </div>
+        </div>
+        
+        <div class="map-marker" style="top: 55%; left: 30%;" data-place="쇼핑몰">
+          <div class="marker-pin marker-shopping">
+            <span class="marker-icon">🛍️</span>
+          </div>
+        </div>
+        
+        <div class="map-marker" style="top: 65%; left: 70%;" data-place="관광지2">
+          <div class="marker-pin marker-tourist">
+            <span class="marker-icon">🏯</span>
+          </div>
+        </div>
+        
+        <div class="map-marker" style="top: 40%; left: 80%;" data-place="음식점2">
+          <div class="marker-pin marker-restaurant">
+            <span class="marker-icon">🍜</span>
+          </div>
+        </div>
+
+        <!-- 경로 라인들 -->
+        <div class="route-line driving" style="top: 30%; left: 25%; width: 15%; height: 4px; transform: rotate(15deg);"></div>
+        <div class="route-line walking" style="top: 45%; left: 40%; width: 20%; height: 3px; transform: rotate(-5deg);"></div>
+        <div class="route-line transit" style="top: 55%; left: 30%; width: 25%; height: 3px; transform: rotate(45deg);"></div>
+        <div class="route-line driving" style="top: 65%; left: 70%; width: 10%; height: 4px; transform: rotate(-30deg);"></div>
+      </div>
+    </main>
+
+    <!-- 레이어 컨트롤 -->
+    <div class="layer-controls">
+      <div class="layer-title">지도 레이어</div>
+      
+      <div class="layer-option">
+        <input type="checkbox" id="layer-hotel" checked>
+        <label for="layer-hotel">숙소</label>
+        <span class="layer-count">1</span>
+      </div>
+      
+      <div class="layer-option">
+        <input type="checkbox" id="layer-tourist" checked>
+        <label for="layer-tourist">관광지</label>
+        <span class="layer-count">2</span>
+      </div>
+      
+      <div class="layer-option">
+        <input type="checkbox" id="layer-restaurant" checked>
+        <label for="layer-restaurant">음식점</label>
+        <span class="layer-count">2</span>
+      </div>
+      
+      <div class="layer-option">
+        <input type="checkbox" id="layer-shopping" checked>
+        <label for="layer-shopping">쇼핑</label>
+        <span class="layer-count">1</span>
+      </div>
+      
+      <div class="layer-option">
+        <input type="checkbox" id="layer-transport">
+        <label for="layer-transport">교통정보</label>
+        <span class="layer-count">-</span>
+      </div>
+      
+      <div class="layer-option">
+        <input type="checkbox" id="layer-satellite">
+        <label for="layer-satellite">위성뷰</label>
+        <span class="layer-count">-</span>
+      </div>
+    </div>
+
+    <!-- 지도 컨트롤 -->
+    <div class="map-controls">
+      <button class="control-btn" onclick="zoomIn()">+</button>
+      <button class="control-btn" onclick="zoomOut()">-</button>
+      <button class="control-btn" onclick="centerMap()">📍</button>
+      <button class="control-btn" onclick="toggleFullscreen()">⛶</button>
+    </div>
+
+    <!-- 경로 정보 패널 -->
+    <div class="route-panel">
+      <div class="route-header">
+        <div class="route-title">오늘의 여행 경로</div>
+        <div class="route-summary">
+          <span>총 6개 장소</span>
+          <span>예상 5시간 30분</span>
+        </div>
+      </div>
+      
+      <div class="route-list">
+        <div class="route-item active" data-place="숙소">
+          <div class="route-number">1</div>
+          <div class="route-details">
+            <h4>호텔 신라</h4>
+            <p>09:00 출발 • 숙소</p>
+          </div>
+        </div>
+        
+        <div class="route-item" data-place="관광지1">
+          <div class="route-number">2</div>
+          <div class="route-details">
+            <h4>경복궁</h4>
+            <p>09:30-11:00 • 관광지</p>
+          </div>
+        </div>
+        
+        <div class="route-item" data-place="음식점1">
+          <div class="route-number">3</div>
+          <div class="route-details">
+            <h4>북촌한옥마을 맛집</h4>
+            <p>11:30-12:30 • 점심식사</p>
+          </div>
+        </div>
+        
+        <div class="route-item" data-place="쇼핑몰">
+          <div class="route-number">4</div>
+          <div class="route-details">
+            <h4>명동 쇼핑거리</h4>
+            <p>13:00-15:00 • 쇼핑</p>
+          </div>
+        </div>
+        
+        <div class="route-item" data-place="관광지2">
+          <div class="route-number">5</div>
+          <div class="route-details">
+            <h4>남산타워</h4>
+            <p>15:30-17:00 • 관광지</p>
+          </div>
+        </div>
+        
+        <div class="route-item" data-place="음식점2">
+          <div class="route-number">6</div>
+          <div class="route-details">
+            <h4>한강 치킨집</h4>
+            <p>18:00-19:30 • 저녁식사</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 장소 정보 패널 -->
+    <div class="place-panel" id="placePanel">
+      <div class="place-header">
+        <div class="place-category">관광지</div>
+        <h3 class="place-name">경복궁</h3>
+        <div class="place-rating">
+          <span class="stars">★★★★☆</span>
+          <span class="rating-text">4.3 (2,847명)</span>
+        </div>
+      </div>
+      
+      <div class="place-content">
+        <div class="place-info">
+          <div class="info-item">
+            <span class="info-icon">📍</span>
+            <span>서울 종로구 사직로 161</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📞</span>
+            <span>02-3700-3900</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🕒</span>
+            <span>09:00-18:00 (현재 영업중)</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🚗</span>
+            <span>주차 가능 (유료)</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🚶</span>
+            <span>현재 위치에서 도보 15분</span>
+          </div>
+        </div>
+        
+        <div class="place-actions">
+          <button class="action-btn">리뷰 보기</button>
+          <button class="action-btn">길찾기</button>
+          <button class="action-btn primary">일정 추가</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 네비게이션 -->
+  <nav class="bottom-nav" style="position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--gray-200); padding: var(--space-2); z-index: 1000;">
+    <div style="display: flex; justify-content: space-between; max-width: 1200px; margin: 0 auto;">
+      <button onclick="navigateTo('10-이동경로확인.html')" style="padding: var(--space-2) var(--space-4); background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer;">← 이전</button>
+      <button onclick="navigateTo('12-리뷰평점조회.html')" style="padding: var(--space-2) var(--space-4); background: var(--primary-blue); color: white; border: none; border-radius: 6px; cursor: pointer;">다음 →</button>
+    </div>
+  </nav>
+
+  <script src="assets/js/common.js"></script>
+  <script>
+    // 지도통합화면 전용 JavaScript
+    
+    // 페이지 로드 완료 후 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      initMapIntegration();
+      initMarkerInteractions();
+      initLayerControls();
+      initRoutePanel();
+      initRegionDetection();
+    });
+
+    /**
+     * 지도 통합 기능 초기화
+     */
+    function initMapIntegration() {
+      // 지역별 API 설정 시뮬레이션
+      const regions = {
+        'domestic': {
+          name: '국내 (카카오맵)',
+          api: 'kakao',
+          indicator: 'var(--success)'
+        },
+        'international': {
+          name: '해외 (구글맵)',
+          api: 'google',
+          indicator: 'var(--info)'
+        }
+      };
+
+      // 현재 지역 설정 (시뮬레이션)
+      const currentRegion = 'domestic';
+      updateRegionStatus(regions[currentRegion]);
+    }
+
+    /**
+     * 지역 상태 업데이트
+     */
+    function updateRegionStatus(region) {
+      const statusElement = document.getElementById('regionStatus');
+      const indicator = document.querySelector('.region-indicator');
+      
+      if (statusElement) {
+        statusElement.textContent = region.name;
+      }
+      
+      if (indicator) {
+        indicator.style.background = region.indicator;
+      }
+    }
+
+    /**
+     * 마커 상호작용 초기화
+     */
+    function initMarkerInteractions() {
+      const markers = document.querySelectorAll('.map-marker');
+      const placePanel = document.getElementById('placePanel');
+      
+      // 장소 데이터 (시뮬레이션)
+      const placeData = {
+        '숙소': {
+          category: '숙소',
+          name: '호텔 신라',
+          rating: '4.5',
+          reviews: '1,234',
+          address: '서울 중구 동호로 249',
+          phone: '02-2233-3131',
+          hours: '24시간 운영',
+          parking: '주차 가능 (무료)',
+          distance: '현재 위치'
+        },
+        '관광지1': {
+          category: '관광지',
+          name: '경복궁',
+          rating: '4.3',
+          reviews: '2,847',
+          address: '서울 종로구 사직로 161',
+          phone: '02-3700-3900',
+          hours: '09:00-18:00 (현재 영업중)',
+          parking: '주차 가능 (유료)',
+          distance: '숙소에서 도보 15분'
+        },
+        '음식점1': {
+          category: '음식점',
+          name: '북촌한옥마을 맛집',
+          rating: '4.1',
+          reviews: '567',
+          address: '서울 종로구 계동길 37',
+          phone: '02-742-1234',
+          hours: '11:00-21:00 (현재 영업중)',
+          parking: '주차 어려움',
+          distance: '경복궁에서 도보 8분'
+        },
+        '쇼핑몰': {
+          category: '쇼핑',
+          name: '명동 쇼핑거리',
+          rating: '4.0',
+          reviews: '3,456',
+          address: '서울 중구 명동길 일대',
+          phone: '-',
+          hours: '10:00-22:00 (매장별 상이)',
+          parking: '지하 공영주차장 이용',
+          distance: '음식점에서 지하철 20분'
+        },
+        '관광지2': {
+          category: '관광지',
+          name: '남산타워',
+          rating: '4.2',
+          reviews: '4,321',
+          address: '서울 용산구 남산공원길 105',
+          phone: '02-3455-9277',
+          hours: '10:00-23:00 (현재 영업중)',
+          parking: '주차 가능 (유료)',
+          distance: '명동에서 케이블카 10분'
+        },
+        '음식점2': {
+          category: '음식점',
+          name: '한강 치킨집',
+          rating: '4.4',
+          reviews: '890',
+          address: '서울 영등포구 여의도동 한강공원',
+          phone: '02-780-1234',
+          hours: '16:00-24:00 (현재 영업중)',
+          parking: '한강공원 주차장 이용',
+          distance: '남산타워에서 차량 25분'
+        }
+      };
+
+      markers.forEach(marker => {
+        marker.addEventListener('click', function() {
+          const place = this.dataset.place;
+          const data = placeData[place];
+          
+          if (data && placePanel) {
+            updatePlacePanel(data);
+            showPlacePanel();
+            
+            // 활성 마커 표시
+            markers.forEach(m => m.classList.remove('marker-active'));
+            this.classList.add('marker-active');
+          }
+        });
+
+        // 호버 효과
+        marker.addEventListener('mouseenter', function() {
+          this.style.zIndex = '101';
+        });
+
+        marker.addEventListener('mouseleave', function() {
+          this.style.zIndex = '100';
+        });
+      });
+
+      // 지도 클릭 시 패널 숨기기
+      document.querySelector('.map-simulation').addEventListener('click', function(e) {
+        if (!e.target.closest('.map-marker')) {
+          hidePlacePanel();
+          markers.forEach(m => m.classList.remove('marker-active'));
+        }
+      });
+    }
+
+    /**
+     * 장소 패널 업데이트
+     */
+    function updatePlacePanel(data) {
+      const panel = document.getElementById('placePanel');
+      if (!panel) return;
+
+      // 카테고리별 색상 설정
+      const categoryColors = {
+        '숙소': 'var(--primary-blue)',
+        '관광지': 'var(--secondary-orange)',
+        '음식점': 'var(--success)',
+        '쇼핑': 'var(--warning)'
+      };
+
+      panel.querySelector('.place-category').textContent = data.category;
+      panel.querySelector('.place-category').style.background = categoryColors[data.category] || 'var(--gray-500)';
+      panel.querySelector('.place-name').textContent = data.name;
+      panel.querySelector('.rating-text').textContent = `${data.rating} (${data.reviews}명)`;
+      
+      // 정보 업데이트
+      const infoItems = panel.querySelectorAll('.info-item span:last-child');
+      infoItems[0].textContent = data.address;
+      infoItems[1].textContent = data.phone;
+      infoItems[2].textContent = data.hours;
+      infoItems[3].textContent = data.parking;
+      infoItems[4].textContent = data.distance;
+    }
+
+    /**
+     * 장소 패널 표시
+     */
+    function showPlacePanel() {
+      const panel = document.getElementById('placePanel');
+      if (panel) {
+        panel.classList.add('active');
+      }
+    }
+
+    /**
+     * 장소 패널 숨기기
+     */
+    function hidePlacePanel() {
+      const panel = document.getElementById('placePanel');
+      if (panel) {
+        panel.classList.remove('active');
+      }
+    }
+
+    /**
+     * 레이어 컨트롤 초기화
+     */
+    function initLayerControls() {
+      const layerCheckboxes = document.querySelectorAll('.layer-controls input[type="checkbox"]');
+      
+      layerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          const layerType = this.id.replace('layer-', '');
+          toggleLayer(layerType, this.checked);
+        });
+      });
+    }
+
+    /**
+     * 레이어 토글
+     */
+    function toggleLayer(layerType, visible) {
+      const layerMap = {
+        'hotel': '.marker-hotel',
+        'tourist': '.marker-tourist',
+        'restaurant': '.marker-restaurant',
+        'shopping': '.marker-shopping',
+        'transport': '.route-line',
+        'satellite': '.map-simulation'
+      };
+
+      const selector = layerMap[layerType];
+      if (!selector) return;
+
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        if (layerType === 'satellite') {
+          // 위성뷰 토글
+          element.style.filter = visible ? 'sepia(0.3) contrast(1.2)' : 'none';
+        } else {
+          // 마커/경로 표시/숨김
+          element.style.display = visible ? 'block' : 'none';
+        }
+      });
+
+      // 교통정보 레이어
+      if (layerType === 'transport') {
+        const routeLines = document.querySelectorAll('.route-line');
+        routeLines.forEach(line => {
+          if (visible) {
+            line.classList.add('animated');
+          } else {
+            line.classList.remove('animated');
+          }
+        });
+      }
+    }
+
+    /**
+     * 경로 패널 초기화
+     */
+    function initRoutePanel() {
+      const routeItems = document.querySelectorAll('.route-item');
+      const markers = document.querySelectorAll('.map-marker');
+      
+      routeItems.forEach(item => {
+        item.addEventListener('click', function() {
+          const place = this.dataset.place;
+          
+          // 활성 경로 항목 변경
+          routeItems.forEach(r => r.classList.remove('active'));
+          this.classList.add('active');
+          
+          // 해당 마커 강조
+          markers.forEach(marker => {
+            marker.classList.remove('marker-active');
+            if (marker.dataset.place === place) {
+              marker.classList.add('marker-active');
+              marker.click(); // 마커 클릭 이벤트 트리거
+            }
+          });
+        });
+      });
+    }
+
+    /**
+     * 지역 감지 초기화
+     */
+    function initRegionDetection() {
+      // 실제 구현에서는 GPS 또는 IP 기반 위치 감지
+      // 여기서는 시뮬레이션
+      
+      // 위치 변경 시뮬레이션 (테스트용)
+      let isInternational = false;
+      
+      // 더블 클릭으로 지역 전환 (데모용)
+      document.querySelector('.map-simulation').addEventListener('dblclick', function() {
+        isInternational = !isInternational;
+        
+        const region = isInternational ? {
+          name: '해외 (구글맵)',
+          api: 'google',
+          indicator: 'var(--info)'
+        } : {
+          name: '국내 (카카오맵)',
+          api: 'kakao',
+          indicator: 'var(--success)'
+        };
+        
+        updateRegionStatus(region);
+        showToast(`${region.name}으로 전환되었습니다.`);
+      });
+    }
+
+    /**
+     * 지도 컨트롤 함수들
+     */
+    function zoomIn() {
+      const mapElement = document.querySelector('.map-simulation');
+      const currentScale = parseFloat(mapElement.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || 1);
+      const newScale = Math.min(currentScale * 1.2, 3);
+      mapElement.style.transform = `scale(${newScale})`;
+      mapElement.style.transformOrigin = 'center center';
+      showToast('확대되었습니다');
+    }
+
+    function zoomOut() {
+      const mapElement = document.querySelector('.map-simulation');
+      const currentScale = parseFloat(mapElement.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || 1);
+      const newScale = Math.max(currentScale / 1.2, 0.5);
+      mapElement.style.transform = `scale(${newScale})`;
+      mapElement.style.transformOrigin = 'center center';
+      showToast('축소되었습니다');
+    }
+
+    function centerMap() {
+      const mapElement = document.querySelector('.map-simulation');
+      mapElement.style.transform = 'scale(1)';
+      showToast('지도가 초기화되었습니다');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        showToast('전체화면 모드');
+      } else {
+        document.exitFullscreen();
+        showToast('전체화면 해제');
+      }
+    }
+
+    /**
+     * 네비게이션 함수
+     */
+    function goBack() {
+      navigateTo('10-이동경로확인.html');
+    }
+
+    function navigateTo(page) {
+      // 실제 구현에서는 라우터 사용
+      window.location.href = page;
+    }
+
+    /**
+     * 토스트 메시지 표시
+     */
+    function showToast(message) {
+      // 토스트 요소가 없으면 생성
+      let toast = document.getElementById('toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = `
+          position: fixed;
+          top: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 12px 20px;
+          border-radius: 20px;
+          font-size: 14px;
+          z-index: 9999;
+          opacity: 0;
+          transition: all 0.3s ease;
+          pointer-events: none;
+        `;
+        document.body.appendChild(toast);
+      }
+
+      toast.textContent = message;
+      toast.style.opacity = '1';
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+      }, 2000);
+    }
+
+    // API 폴백 처리 시뮬레이션
+    function handleAPIFailure(apiType) {
+      const fallbackMessage = apiType === 'kakao' 
+        ? '카카오맵 연결 실패. 구글맵으로 전환합니다.'
+        : '구글맵 연결 실패. 카카오맵으로 전환합니다.';
+      
+      showToast(fallbackMessage);
+      
+      // 실제로는 다른 API로 전환
+      setTimeout(() => {
+        showToast('백업 지도 서비스가 연결되었습니다.');
+      }, 1500);
+    }
+
+    // 사용량 모니터링 시뮬레이션
+    function monitorAPIUsage() {
+      // 실제 구현에서는 API 호출 횟수 추적
+      console.log('API 사용량 모니터링 중...');
+    }
+
+    // 초기 설정
+    monitorAPIUsage();
+  </script>
+</body>
+</html>

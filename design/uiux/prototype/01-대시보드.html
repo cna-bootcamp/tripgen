@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripGen - 스마트한 여행 계획의 시작</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <style>
+        /* 대시보드 전용 스타일 */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            color: white;
+            padding: var(--space-16) 0 var(--space-12);
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: var(--text-4xl);
+            font-weight: var(--font-bold);
+            margin-bottom: var(--space-4);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .hero p {
+            font-size: var(--text-lg);
+            margin-bottom: var(--space-8);
+            opacity: 0.9;
+        }
+        
+        .hero .btn {
+            font-size: var(--text-lg);
+            padding: var(--space-4) var(--space-8);
+            background: var(--secondary-orange);
+            border: none;
+            box-shadow: 0 4px 12px rgba(241, 143, 1, 0.3);
+        }
+        
+        .hero .btn:hover {
+            background: var(--secondary-orange);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(241, 143, 1, 0.4);
+        }
+        
+        .stats {
+            background: white;
+            margin-top: -40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: var(--space-8);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: var(--text-3xl);
+            font-weight: var(--font-bold);
+            color: var(--primary-blue);
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+            margin-top: var(--space-1);
+        }
+        
+        .project-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .project-thumbnail {
+            height: 200px;
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-orange));
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .project-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .progress-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: var(--space-3);
+            font-size: var(--text-sm);
+        }
+        
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.3);
+            height: 4px;
+            border-radius: 2px;
+            margin-top: var(--space-2);
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: var(--secondary-orange);
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
+        .project-info {
+            padding: var(--space-6);
+        }
+        
+        .project-title {
+            font-size: var(--text-xl);
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-2);
+            color: var(--gray-800);
+        }
+        
+        .project-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+        }
+        
+        .project-dates {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+        
+        .project-status {
+            padding: var(--space-1) var(--space-3);
+            border-radius: 12px;
+            font-weight: var(--font-medium);
+            font-size: var(--text-xs);
+        }
+        
+        .status-planning {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+        }
+        
+        .status-in-progress {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+        
+        .status-completed {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .project-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+        
+        .btn-sm {
+            padding: var(--space-2) var(--space-4);
+            font-size: var(--text-sm);
+        }
+        
+        .recommendation-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .recommendation-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .recommendation-image {
+            height: 150px;
+            background: linear-gradient(45deg, var(--primary-blue-light), var(--secondary-orange));
+        }
+        
+        .recommendation-content {
+            padding: var(--space-4);
+        }
+        
+        .recommendation-title {
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-2);
+        }
+        
+        .recommendation-description {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-6);
+        }
+        
+        .section-title {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--gray-800);
+        }
+        
+        .view-all-link {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: var(--font-medium);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+        
+        .view-all-link:hover {
+            text-decoration: underline;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--space-16) var(--space-8);
+            color: var(--gray-500);
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-4);
+            opacity: 0.5;
+        }
+        
+        .quick-actions {
+            position: fixed;
+            bottom: var(--space-6);
+            right: var(--space-6);
+            z-index: 100;
+        }
+        
+        .quick-action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--secondary-orange);
+            color: white;
+            border: none;
+            font-size: var(--text-2xl);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(241, 143, 1, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .quick-action-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(241, 143, 1, 0.4);
+        }
+        
+        /* 반응형 스타일 */
+        @media (max-width: 767px) {
+            .hero {
+                padding: var(--space-12) 0 var(--space-8);
+            }
+            
+            .hero h1 {
+                font-size: var(--text-3xl);
+            }
+            
+            .stats {
+                margin-top: -20px;
+                padding: var(--space-6);
+            }
+            
+            .project-card {
+                margin-bottom: var(--space-4);
+            }
+            
+            .quick-actions {
+                bottom: var(--space-4);
+                right: var(--space-4);
+            }
+            
+            .quick-action-btn {
+                width: 50px;
+                height: 50px;
+                font-size: var(--text-lg);
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* 추가 스타일 */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-medium);
+            cursor: pointer;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: var(--error);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="#" class="nav-brand">TripGen</a>
+                
+                <ul class="nav-menu">
+                    <li><a href="01-대시보드.html" class="nav-link active">대시보드</a></li>
+                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
+                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
+                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
+                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
+                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
+                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                </ul>
+                
+                <div class="nav-actions flex items-center gap-4">
+                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-멤버관리.html'">새 여행 시작</button>
+                    <div class="user-menu">
+                        <div class="user-avatar">
+                            김
+                            <span class="notification-badge"></span>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-toggle">☰</button>
+                </div>
+            </nav>
+        </div>
+        <div class="mobile-overlay"></div>
+    </header>
+
+    <!-- 히어로 섹션 -->
+    <section class="hero">
+        <div class="container">
+            <h1>AI와 함께하는 스마트한 여행 계획</h1>
+            <p>당신만의 완벽한 여행 일정을 AI가 만들어드립니다</p>
+            <button class="btn btn-lg" onclick="window.location.href='02-멤버관리.html'">
+                ✈️ 새 여행 계획하기
+            </button>
+        </div>
+    </section>
+
+    <!-- 통계 카드 -->
+    <section class="container">
+        <div class="stats">
+            <div class="grid grid-4">
+                <div class="stat-item">
+                    <span class="stat-number">12</span>
+                    <span class="stat-label">완료된 여행</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">3</span>
+                    <span class="stat-label">진행 중인 계획</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">45</span>
+                    <span class="stat-label">방문한 도시</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">128</span>
+                    <span class="stat-label">저장된 장소</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main">
+        <div class="container">
+            <!-- 진행 중인 프로젝트 -->
+            <section class="mb-12">
+                <div class="section-header">
+                    <h2 class="section-title">진행 중인 여행 계획</h2>
+                    <a href="06-생성된일정조회.html" class="view-all-link">
+                        전체 보기 <span>→</span>
+                    </a>
+                </div>
+                
+                <div class="grid grid-3" id="projects-grid">
+                    <!-- 프로젝트 카드 1 -->
+                    <div class="project-card animate-on-scroll" onclick="window.location.href='05-AI일정생성.html'">
+                        <div class="project-thumbnail">
+                            <div style="background: linear-gradient(45deg, #2E86AB, #F18F01); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                                🏙️
+                            </div>
+                            <div class="progress-overlay">
+                                진행률 75%
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 75%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-info">
+                            <h3 class="project-title">서울 3박 4일 힐링 여행</h3>
+                            <div class="project-meta">
+                                <div class="project-dates">
+                                    📅 2024.08.15 - 08.18
+                                </div>
+                                <span class="project-status status-in-progress">계획 중</span>
+                            </div>
+                            <div class="project-actions">
+                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='03-여행일정설정.html'">수정</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); shareProject('seoul-trip')">공유</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 프로젝트 카드 2 -->
+                    <div class="project-card animate-on-scroll" onclick="window.location.href='03-여행일정설정.html'">
+                        <div class="project-thumbnail">
+                            <div style="background: linear-gradient(45deg, #A23B72, #C73E1D); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                                🌊
+                            </div>
+                            <div class="progress-overlay">
+                                진행률 45%
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 45%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-info">
+                            <h3 class="project-title">부산 바다 여행</h3>
+                            <div class="project-meta">
+                                <div class="project-dates">
+                                    📅 2024.09.01 - 09.03
+                                </div>
+                                <span class="project-status status-planning">계획 준비</span>
+                            </div>
+                            <div class="project-actions">
+                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='03-여행일정설정.html'">수정</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); shareProject('busan-trip')">공유</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 프로젝트 카드 3 -->
+                    <div class="project-card animate-on-scroll" onclick="window.location.href='06-생성된일정조회.html'">
+                        <div class="project-thumbnail">
+                            <div style="background: linear-gradient(45deg, #10B981, #FFD23F); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                                🏝️
+                            </div>
+                            <div class="progress-overlay">
+                                진행률 90%
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 90%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-info">
+                            <h3 class="project-title">제주도 자연 만끽 여행</h3>
+                            <div class="project-meta">
+                                <div class="project-dates">
+                                    📅 2024.08.25 - 08.28
+                                </div>
+                                <span class="project-status status-completed">계획 완료</span>
+                            </div>
+                            <div class="project-actions">
+                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='06-생성된일정조회.html'">보기</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); shareProject('jeju-trip')">공유</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 최근 활동 & 추천 여행지 -->
+            <div class="grid grid-2 gap-8">
+                <!-- 최근 활동 -->
+                <section>
+                    <div class="section-header">
+                        <h2 class="section-title">최근 활동</h2>
+                        <a href="06-생성된일정조회.html" class="view-all-link">전체 보기 <span>→</span></a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="recent-activities">
+                            <div class="activity-item flex items-center gap-4 mb-4" style="cursor: pointer;" onclick="window.location.href='06-생성된일정조회.html'">
+                                <div class="activity-icon" style="width: 40px; height: 40px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                                    ✓
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title font-medium">제주도 여행 계획이 완료되었습니다</div>
+                                    <div class="activity-time text-sm text-gray-600">2시간 전</div>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item flex items-center gap-4 mb-4" style="cursor: pointer;" onclick="window.location.href='09-주변장소검색.html'">
+                                <div class="activity-icon" style="width: 40px; height: 40px; background: var(--info); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                                    📍
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title font-medium">새로운 장소를 저장했습니다</div>
+                                    <div class="activity-time text-sm text-gray-600">1일 전</div>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item flex items-center gap-4 mb-4" style="cursor: pointer;" onclick="window.location.href='02-멤버관리.html'">
+                                <div class="activity-icon" style="width: 40px; height: 40px; background: var(--warning); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                                    🎯
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title font-medium">부산 여행 계획을 시작했습니다</div>
+                                    <div class="activity-time text-sm text-gray-600">3일 전</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 추천 여행지 -->
+                <section>
+                    <div class="section-header">
+                        <h2 class="section-title">추천 여행지</h2>
+                        <a href="09-주변장소검색.html" class="view-all-link">더 보기 <span>→</span></a>
+                    </div>
+                    
+                    <div class="recommendations-grid">
+                        <div class="recommendation-card animate-on-scroll" style="cursor: pointer;" onclick="window.location.href='07-장소상세정보.html'">
+                            <div class="recommendation-image" style="background: linear-gradient(45deg, #2E86AB, #A23B72); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                                🏔️
+                            </div>
+                            <div class="recommendation-content">
+                                <h4 class="recommendation-title">강원도 속초</h4>
+                                <p class="recommendation-description">시원한 바닷바람과 설악산의 웅장함을 동시에 느낄 수 있는 완벽한 여행지입니다.</p>
+                                <button class="btn btn-primary btn-sm mt-2" onclick="event.stopPropagation(); window.location.href='07-장소상세정보.html'">자세히 보기</button>
+                            </div>
+                        </div>
+                        
+                        <div class="recommendation-card animate-on-scroll mt-4" style="cursor: pointer;" onclick="window.location.href='07-장소상세정보.html'">
+                            <div class="recommendation-image" style="background: linear-gradient(45deg, #F18F01, #FFD23F); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                                🌸
+                            </div>
+                            <div class="recommendation-content">
+                                <h4 class="recommendation-title">경주 불국사</h4>
+                                <p class="recommendation-description">천년의 역사가 살아 숨쉬는 고도에서 한국의 전통 문화를 체험해보세요.</p>
+                                <button class="btn btn-primary btn-sm mt-2" onclick="event.stopPropagation(); window.location.href='07-장소상세정보.html'">자세히 보기</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- 빠른 액션 버튼 -->
+    <div class="quick-actions no-print">
+        <button class="quick-action-btn" onclick="window.location.href='02-멤버관리.html'" data-tooltip="새 여행 계획하기" data-tooltip-position="left">
+            ✈️
+        </button>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="footer no-print">
+        <div class="container">
+            <p>&copy; 2024 TripGen. AI와 함께하는 스마트한 여행 계획.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="assets/js/common.js"></script>
+    <script>
+        // 대시보드 전용 JavaScript
+        
+        // 프로젝트 네비게이션
+        function navigateToProject(projectId) {
+            TripGen.showToast(`${projectId} 프로젝트로 이동합니다.`, 'info');
+            // 실제 구현에서는 라우팅 처리
+            // window.location.href = `project.html?id=${projectId}`;
+        }
+        
+        // 프로젝트 편집
+        function editProject(projectId) {
+            TripGen.showToast(`${projectId} 프로젝트 편집 모드로 전환합니다.`, 'info');
+            // 실제 구현: 편집 페이지로 이동 또는 모달 열기
+        }
+        
+        // 프로젝트 공유
+        function shareProject(projectId) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'TripGen 여행 계획',
+                    text: '제가 만든 여행 계획을 확인해보세요!',
+                    url: window.location.href
+                }).then(() => {
+                    TripGen.showToast('공유가 완료되었습니다!', 'success');
+                }).catch(() => {
+                    fallbackShare(projectId);
+                });
+            } else {
+                fallbackShare(projectId);
+            }
+        }
+        
+        // 공유 폴백
+        function fallbackShare(projectId) {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                TripGen.showToast('링크가 클립보드에 복사되었습니다!', 'success');
+            }).catch(() => {
+                TripGen.showToast('공유 링크를 생성했습니다.', 'info');
+            });
+        }
+        
+        // 새 여행 시작
+        function startNewTrip() {
+            window.location.href = '02-멤버관리.html';
+        }
+        
+        // 실시간 데이터 업데이트 시뮬레이션
+        function updateProjectProgress() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const currentWidth = parseInt(bar.style.width);
+                if (currentWidth < 100) {
+                    // 실제 구현에서는 서버에서 데이터를 받아옴
+                    const newWidth = Math.min(currentWidth + Math.random() * 2, 100);
+                    bar.style.width = newWidth + '%';
+                    
+                    // progress-overlay 요소를 찾아서 텍스트 업데이트
+                    const progressOverlay = bar.closest('.progress-overlay');
+                    if (progressOverlay) {
+                        const textNode = progressOverlay.firstChild;
+                        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                            textNode.textContent = `진행률 ${Math.round(newWidth)}%`;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 5초마다 진행률 업데이트 (데모용)
+        setInterval(updateProjectProgress, 5000);
+        
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            // 환영 메시지
+            setTimeout(() => {
+                TripGen.showToast('안녕하세요! TripGen에 오신 것을 환영합니다.', 'success', 4000);
+            }, 1000);
+            
+            // 스크롤 애니메이션 트리거
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            });
+            
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // 사용자 메뉴 클릭 이벤트
+            const userMenu = document.querySelector('.user-avatar');
+            if (userMenu) {
+                userMenu.addEventListener('click', function() {
+                    TripGen.showToast('사용자 메뉴 기능은 개발 중입니다.', 'info');
+                });
+            }
+        });
+        
+        // 키보드 단축키
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + N: 새 여행 계획
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                startNewTrip();
+            }
+            
+            // Ctrl + /: 도움말
+            if (e.ctrlKey && e.key === '/') {
+                e.preventDefault();
+                TripGen.showToast('단축키: Ctrl+N (새 여행), Ctrl+/ (도움말)', 'info', 5000);
+            }
+        });
+        
+        // 반응형 그리드 조정
+        function adjustGrid() {
+            const projectsGrid = document.getElementById('projects-grid');
+            const width = window.innerWidth;
+            
+            if (width < 768) {
+                projectsGrid.className = 'grid grid-1';
+            } else if (width < 1024) {
+                projectsGrid.className = 'grid grid-2';
+            } else {
+                projectsGrid.className = 'grid grid-3';
+            }
+        }
+        
+        // 윈도우 리사이즈 이벤트
+        window.addEventListener('resize', TripGen.Utils.throttle(adjustGrid, 100));
+        
+        // 초기 그리드 조정
+        adjustGrid();
+    </script>
+</body>
+</html>

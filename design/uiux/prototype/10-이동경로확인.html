@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이동경로확인 - TripGen</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <style>
+        /* 경로 확인 전용 스타일 */
+        .route-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: var(--space-6);
+            height: calc(100vh - 200px);
+        }
+
+        @media (max-width: 1023px) {
+            .route-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        /* 지도 영역 */
+        .map-section {
+            background: var(--gray-100);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            min-height: 400px;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-blue-light), var(--primary-blue));
+            color: white;
+            font-size: var(--text-lg);
+            font-weight: var(--font-medium);
+        }
+
+        /* 경로 정보 패널 */
+        .route-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            max-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .route-header {
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+
+        .route-locations {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .location-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-2);
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+        }
+
+        .location-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: var(--text-sm);
+            font-weight: var(--font-bold);
+        }
+
+        .location-icon.start {
+            background: var(--success);
+        }
+
+        .location-icon.end {
+            background: var(--error);
+        }
+
+        .location-text {
+            flex: 1;
+            font-weight: var(--font-medium);
+        }
+
+        /* 교통수단 선택 */
+        .transport-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .transport-tab {
+            padding: var(--space-3);
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .transport-tab:hover {
+            border-color: var(--primary-blue);
+        }
+
+        .transport-tab.active {
+            border-color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .transport-icon {
+            font-size: var(--text-lg);
+        }
+
+        .transport-label {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+        }
+
+        /* 경로 옵션 */
+        .route-options {
+            padding: 0 var(--space-6);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .option-tabs {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .option-tab {
+            padding: var(--space-2) var(--space-4);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: var(--font-medium);
+            color: var(--gray-600);
+            transition: all 0.2s ease;
+        }
+
+        .option-tab:hover {
+            color: var(--primary-blue);
+        }
+
+        .option-tab.active {
+            color: var(--primary-blue);
+            border-bottom-color: var(--primary-blue);
+        }
+
+        /* 경로 목록 */
+        .route-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-6);
+        }
+
+        .route-card {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .route-card:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 2px 8px rgba(46, 134, 171, 0.1);
+        }
+
+        .route-card.selected {
+            border-color: var(--primary-blue);
+            background: rgba(46, 134, 171, 0.05);
+        }
+
+        .route-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-3);
+        }
+
+        .route-time {
+            font-size: var(--text-lg);
+            font-weight: var(--font-bold);
+            color: var(--primary-blue);
+        }
+
+        .route-distance {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+        }
+
+        .route-cost {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--secondary-orange);
+        }
+
+        .route-details {
+            font-size: var(--text-sm);
+            color: var(--gray-700);
+            line-height: 1.5;
+        }
+
+        .route-steps {
+            margin-top: var(--space-3);
+            display: none;
+        }
+
+        .route-card.selected .route-steps {
+            display: block;
+        }
+
+        .route-step {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .route-step:last-child {
+            border-bottom: none;
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-blue-light);
+            color: white;
+            border-radius: 50%;
+            font-size: var(--text-xs);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: var(--font-medium);
+            margin-bottom: var(--space-1);
+        }
+
+        .step-description {
+            font-size: var(--text-xs);
+            color: var(--gray-600);
+        }
+
+        /* 실시간 교통 정보 */
+        .traffic-info {
+            background: var(--warning);
+            color: white;
+            padding: var(--space-3);
+            margin: var(--space-4) var(--space-6) 0;
+            border-radius: 8px;
+            font-size: var(--text-sm);
+            display: none;
+        }
+
+        .traffic-info.show {
+            display: block;
+        }
+
+        /* 경로 액션 버튼 */
+        .route-actions {
+            padding: var(--space-6);
+            border-top: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+        }
+
+        /* 로딩 상태 */
+        .route-loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8);
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+
+        .route-loading.show {
+            display: flex;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 767px) {
+            .route-container {
+                grid-template-columns: 1fr;
+                gap: var(--space-4);
+            }
+
+            .map-section {
+                height: 300px;
+                order: 2;
+            }
+
+            .route-panel {
+                order: 1;
+                max-height: none;
+            }
+
+            .transport-tabs {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .route-header {
+                padding: var(--space-4);
+            }
+
+            .route-list {
+                padding: var(--space-4);
+                max-height: 400px;
+            }
+
+            .route-actions {
+                padding: var(--space-4);
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+                gap: var(--space-2);
+            }
+        }
+
+        /* 네비게이션 바 */
+        .page-nav {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: var(--space-2);
+            z-index: 100;
+        }
+
+        .nav-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary-blue);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-lg);
+            box-shadow: 0 4px 12px rgba(46, 134, 171, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-blue-dark);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 767px) {
+            .page-nav {
+                bottom: 10px;
+                right: 10px;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="01-대시보드.html" class="nav-brand">TripGen</a>
+                <ul class="nav-menu">
+                    <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
+                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
+                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
+                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
+                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
+                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                </ul>
+                <button class="mobile-menu-toggle">☰</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 모바일 오버레이 -->
+    <div class="mobile-overlay"></div>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main">
+        <div class="container">
+            <div class="mb-6">
+                <h1>이동경로 확인</h1>
+                <p class="text-gray-600">이동수단별 정확한 경로와 시간을 확인해보세요.</p>
+            </div>
+
+            <div class="route-container">
+                <!-- 지도 영역 -->
+                <div class="map-section">
+                    <div class="map-placeholder">
+                        <div style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🗺️</div>
+                            <div>경로 지도가 여기에 표시됩니다</div>
+                            <div style="font-size: var(--text-sm); opacity: 0.8; margin-top: 0.5rem;">
+                                홍대입구역 → 이태원역
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 경로 정보 패널 -->
+                <div class="route-panel">
+                    <!-- 경로 헤더 -->
+                    <div class="route-header">
+                        <div class="route-locations">
+                            <div class="location-item">
+                                <div class="location-icon start">A</div>
+                                <div class="location-text">홍대입구역</div>
+                            </div>
+                            <div class="location-item">
+                                <div class="location-icon end">B</div>
+                                <div class="location-text">이태원역</div>
+                            </div>
+                        </div>
+
+                        <!-- 교통수단 선택 -->
+                        <div class="transport-tabs">
+                            <div class="transport-tab active" data-transport="transit">
+                                <div class="transport-icon">🚌</div>
+                                <div class="transport-label">대중교통</div>
+                            </div>
+                            <div class="transport-tab" data-transport="driving">
+                                <div class="transport-icon">🚗</div>
+                                <div class="transport-label">자가용</div>
+                            </div>
+                            <div class="transport-tab" data-transport="walking">
+                                <div class="transport-icon">🚶</div>
+                                <div class="transport-label">도보</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 경로 옵션 -->
+                    <div class="route-options">
+                        <div class="option-tabs">
+                            <button class="option-tab active" data-option="fastest">최단시간</button>
+                            <button class="option-tab" data-option="shortest">최단거리</button>
+                            <button class="option-tab" data-option="cheapest">경제적</button>
+                        </div>
+                    </div>
+
+                    <!-- 실시간 교통 정보 -->
+                    <div class="traffic-info" id="trafficInfo">
+                        ⚠️ 지하철 6호선 지연 운행 중 (약 5분 지연)
+                    </div>
+
+                    <!-- 경로 목록 -->
+                    <div class="route-list" id="routeList">
+                        <!-- 로딩 상태 -->
+                        <div class="route-loading" id="routeLoading">
+                            <div class="spinner"></div>
+                            <div>경로를 검색하고 있습니다...</div>
+                        </div>
+
+                        <!-- 경로 카드들이 여기에 동적으로 추가됩니다 -->
+                    </div>
+
+                    <!-- 경로 액션 버튼 -->
+                    <div class="route-actions">
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="refreshRoutes()">
+                                🔄 경로 새로고침
+                            </button>
+                            <button class="btn btn-primary" onclick="selectRoute()">
+                                ✅ 경로 선택
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 페이지 네비게이션 -->
+    <div class="page-nav">
+        <button class="nav-btn" onclick="location.href='09-주변장소검색.html'" data-tooltip="이전 페이지" data-tooltip-position="left">←</button>
+        <button class="nav-btn" onclick="location.href='11-지도통합화면.html'" data-tooltip="다음 페이지" data-tooltip-position="left">→</button>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/common.js"></script>
+    <script>
+        // 경로 데이터
+        const routeData = {
+            transit: [
+                {
+                    id: 1,
+                    time: "32분",
+                    distance: "12.3km",
+                    cost: "1,470원",
+                    details: "지하철 6호선 → 4호선 환승",
+                    selected: true,
+                    steps: [
+                        { icon: "🚶", title: "홍대입구역까지 도보", description: "약 2분 소요" },
+                        { icon: "🚇", title: "6호선 탑승", description: "홍대입구역 → 공덕역 (4정거장, 8분)" },
+                        { icon: "🔄", title: "4호선 환승", description: "공덕역에서 환승 (3분)" },
+                        { icon: "🚇", title: "4호선 탑승", description: "공덕역 → 이촌역 (7정거장, 15분)" },
+                        { icon: "🔄", title: "6호선 환승", description: "이촌역에서 환승 (2분)" },
+                        { icon: "🚇", title: "6호선 탑승", description: "이촌역 → 이태원역 (1정거장, 2분)" }
+                    ]
+                },
+                {
+                    id: 2,
+                    time: "38분",
+                    distance: "11.8km", 
+                    cost: "1,470원",
+                    details: "지하철 2호선 → 6호선 환승",
+                    selected: false,
+                    steps: [
+                        { icon: "🚶", title: "홍대입구역까지 도보", description: "약 2분 소요" },
+                        { icon: "🚇", title: "2호선 탑승", description: "홍대입구역 → 을지로3가역 (12정거장, 24분)" },
+                        { icon: "🔄", title: "3호선 환승", description: "을지로3가역에서 환승 (4분)" },
+                        { icon: "🚇", title: "3호선 탑승", description: "을지로3가역 → 약수역 (4정거장, 6분)" },
+                        { icon: "🔄", title: "6호선 환승", description: "약수역에서 환승 (2분)" },
+                        { icon: "🚇", title: "6호선 탑승", description: "약수역 → 이태원역 (2정거장, 4분)" }
+                    ]
+                },
+                {
+                    id: 3,
+                    time: "41분",
+                    distance: "14.2km",
+                    cost: "2,150원",
+                    details: "버스 271번 → 지하철 6호선",
+                    selected: false,
+                    steps: [
+                        { icon: "🚶", title: "버스정류장까지 도보", description: "홍대입구역.KT&G상상마당 정류장 (3분)" },
+                        { icon: "🚌", title: "271번 버스 탑승", description: "홍대입구역 → 한강진역 (18분, 680원)" },
+                        { icon: "🚶", title: "지하철역으로 도보", description: "한강진역까지 (4분)" },
+                        { icon: "🚇", title: "6호선 탑승", description: "한강진역 → 이태원역 (4정거장, 8분, 1,470원)" }
+                    ]
+                }
+            ],
+            driving: [
+                {
+                    id: 4,
+                    time: "28분",
+                    distance: "13.1km",
+                    cost: "3,200원",
+                    details: "강변북로 → 한남대교 경유",
+                    selected: true,
+                    steps: [
+                        { icon: "🚗", title: "홍대입구 출발", description: "홍익대학교 정문 기준" },
+                        { icon: "➡️", title: "와우산로", description: "1.2km, 4분" },
+                        { icon: "➡️", title: "강변북로", description: "8.3km, 15분" },
+                        { icon: "➡️", title: "한남대교", description: "1.8km, 5분" },
+                        { icon: "➡️", title: "이태원로", description: "1.8km, 4분" },
+                        { icon: "🏁", title: "이태원역 도착", description: "목적지 주변 주차장 이용" }
+                    ]
+                },
+                {
+                    id: 5,
+                    time: "35분",
+                    distance: "12.7km",
+                    cost: "2,800원",
+                    details: "서강대교 → 반포대교 경유",
+                    selected: false,
+                    steps: [
+                        { icon: "🚗", title: "홍대입구 출발", description: "홍익대학교 정문 기준" },
+                        { icon: "➡️", title: "와우산로 → 서강대교", description: "2.1km, 8분" },
+                        { icon: "➡️", title: "강남대로", description: "6.2km, 18분" },
+                        { icon: "➡️", title: "반포대교", description: "2.4km, 6분" },
+                        { icon: "➡️", title: "이태원로", description: "2.0km, 3분" },
+                        { icon: "🏁", title: "이태원역 도착", description: "목적지 주변 주차장 이용" }
+                    ]
+                }
+            ],
+            walking: [
+                {
+                    id: 6,
+                    time: "2시간 38분",
+                    distance: "12.8km",
+                    cost: "0원",
+                    details: "한강공원 경유 도보길",
+                    selected: true,
+                    steps: [
+                        { icon: "🚶", title: "홍대입구 출발", description: "홍익대학교 정문" },
+                        { icon: "🌳", title: "망원한강공원", description: "2.1km, 25분" },
+                        { icon: "🌊", title: "한강공원 따라 동행", description: "6.8km, 1시간 22분" },
+                        { icon: "🌉", title: "한남대교", description: "1.2km, 15분" },
+                        { icon: "⬆️", title: "이태원 오르막길", description: "2.7km, 36분" },
+                        { icon: "🏁", title: "이태원역 도착", description: "목적지 도착" }
+                    ]
+                }
+            ]
+        };
+
+        let currentTransport = 'transit';
+        let currentOption = 'fastest';
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            updateRoutes();
+            showTrafficInfo();
+        });
+
+        // 교통수단 탭 클릭 이벤트
+        document.querySelectorAll('.transport-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // 활성 탭 변경
+                document.querySelectorAll('.transport-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 현재 교통수단 업데이트
+                currentTransport = this.dataset.transport;
+                
+                // 경로 업데이트
+                updateRoutes();
+                
+                // 실시간 교통정보 표시/숨김
+                showTrafficInfo();
+            });
+        });
+
+        // 옵션 탭 클릭 이벤트
+        document.querySelectorAll('.option-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // 활성 탭 변경
+                document.querySelectorAll('.option-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 현재 옵션 업데이트
+                currentOption = this.dataset.option;
+                
+                // 경로 재정렬
+                updateRoutes();
+            });
+        });
+
+        // 경로 업데이트 함수
+        function updateRoutes() {
+            const routeList = document.getElementById('routeList');
+            const loading = document.getElementById('routeLoading');
+            
+            // 로딩 표시
+            loading.classList.add('show');
+            
+            setTimeout(() => {
+                loading.classList.remove('show');
+                
+                const routes = routeData[currentTransport] || [];
+                
+                // 옵션에 따른 정렬
+                let sortedRoutes = [...routes];
+                if (currentOption === 'shortest') {
+                    sortedRoutes.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+                } else if (currentOption === 'cheapest') {
+                    sortedRoutes.sort((a, b) => {
+                        const costA = parseInt(a.cost.replace(/[^0-9]/g, '')) || 0;
+                        const costB = parseInt(b.cost.replace(/[^0-9]/g, '')) || 0;
+                        return costA - costB;
+                    });
+                }
+                
+                // 경로 카드 생성
+                routeList.innerHTML = '';
+                sortedRoutes.forEach((route, index) => {
+                    const routeCard = createRouteCard(route, index === 0);
+                    routeList.appendChild(routeCard);
+                });
+            }, 1000);
+        }
+
+        // 경로 카드 생성 함수
+        function createRouteCard(route, isSelected = false) {
+            const card = document.createElement('div');
+            card.className = `route-card ${isSelected ? 'selected' : ''}`;
+            card.dataset.routeId = route.id;
+            
+            card.innerHTML = `
+                <div class="route-summary">
+                    <div class="route-time">${route.time}</div>
+                    <div class="route-distance">${route.distance}</div>
+                    <div class="route-cost">${route.cost}</div>
+                </div>
+                <div class="route-details">${route.details}</div>
+                <div class="route-steps">
+                    ${route.steps.map(step => `
+                        <div class="route-step">
+                            <div class="step-icon">${step.icon}</div>
+                            <div class="step-content">
+                                <div class="step-title">${step.title}</div>
+                                <div class="step-description">${step.description}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // 클릭 이벤트
+            card.addEventListener('click', function() {
+                // 다른 카드 선택 해제
+                document.querySelectorAll('.route-card').forEach(c => c.classList.remove('selected'));
+                // 현재 카드 선택
+                this.classList.add('selected');
+            });
+            
+            return card;
+        }
+
+        // 실시간 교통정보 표시
+        function showTrafficInfo() {
+            const trafficInfo = document.getElementById('trafficInfo');
+            
+            if (currentTransport === 'transit') {
+                trafficInfo.classList.add('show');
+            } else {
+                trafficInfo.classList.remove('show');
+            }
+        }
+
+        // 경로 새로고침
+        function refreshRoutes() {
+            TripGen.showToast('경로 정보를 업데이트하고 있습니다.', 'info');
+            updateRoutes();
+        }
+
+        // 경로 선택
+        function selectRoute() {
+            const selectedCard = document.querySelector('.route-card.selected');
+            if (selectedCard) {
+                const routeId = selectedCard.dataset.routeId;
+                TripGen.showToast('선택한 경로가 일정에 추가되었습니다.', 'success');
+                
+                // 실제로는 다음 화면으로 이동하거나 데이터를 저장
+                setTimeout(() => {
+                    location.href = '06-생성된일정조회.html';
+                }, 1500);
+            } else {
+                TripGen.showToast('경로를 선택해주세요.', 'warning');
+            }
+        }
+
+        // 키보드 네비게이션
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const cards = document.querySelectorAll('.route-card');
+                const currentIndex = Array.from(cards).findIndex(card => card.classList.contains('selected'));
+                
+                let newIndex;
+                if (e.key === 'ArrowUp') {
+                    newIndex = currentIndex > 0 ? currentIndex - 1 : cards.length - 1;
+                } else {
+                    newIndex = currentIndex < cards.length - 1 ? currentIndex + 1 : 0;
+                }
+                
+                cards.forEach(card => card.classList.remove('selected'));
+                cards[newIndex].classList.add('selected');
+                cards[newIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                selectRoute();
+            }
+        });
+
+        // 위치 변경 기능 (데모용)
+        function changeLocation(type) {
+            const locations = {
+                start: ['홍대입구역', '강남역', '명동역', '잠실역', '신촌역'],
+                end: ['이태원역', '압구정역', '청담역', '강남역', '홍대입구역']
+            };
+            
+            const currentLocation = type === 'start' ? 
+                document.querySelector('.location-item .location-text').textContent :
+                document.querySelectorAll('.location-item .location-text')[1].textContent;
+                
+            const availableLocations = locations[type].filter(loc => loc !== currentLocation);
+            const randomLocation = availableLocations[Math.floor(Math.random() * availableLocations.length)];
+            
+            if (type === 'start') {
+                document.querySelector('.location-item .location-text').textContent = randomLocation;
+            } else {
+                document.querySelectorAll('.location-item .location-text')[1].textContent = randomLocation;
+            }
+            
+            updateRoutes();
+        }
+
+        // 위치 아이콘 클릭 이벤트 (출발지/도착지 변경)
+        document.querySelectorAll('.location-icon').forEach((icon, index) => {
+            icon.addEventListener('click', function() {
+                changeLocation(index === 0 ? 'start' : 'end');
+            });
+        });
+    </script>
+</body>
+</html>

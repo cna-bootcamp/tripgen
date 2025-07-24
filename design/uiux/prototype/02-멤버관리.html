@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멤버관리 - TripGen</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <style>
+        /* 멤버관리 전용 스타일 */
+        .stepper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: var(--space-8);
+            padding: 0 var(--space-4);
+        }
+
+        .stepper-item {
+            display: flex;
+            align-items: center;
+            color: var(--gray-400);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+        }
+
+        .stepper-item.active {
+            color: var(--primary-blue);
+        }
+
+        .stepper-item.completed {
+            color: var(--success);
+        }
+
+        .stepper-item.completed a {
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .stepper-item.completed a:hover {
+            opacity: 0.8;
+        }
+
+        .stepper-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gray-300);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: var(--space-2);
+            font-weight: var(--font-semibold);
+            transition: all 0.3s ease;
+        }
+
+        .stepper-item.active .stepper-number {
+            background: var(--primary-blue);
+        }
+
+        .stepper-item.completed .stepper-number {
+            background: var(--success);
+        }
+
+        .stepper-line {
+            width: 60px;
+            height: 2px;
+            background: var(--gray-300);
+            margin: 0 var(--space-4);
+            margin-top: 16px;
+        }
+
+        .stepper-item.completed + .stepper-item .stepper-line {
+            background: var(--success);
+        }
+
+        /* 멤버 카드 스타일 */
+        .member-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: var(--space-6);
+            border: 2px solid var(--gray-200);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .member-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .member-card.editing {
+            border-color: var(--primary-blue);
+        }
+
+        .member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-4);
+        }
+
+        .member-info h3 {
+            margin: 0 0 var(--space-2) 0;
+            color: var(--gray-800);
+        }
+
+        .member-meta {
+            display: flex;
+            gap: var(--space-3);
+            color: var(--gray-600);
+            font-size: var(--text-sm);
+        }
+
+        .member-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .action-btn.edit:hover {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .action-btn.delete:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        /* 건강상태 뱃지 */
+        .health-status {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--space-1) var(--space-3);
+            border-radius: 20px;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+        }
+
+        .health-excellent {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .health-good {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+        }
+
+        .health-caution {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .health-limited {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        /* 선호도 태그 */
+        .preferences {
+            margin-top: var(--space-4);
+        }
+
+        .preference-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            margin-top: var(--space-2);
+        }
+
+        .preference-tag {
+            padding: var(--space-1) var(--space-2);
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border-radius: 16px;
+            font-size: var(--text-xs);
+        }
+
+        /* 폼 스타일 */
+        .member-form {
+            display: none;
+            padding: var(--space-6);
+            background: var(--gray-50);
+            border-radius: 12px;
+            margin-bottom: var(--space-6);
+        }
+
+        .member-form.active {
+            display: block;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .form-section {
+            margin-bottom: var(--space-6);
+        }
+
+        .form-section h4 {
+            margin-bottom: var(--space-4);
+            color: var(--gray-800);
+            border-bottom: 2px solid var(--primary-blue);
+            padding-bottom: var(--space-2);
+        }
+
+        /* 라디오 버튼 스타일 */
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-3);
+        }
+
+        .radio-option {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .radio-option .radio-label {
+            display: block;
+            padding: var(--space-3);
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            background: white;
+            text-align: center;
+            transition: all 0.2s ease;
+            font-weight: var(--font-medium);
+        }
+
+        .radio-option input[type="radio"]:checked + .radio-label {
+            border-color: var(--primary-blue);
+            background: rgba(46, 134, 171, 0.1);
+            color: var(--primary-blue);
+        }
+
+        /* 체크박스 그룹 */
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-3);
+        }
+
+        .checkbox-option {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .checkbox-option .checkbox-label {
+            display: block;
+            padding: var(--space-2) var(--space-3);
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            background: white;
+            text-align: center;
+            transition: all 0.2s ease;
+            font-size: var(--text-sm);
+        }
+
+        .checkbox-option input[type="checkbox"]:checked + .checkbox-label {
+            border-color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        /* 빈 상태 */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-16) var(--space-8);
+            background: white;
+            border-radius: 12px;
+            border: 2px dashed var(--gray-300);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: var(--gray-400);
+            margin-bottom: var(--space-4);
+        }
+
+        .empty-title {
+            font-size: var(--text-xl);
+            font-weight: var(--font-semibold);
+            color: var(--gray-700);
+            margin-bottom: var(--space-2);
+        }
+
+        .empty-description {
+            color: var(--gray-600);
+            margin-bottom: var(--space-6);
+        }
+
+        /* 토스트 알림 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: var(--space-4) var(--space-6);
+            border-radius: 8px;
+            color: white;
+            font-weight: var(--font-medium);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-success {
+            background: var(--success);
+        }
+
+        .toast-error {
+            background: var(--error);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 반응형 */
+        @media (max-width: 767px) {
+            .stepper {
+                overflow-x: auto;
+                padding: 0 var(--space-4);
+            }
+
+            .stepper-line {
+                width: 40px;
+                margin: 0 var(--space-2);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .radio-group {
+                grid-template-columns: 1fr;
+            }
+
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+
+            .member-meta {
+                flex-direction: column;
+                gap: var(--space-1);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .checkbox-group {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="01-대시보드.html" class="nav-brand">TripGen</a>
+                <ul class="nav-menu">
+                    <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+                    <li><a href="02-멤버관리.html" class="nav-link active">멤버관리</a></li>
+                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
+                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
+                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
+                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
+                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                </ul>
+                <button class="mobile-menu-toggle" aria-label="메뉴 열기">☰</button>
+            </nav>
+        </div>
+        <div class="mobile-overlay"></div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- 스테퍼 -->
+            <div class="stepper">
+                <div class="stepper-item completed">
+                    <div class="stepper-number">1</div>
+                    <a href="01-대시보드.html"><span>대시보드</span></a>
+                </div>
+                <div class="stepper-line"></div>
+                <div class="stepper-item active">
+                    <div class="stepper-number">2</div>
+                    <span>멤버관리</span>
+                </div>
+                <div class="stepper-line"></div>
+                <div class="stepper-item" onclick="navigateToStep('03-여행일정설정.html')" style="cursor: pointer; opacity: 0.7;">
+                    <div class="stepper-number">3</div>
+                    <span>일정설정</span>
+                </div>
+                <div class="stepper-line"></div>
+                <div class="stepper-item" style="cursor: not-allowed; opacity: 0.5;">
+                    <div class="stepper-number">4</div>
+                    <span>이동수단</span>
+                </div>
+            </div>
+
+            <!-- 페이지 헤더 -->
+            <div class="mb-8">
+                <h1>여행 멤버 관리</h1>
+                <p class="text-gray-600">여행에 함께할 멤버들의 정보를 등록하고 관리해보세요. 각 멤버의 선호도와 건강상태를 고려하여 맞춤형 일정을 생성할 수 있습니다.</p>
+            </div>
+
+            <!-- 멤버 추가 폼 -->
+            <div class="member-form" id="memberForm">
+                <form data-validate>
+                    <div class="form-section">
+                        <h4>기본 정보</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="memberName">이름 *</label>
+                                <input type="text" id="memberName" class="form-input" required 
+                                       minlength="2" maxlength="20" placeholder="멤버 이름을 입력하세요">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="memberAge">나이</label>
+                                <input type="number" id="memberAge" class="form-input" 
+                                       min="0" max="120" placeholder="나이를 입력하세요">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">성별</label>
+                            <div class="radio-group">
+                                <div class="radio-option">
+                                    <input type="radio" id="genderMale" name="gender" value="남성">
+                                    <label for="genderMale" class="radio-label">남성</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="genderFemale" name="gender" value="여성">
+                                    <label for="genderFemale" class="radio-label">여성</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>건강상태</h4>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="healthExcellent" name="health" value="excellent">
+                                <label for="healthExcellent" class="radio-label">
+                                    <strong>우수</strong><br>
+                                    <small>모든 활동 가능</small>
+                                </label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="healthGood" name="health" value="good">
+                                <label for="healthGood" class="radio-label">
+                                    <strong>양호</strong><br>
+                                    <small>일반적인 활동 가능</small>
+                                </label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="healthCaution" name="health" value="caution">
+                                <label for="healthCaution" class="radio-label">
+                                    <strong>주의</strong><br>
+                                    <small>격렬한 활동 제한</small>
+                                </label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="healthLimited" name="health" value="limited">
+                                <label for="healthLimited" class="radio-label">
+                                    <strong>제한</strong><br>
+                                    <small>휴식 위주 활동</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>음식 선호도</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="foodKorean" name="foodPrefs" value="한식">
+                                <label for="foodKorean" class="checkbox-label">한식</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="foodChinese" name="foodPrefs" value="중식">
+                                <label for="foodChinese" class="checkbox-label">중식</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="foodJapanese" name="foodPrefs" value="일식">
+                                <label for="foodJapanese" class="checkbox-label">일식</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="foodWestern" name="foodPrefs" value="양식">
+                                <label for="foodWestern" class="checkbox-label">양식</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="foodStreet" name="foodPrefs" value="길거리음식">
+                                <label for="foodStreet" class="checkbox-label">길거리음식</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="foodVegetarian" name="foodPrefs" value="채식">
+                                <label for="foodVegetarian" class="checkbox-label">채식</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>활동 선호도</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="activitySight" name="activityPrefs" value="관광">
+                                <label for="activitySight" class="checkbox-label">관광</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="activityShopping" name="activityPrefs" value="쇼핑">
+                                <label for="activityShopping" class="checkbox-label">쇼핑</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="activityCulture" name="activityPrefs" value="문화체험">
+                                <label for="activityCulture" class="checkbox-label">문화체험</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="activityNature" name="activityPrefs" value="자연체험">
+                                <label for="activityNature" class="checkbox-label">자연체험</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="activitySports" name="activityPrefs" value="스포츠">
+                                <label for="activitySports" class="checkbox-label">스포츠</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="activityRest" name="activityPrefs" value="휴식">
+                                <label for="activityRest" class="checkbox-label">휴식</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>숙박 선호도</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="hotelLuxury" name="hotelPrefs" value="고급호텔">
+                                <label for="hotelLuxury" class="checkbox-label">고급호텔</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="hotelBusiness" name="hotelPrefs" value="비즈니스호텔">
+                                <label for="hotelBusiness" class="checkbox-label">비즈니스호텔</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="hotelBoutique" name="hotelPrefs" value="부티크호텔">
+                                <label for="hotelBoutique" class="checkbox-label">부티크호텔</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="hotelGuest" name="hotelPrefs" value="게스트하우스">
+                                <label for="hotelGuest" class="checkbox-label">게스트하우스</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="hotelPension" name="hotelPrefs" value="펜션">
+                                <label for="hotelPension" class="checkbox-label">펜션</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="hotelAirbnb" name="hotelPrefs" value="에어비앤비">
+                                <label for="hotelAirbnb" class="checkbox-label">에어비앤비</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 justify-center">
+                        <button type="button" class="btn btn-secondary" onclick="cancelMemberForm()">취소</button>
+                        <button type="submit" class="btn btn-primary">멤버 추가</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 멤버 목록 -->
+            <div class="flex justify-between items-center mb-6">
+                <h2>등록된 멤버</h2>
+                <button class="btn btn-primary" onclick="showMemberForm()">
+                    + 멤버 추가
+                </button>
+            </div>
+
+            <!-- 멤버 카드들 -->
+            <div class="grid grid-2" id="memberList">
+                <!-- 샘플 멤버 1 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-header">
+                        <div class="member-info">
+                            <h3>김여행</h3>
+                            <div class="member-meta">
+                                <span>👤 여성</span>
+                                <span>🎂 28세</span>
+                                <span class="health-status health-excellent">우수</span>
+                            </div>
+                        </div>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(1)" data-tooltip="수정">
+                                ✏️
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(1)" data-tooltip="삭제">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preferences">
+                        <div>
+                            <strong>음식:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">한식</span>
+                                <span class="preference-tag">양식</span>
+                                <span class="preference-tag">길거리음식</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <strong>활동:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">관광</span>
+                                <span class="preference-tag">쇼핑</span>
+                                <span class="preference-tag">문화체험</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <strong>숙박:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">부티크호텔</span>
+                                <span class="preference-tag">게스트하우스</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 샘플 멤버 2 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-header">
+                        <div class="member-info">
+                            <h3>박모험</h3>
+                            <div class="member-meta">
+                                <span>👤 남성</span>
+                                <span>🎂 32세</span>
+                                <span class="health-status health-good">양호</span>
+                            </div>
+                        </div>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(2)" data-tooltip="수정">
+                                ✏️
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(2)" data-tooltip="삭제">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preferences">
+                        <div>
+                            <strong>음식:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">일식</span>
+                                <span class="preference-tag">중식</span>
+                                <span class="preference-tag">길거리음식</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <strong>활동:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">자연체험</span>
+                                <span class="preference-tag">스포츠</span>
+                                <span class="preference-tag">관광</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <strong>숙박:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">펜션</span>
+                                <span class="preference-tag">에어비앤비</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 다음 단계 버튼 -->
+            <div class="text-center mt-8">
+                <button class="btn btn-primary btn-lg" onclick="goToNextStep()">
+                    다음 단계: 여행 일정 설정 →
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 TripGen. AI 기반 여행 일정 생성 서비스</p>
+        </div>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        // 멤버 데이터 저장소 (실제로는 API 연동)
+        let members = [
+            {
+                id: 1,
+                name: '김여행',
+                age: 28,
+                gender: '여성',
+                health: 'excellent',
+                foodPrefs: ['한식', '양식', '길거리음식'],
+                activityPrefs: ['관광', '쇼핑', '문화체험'],
+                hotelPrefs: ['부티크호텔', '게스트하우스']
+            },
+            {
+                id: 2,
+                name: '박모험',
+                age: 32,
+                gender: '남성',
+                health: 'good',
+                foodPrefs: ['일식', '중식', '길거리음식'],
+                activityPrefs: ['자연체험', '스포츠', '관광'],
+                hotelPrefs: ['펜션', '에어비앤비']
+            }
+        ];
+
+        let editingMemberId = null;
+
+        // 멤버 폼 표시
+        function showMemberForm() {
+            const form = document.getElementById('memberForm');
+            form.classList.add('active');
+            form.scrollIntoView({ behavior: 'smooth' });
+            
+            // 폼 초기화
+            resetForm();
+            editingMemberId = null;
+        }
+
+        // 멤버 폼 취소
+        function cancelMemberForm() {
+            const form = document.getElementById('memberForm');
+            form.classList.remove('active');
+            resetForm();
+            editingMemberId = null;
+        }
+
+        // 폼 초기화
+        function resetForm() {
+            const form = document.querySelector('#memberForm form');
+            form.reset();
+            
+            // 에러 메시지 제거
+            const errorElements = form.querySelectorAll('.form-error');
+            errorElements.forEach(el => el.remove());
+            
+            const inputElements = form.querySelectorAll('.form-input');
+            inputElements.forEach(el => el.classList.remove('error'));
+        }
+
+        // 멤버 추가/수정 폼 제출
+        document.querySelector('#memberForm form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const memberData = {
+                name: formData.get('memberName'),
+                age: parseInt(formData.get('memberAge')) || 0,
+                gender: formData.get('gender') || '미선택',
+                health: formData.get('health') || 'good',
+                foodPrefs: formData.getAll('foodPrefs'),
+                activityPrefs: formData.getAll('activityPrefs'),
+                hotelPrefs: formData.getAll('hotelPrefs')
+            };
+
+            if (editingMemberId) {
+                // 수정
+                const memberIndex = members.findIndex(m => m.id === editingMemberId);
+                if (memberIndex !== -1) {
+                    members[memberIndex] = { ...memberData, id: editingMemberId };
+                    TripGen.showToast('멤버 정보가 수정되었습니다.', 'success');
+                }
+            } else {
+                // 추가
+                const newId = Math.max(...members.map(m => m.id), 0) + 1;
+                members.push({ ...memberData, id: newId });
+                TripGen.showToast('새 멤버가 추가되었습니다.', 'success');
+            }
+
+            renderMemberList();
+            cancelMemberForm();
+        });
+
+        // 멤버 수정
+        function editMember(id) {
+            const member = members.find(m => m.id === id);
+            if (!member) return;
+
+            editingMemberId = id;
+            
+            // 폼에 데이터 채우기
+            document.getElementById('memberName').value = member.name;
+            document.getElementById('memberAge').value = member.age;
+            
+            // 성별 선택
+            if (member.gender === '남성') {
+                document.getElementById('genderMale').checked = true;
+            } else if (member.gender === '여성') {
+                document.getElementById('genderFemale').checked = true;
+            }
+            
+            // 건강상태 선택
+            const healthRadio = document.getElementById(`health${member.health.charAt(0).toUpperCase() + member.health.slice(1)}`);
+            if (healthRadio) healthRadio.checked = true;
+            
+            // 음식 선호도
+            member.foodPrefs.forEach(pref => {
+                const checkbox = document.querySelector(`input[name="foodPrefs"][value="${pref}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            // 활동 선호도
+            member.activityPrefs.forEach(pref => {
+                const checkbox = document.querySelector(`input[name="activityPrefs"][value="${pref}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            // 숙박 선호도
+            member.hotelPrefs.forEach(pref => {
+                const checkbox = document.querySelector(`input[name="hotelPrefs"][value="${pref}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+
+            showMemberForm();
+        }
+
+        // 멤버 삭제
+        function deleteMember(id) {
+            const member = members.find(m => m.id === id);
+            if (!member) return;
+
+            TripGen.confirmDialog(`'${member.name}' 멤버를 삭제하시겠습니까?`, () => {
+                members = members.filter(m => m.id !== id);
+                renderMemberList();
+                TripGen.showToast('멤버가 삭제되었습니다.', 'success');
+            });
+        }
+
+        // 건강상태 텍스트 매핑
+        function getHealthText(health) {
+            const healthMap = {
+                excellent: '우수',
+                good: '양호',
+                caution: '주의',
+                limited: '제한'
+            };
+            return healthMap[health] || '양호';
+        }
+
+        // 건강상태 클래스 매핑
+        function getHealthClass(health) {
+            return `health-${health}`;
+        }
+
+        // 성별 이모지 매핑
+        function getGenderEmoji(gender) {
+            return gender === '남성' ? '👨' : gender === '여성' ? '👩' : '👤';
+        }
+
+        // 멤버 목록 렌더링
+        function renderMemberList() {
+            const memberList = document.getElementById('memberList');
+            
+            if (members.length === 0) {
+                memberList.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">👥</div>
+                        <h3 class="empty-title">등록된 멤버가 없습니다</h3>
+                        <p class="empty-description">여행에 함께할 멤버를 추가해보세요.</p>
+                        <button class="btn btn-primary" onclick="showMemberForm()">첫 번째 멤버 추가</button>
+                    </div>
+                `;
+                return;
+            }
+
+            memberList.innerHTML = members.map(member => `
+                <div class="member-card animate-on-scroll">
+                    <div class="member-header">
+                        <div class="member-info">
+                            <h3>${member.name}</h3>
+                            <div class="member-meta">
+                                <span>${getGenderEmoji(member.gender)} ${member.gender}</span>
+                                ${member.age > 0 ? `<span>🎂 ${member.age}세</span>` : ''}
+                                <span class="health-status ${getHealthClass(member.health)}">${getHealthText(member.health)}</span>
+                            </div>
+                        </div>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(${member.id})" data-tooltip="수정">
+                                ✏️
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(${member.id})" data-tooltip="삭제">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preferences">
+                        ${member.foodPrefs.length > 0 ? `
+                        <div>
+                            <strong>음식:</strong>
+                            <div class="preference-tags">
+                                ${member.foodPrefs.map(pref => `<span class="preference-tag">${pref}</span>`).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${member.activityPrefs.length > 0 ? `
+                        <div class="mt-3">
+                            <strong>활동:</strong>
+                            <div class="preference-tags">
+                                ${member.activityPrefs.map(pref => `<span class="preference-tag">${pref}</span>`).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${member.hotelPrefs.length > 0 ? `
+                        <div class="mt-3">
+                            <strong>숙박:</strong>
+                            <div class="preference-tags">
+                                ${member.hotelPrefs.map(pref => `<span class="preference-tag">${pref}</span>`).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 다음 단계로 이동
+        function goToNextStep() {
+            if (members.length === 0) {
+                TripGen.showToast('최소 1명의 멤버를 추가해주세요.', 'error');
+                return;
+            }
+            
+            // 실제로는 다음 페이지로 이동
+            TripGen.showToast('여행 일정 설정 페이지로 이동합니다.', 'success');
+            setTimeout(() => {
+                window.location.href = '03-여행일정설정.html';
+            }, 1000);
+        }
+
+        // 스테퍼 네비게이션 함수
+        function navigateToStep(url) {
+            window.location.href = url;
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            renderMemberList();
+        });
+    </script>
+</body>
+</html>

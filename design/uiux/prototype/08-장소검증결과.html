@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>장소 검증 결과 - TripGen</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <style>
+        /* 장소 검증 전용 스타일 */
+        .verification-header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
+            color: white;
+            padding: var(--space-8) 0;
+            margin-bottom: var(--space-8);
+        }
+
+        .verification-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-8);
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: var(--space-4);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-number {
+            font-size: var(--text-3xl);
+            font-weight: var(--font-bold);
+            margin-bottom: var(--space-2);
+        }
+
+        .verification-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-6);
+        }
+
+        .verification-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .verification-card:hover {
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .verification-status {
+            padding: var(--space-1) var(--space-6);
+            font-weight: var(--font-medium);
+            font-size: var(--text-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .verification-status.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .verification-status.warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .verification-status.error {
+            background: var(--error);
+            color: white;
+        }
+
+        .verification-status.processing {
+            background: var(--info);
+            color: white;
+        }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+
+        .card-content {
+            padding: var(--space-6);
+        }
+
+        .place-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-4);
+        }
+
+        .place-title {
+            font-size: var(--text-xl);
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .place-category {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            padding: var(--space-1) var(--space-3);
+            border-radius: 20px;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+        }
+
+        .verification-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .detail-item {
+            padding: var(--space-3);
+            background: var(--gray-50);
+            border-radius: 8px;
+            border-left: 4px solid var(--gray-300);
+        }
+
+        .detail-item.verified {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .detail-item.warning {
+            border-left-color: var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .detail-item.failed {
+            border-left-color: var(--error);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .detail-label {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--gray-600);
+            margin-bottom: var(--space-1);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .detail-value {
+            font-size: var(--text-base);
+            color: var(--gray-800);
+            word-break: break-all;
+        }
+
+        .verification-score {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .score-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-bold);
+            font-size: var(--text-lg);
+            color: white;
+        }
+
+        .score-circle.high {
+            background: var(--success);
+        }
+
+        .score-circle.medium {
+            background: var(--warning);
+        }
+
+        .score-circle.low {
+            background: var(--error);
+        }
+
+        .score-description {
+            flex: 1;
+        }
+
+        .score-title {
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-1);
+        }
+
+        .score-details {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+        }
+
+        .alternative-places {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: var(--space-4);
+            margin-top: var(--space-4);
+        }
+
+        .alternative-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-3);
+            color: var(--gray-800);
+        }
+
+        .alternative-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .alternative-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3);
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .alternative-info {
+            flex: 1;
+        }
+
+        .alternative-name {
+            font-weight: var(--font-medium);
+            margin-bottom: var(--space-1);
+        }
+
+        .alternative-details {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--gray-200);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: var(--space-4);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-light));
+            transition: width 0.3s ease;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--space-8);
+            padding-top: var(--space-6);
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .verification-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .info-icon {
+            color: var(--info);
+            margin-right: var(--space-2);
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .verification-header {
+                padding: var(--space-6) 0;
+            }
+
+            .verification-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .verification-details {
+                grid-template-columns: 1fr;
+            }
+
+            .place-header {
+                flex-direction: column;
+                gap: var(--space-2);
+                align-items: flex-start;
+            }
+
+            .card-actions {
+                flex-direction: column;
+            }
+
+            .navigation-buttons {
+                flex-direction: column;
+                gap: var(--space-4);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .verification-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-number {
+                font-size: var(--text-2xl);
+            }
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: var(--space-6);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-4);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .modal-title {
+            font-size: var(--text-xl);
+            font-weight: var(--font-semibold);
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: var(--text-2xl);
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .modal-close:hover {
+            color: var(--gray-700);
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <nav class="nav container">
+            <a href="#" class="nav-brand">TripGen</a>
+            <ul class="nav-menu">
+                <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+                <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
+                <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
+                <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
+                <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
+                <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
+                <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+            </ul>
+            <button class="mobile-menu-toggle">☰</button>
+        </nav>
+        <div class="mobile-overlay"></div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main">
+        <!-- 검증 헤더 -->
+        <section class="verification-header">
+            <div class="container">
+                <h1>장소 검증 결과</h1>
+                <p>AI가 추천한 장소들의 실존성과 정보 정확성을 검증했습니다.</p>
+                
+                <!-- 진행률 표시 -->
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 85%"></div>
+                </div>
+
+                <!-- 검증 요약 -->
+                <div class="verification-summary">
+                    <div class="summary-item">
+                        <div class="summary-number">12</div>
+                        <div>총 장소</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number">9</div>
+                        <div>검증 완료</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number">2</div>
+                        <div>부분 검증</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number">1</div>
+                        <div>검증 실패</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="container">
+            <!-- 안내 정보 -->
+            <div class="verification-info">
+                <div class="flex items-center">
+                    <span class="info-icon">ℹ️</span>
+                    <div>
+                        <strong>검증 기준 안내</strong><br>
+                        실존성, 주소 정확성, 영업시간, 연락처, 접근성을 종합적으로 평가합니다.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 검증 결과 목록 -->
+            <div class="verification-list">
+                <!-- 검증 완료 - 성공 -->
+                <div class="verification-card animate-on-scroll">
+                    <div class="verification-status success">
+                        <span class="status-icon">✅</span>
+                        검증 완료
+                    </div>
+                    <div class="card-content">
+                        <div class="place-header">
+                            <h3 class="place-title">경복궁</h3>
+                            <span class="place-category">문화/관광</span>
+                        </div>
+
+                        <div class="verification-score">
+                            <div class="score-circle high">95</div>
+                            <div class="score-description">
+                                <div class="score-title">매우 신뢰할 수 있는 정보</div>
+                                <div class="score-details">모든 정보가 정확하게 확인되었습니다</div>
+                            </div>
+                        </div>
+
+                        <div class="verification-details">
+                            <div class="detail-item verified">
+                                <div class="detail-label">
+                                    📍 주소 정보
+                                </div>
+                                <div class="detail-value">서울특별시 종로구 사직로 161</div>
+                            </div>
+                            <div class="detail-item verified">
+                                <div class="detail-label">
+                                    ⏰ 영업시간
+                                </div>
+                                <div class="detail-value">09:00 - 18:00 (3-10월), 09:00 - 17:00 (11-2월)</div>
+                            </div>
+                            <div class="detail-item verified">
+                                <div class="detail-label">
+                                    📞 연락처
+                                </div>
+                                <div class="detail-value">02-3700-3900</div>
+                            </div>
+                            <div class="detail-item verified">
+                                <div class="detail-label">
+                                    🚗 주차 정보
+                                </div>
+                                <div class="detail-value">경복궁 주차장 이용 가능 (유료)</div>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="btn btn-primary btn-sm" onclick="viewPlaceDetails('경복궁')">상세 정보</button>
+                            <button class="btn btn-secondary btn-sm" onclick="addToItinerary('경복궁')">일정에 추가</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 부분 검증 - 경고 -->
+                <div class="verification-card animate-on-scroll">
+                    <div class="verification-status warning">
+                        <span class="status-icon">⚠️</span>
+                        부분 검증
+                    </div>
+                    <div class="card-content">
+                        <div class="place-header">
+                            <h3 class="place-title">명동 칼국수 골목</h3>
+                            <span class="place-category">음식점</span>
+                        </div>
+
+                        <div class="verification-score">
+                            <div class="score-circle medium">72</div>
+                            <div class="score-description">
+                                <div class="score-title">대부분 정보 확인됨</div>
+                                <div class="score-details">일부 정보가 불확실하거나 최신이 아닐 수 있습니다</div>
+                            </div>
+                        </div>
+
+                        <div class="verification-details">
+                            <div class="detail-item verified">
+                                <div class="detail-label">
+                                    📍 주소 정보
+                                </div>
+                                <div class="detail-value">서울특별시 중구 명동길 일대</div>
+                            </div>
+                            <div class="detail-item warning">
+                                <div class="detail-label">
+                                    ⏰ 영업시간
+                                </div>
+                                <div class="detail-value">업체별 상이 (정확한 정보 확인 필요)</div>
+                            </div>
+                            <div class="detail-item failed">
+                                <div class="detail-label">
+                                    📞 연락처
+                                </div>
+                                <div class="detail-value">업체별 개별 연락처 확인 필요</div>
+                            </div>
+                            <div class="detail-item verified">
+                                <div class="detail-label">
+                                    🚗 주차 정보
+                                </div>
+                                <div class="detail-value">명동 공영주차장 이용 권장</div>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="btn btn-warning btn-sm" onclick="updatePlaceInfo('명동 칼국수 골목')">정보 업데이트</button>
+                            <button class="btn btn-secondary btn-sm" onclick="viewAlternatives('명동 칼국수 골목')">대안 장소</button>
+                            <button class="btn btn-primary btn-sm" onclick="addToItinerary('명동 칼국수 골목')">그대로 사용</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 검증 실패 - 에러 -->
+                <div class="verification-card animate-on-scroll">
+                    <div class="verification-status error">
+                        <span class="status-icon">❌</span>
+                        검증 실패
+                    </div>
+                    <div class="card-content">
+                        <div class="place-header">
+                            <h3 class="place-title">서울스카이 전망카페</h3>
+                            <span class="place-category">카페</span>
+                        </div>
+
+                        <div class="verification-score">
+                            <div class="score-circle low">35</div>
+                            <div class="score-description">
+                                <div class="score-title">정보 확인 불가</div>
+                                <div class="score-details">존재하지 않거나 잘못된 정보일 가능성이 높습니다</div>
+                            </div>
+                        </div>
+
+                        <div class="verification-details">
+                            <div class="detail-item failed">
+                                <div class="detail-label">
+                                    📍 주소 정보
+                                </div>
+                                <div class="detail-value">주소를 찾을 수 없습니다</div>
+                            </div>
+                            <div class="detail-item failed">
+                                <div class="detail-label">
+                                    ⏰ 영업시간
+                                </div>
+                                <div class="detail-value">정보 없음</div>
+                            </div>
+                            <div class="detail-item failed">
+                                <div class="detail-label">
+                                    📞 연락처
+                                </div>
+                                <div class="detail-value">연락처 확인 불가</div>
+                            </div>
+                            <div class="detail-item failed">
+                                <div class="detail-label">
+                                    🚗 주차 정보
+                                </div>
+                                <div class="detail-value">정보 없음</div>
+                            </div>
+                        </div>
+
+                        <div class="alternative-places">
+                            <h4 class="alternative-title">🔄 추천 대안 장소</h4>
+                            <div class="alternative-list">
+                                <div class="alternative-item">
+                                    <div class="alternative-info">
+                                        <div class="alternative-name">롯데월드타워 서울스카이</div>
+                                        <div class="alternative-details">서울특별시 송파구 • 실제 전망대 • 평점 4.3</div>
+                                    </div>
+                                    <button class="btn btn-success btn-sm" onclick="replacePlace('서울스카이 전망카페', '롯데월드타워 서울스카이')">교체</button>
+                                </div>
+                                <div class="alternative-item">
+                                    <div class="alternative-info">
+                                        <div class="alternative-name">N서울타워 스카이 카페</div>
+                                        <div class="alternative-details">서울특별시 용산구 • 전망 카페 • 평점 4.1</div>
+                                    </div>
+                                    <button class="btn btn-success btn-sm" onclick="replacePlace('서울스카이 전망카페', 'N서울타워 스카이 카페')">교체</button>
+                                </div>
+                                <div class="alternative-item">
+                                    <div class="alternative-info">
+                                        <div class="alternative-name">반포 한강공원 무지개다리</div>
+                                        <div class="alternative-details">서울특별시 서초구 • 야외 전망 • 평점 4.5</div>
+                                    </div>
+                                    <button class="btn btn-success btn-sm" onclick="replacePlace('서울스카이 전망카페', '반포 한강공원 무지개다리')">교체</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="btn btn-error btn-sm" onclick="removePlaceFromItinerary('서울스카이 전망카페')">일정에서 제거</button>
+                            <button class="btn btn-secondary btn-sm" onclick="manuallyAddPlace('서울스카이 전망카페')">수동으로 추가</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 검증 중 - 진행 중 -->
+                <div class="verification-card animate-on-scroll">
+                    <div class="verification-status processing">
+                        <span class="status-icon">🔄</span>
+                        검증 중
+                    </div>
+                    <div class="card-content">
+                        <div class="place-header">
+                            <h3 class="place-title">익선동 한옥마을</h3>
+                            <span class="place-category">문화/관광</span>
+                        </div>
+
+                        <div class="verification-score">
+                            <div class="score-circle medium">
+                                <div class="spinner"></div>
+                            </div>
+                            <div class="score-description">
+                                <div class="score-title">검증 진행 중...</div>
+                                <div class="score-details">장소 정보를 확인하고 있습니다</div>
+                            </div>
+                        </div>
+
+                        <div class="verification-details">
+                            <div class="detail-item">
+                                <div class="detail-label">
+                                    📍 주소 정보
+                                </div>
+                                <div class="detail-value skeleton" style="height: 20px; border-radius: 4px;"></div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">
+                                    ⏰ 영업시간
+                                </div>
+                                <div class="detail-value skeleton" style="height: 20px; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 네비게이션 버튼 -->
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" onclick="goToPreviousStep()">
+                    ← 이전: 장소 상세정보
+                </button>
+                <div class="flex gap-4">
+                    <button class="btn btn-warning" onclick="retryVerification()">
+                        🔄 검증 재시도
+                    </button>
+                    <button class="btn btn-primary" onclick="proceedToNextStep()">
+                        다음: 최종 일정 확인 →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 TripGen. 모든 권리 보유.</p>
+        </div>
+    </footer>
+
+    <!-- 장소 상세 정보 모달 -->
+    <div id="placeDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">장소 상세 정보</h3>
+                <button class="modal-close" onclick="TripGen.closeModal('placeDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="placeDetailContent">
+                    <!-- 동적으로 채워질 내용 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수동 장소 추가 모달 -->
+    <div id="manualPlaceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">장소 정보 수동 입력</h3>
+                <button class="modal-close" onclick="TripGen.closeModal('manualPlaceModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form data-validate>
+                    <div class="form-group">
+                        <label class="form-label" for="manualPlaceName">장소명</label>
+                        <input type="text" id="manualPlaceName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="manualAddress">주소</label>
+                        <input type="text" id="manualAddress" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="manualPhone">연락처</label>
+                        <input type="tel" id="manualPhone" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="manualHours">영업시간</label>
+                        <input type="text" id="manualHours" class="form-input">
+                    </div>
+                    <div class="flex gap-4 justify-center">
+                        <button type="button" class="btn btn-secondary" onclick="TripGen.closeModal('manualPlaceModal')">취소</button>
+                        <button type="submit" class="btn btn-primary">저장</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        // 장소 검증 관련 JavaScript
+
+        /**
+         * 장소 상세 정보 보기
+         */
+        function viewPlaceDetails(placeName) {
+            const placeData = {
+                '경복궁': {
+                    name: '경복궁',
+                    category: '문화/관광',
+                    address: '서울특별시 종로구 사직로 161',
+                    phone: '02-3700-3900',
+                    hours: '09:00 - 18:00 (3-10월), 09:00 - 17:00 (11-2월)',
+                    parking: '경복궁 주차장 이용 가능 (유료)',
+                    rating: '4.5',
+                    description: '조선 왕조의 정궁으로, 한국 전통 건축의 아름다움을 만날 수 있는 대표적인 문화유산입니다.',
+                    facilities: ['화장실', '음식점', '기념품점', '휠체어 접근'],
+                    entrance_fee: '성인 3,000원, 청소년 1,500원'
+                }
+            };
+
+            const place = placeData[placeName];
+            if (!place) return;
+
+            const content = `
+                <div class="place-detail">
+                    <div class="place-main-info mb-4">
+                        <h4>${place.name}</h4>
+                        <span class="place-category">${place.category}</span>
+                        <p class="mt-2">${place.description}</p>
+                    </div>
+                    
+                    <div class="grid grid-2 gap-4">
+                        <div class="detail-item verified">
+                            <div class="detail-label">📍 주소</div>
+                            <div class="detail-value">${place.address}</div>
+                        </div>
+                        <div class="detail-item verified">
+                            <div class="detail-label">📞 연락처</div>
+                            <div class="detail-value">${place.phone}</div>
+                        </div>
+                        <div class="detail-item verified">
+                            <div class="detail-label">⏰ 영업시간</div>
+                            <div class="detail-value">${place.hours}</div>
+                        </div>
+                        <div class="detail-item verified">
+                            <div class="detail-label">🅿️ 주차</div>
+                            <div class="detail-value">${place.parking}</div>
+                        </div>
+                        <div class="detail-item verified">
+                            <div class="detail-label">⭐ 평점</div>
+                            <div class="detail-value">${place.rating}/5.0</div>
+                        </div>
+                        <div class="detail-item verified">
+                            <div class="detail-label">💰 입장료</div>
+                            <div class="detail-value">${place.entrance_fee}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="detail-label">🏢 편의시설</div>
+                        <div class="flex gap-2 flex-wrap mt-2">
+                            ${place.facilities.map(facility => 
+                                `<span class="status status-info">${facility}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('placeDetailContent').innerHTML = content;
+            TripGen.openModal('placeDetailModal');
+        }
+
+        /**
+         * 일정에 장소 추가
+         */
+        function addToItinerary(placeName) {
+            TripGen.showToast(`${placeName}이(가) 일정에 추가되었습니다.`, 'success');
+        }
+
+        /**
+         * 장소 정보 업데이트
+         */
+        function updatePlaceInfo(placeName) {
+            TripGen.showToast(`${placeName}의 정보를 업데이트하고 있습니다...`, 'info');
+            
+            // 실제로는 API 호출을 통해 정보 업데이트
+            setTimeout(() => {
+                TripGen.showToast(`${placeName}의 정보가 업데이트되었습니다.`, 'success');
+            }, 2000);
+        }
+
+        /**
+         * 대안 장소 보기
+         */
+        function viewAlternatives(placeName) {
+            TripGen.showToast(`${placeName}의 대안 장소를 검색하고 있습니다...`, 'info');
+        }
+
+        /**
+         * 장소 교체
+         */
+        function replacePlace(originalPlace, newPlace) {
+            TripGen.confirmDialog(
+                `'${originalPlace}'을(를) '${newPlace}'로 교체하시겠습니까?`,
+                () => {
+                    TripGen.showToast(`${newPlace}로 교체되었습니다.`, 'success');
+                    // 실제로는 일정에서 장소 교체 로직 실행
+                }
+            );
+        }
+
+        /**
+         * 일정에서 장소 제거
+         */
+        function removePlaceFromItinerary(placeName) {
+            TripGen.confirmDialog(
+                `'${placeName}'을(를) 일정에서 제거하시겠습니까?`,
+                () => {
+                    TripGen.showToast(`${placeName}이(가) 일정에서 제거되었습니다.`, 'warning');
+                }
+            );
+        }
+
+        /**
+         * 수동으로 장소 추가
+         */
+        function manuallyAddPlace(placeName) {
+            document.getElementById('manualPlaceName').value = placeName;
+            TripGen.openModal('manualPlaceModal');
+        }
+
+        /**
+         * 검증 재시도
+         */
+        function retryVerification() {
+            TripGen.showLoading(
+                document.querySelector('.btn-warning'), 
+                '검증 재시도 중...'
+            );
+            
+            setTimeout(() => {
+                location.reload(); // 실제로는 검증 API 재호출
+            }, 3000);
+        }
+
+        /**
+         * 이전 단계로 이동
+         */
+        function goToPreviousStep() {
+            window.location.href = '07-장소상세정보.html';
+        }
+
+        /**
+         * 다음 단계로 진행
+         */
+        function proceedToNextStep() {
+            // 검증이 완료되지 않은 항목이 있는지 확인
+            const processingItems = document.querySelectorAll('.verification-status.processing');
+            if (processingItems.length > 0) {
+                TripGen.showToast('아직 검증이 진행 중인 장소가 있습니다. 잠시 후 다시 시도해주세요.', 'warning');
+                return;
+            }
+
+            const failedItems = document.querySelectorAll('.verification-status.error');
+            if (failedItems.length > 0) {
+                TripGen.confirmDialog(
+                    '검증에 실패한 장소가 있습니다. 그대로 진행하시겠습니까?',
+                    () => {
+                        window.location.href = '06-생성된일정조회.html';
+                    }
+                );
+            } else {
+                window.location.href = '06-생성된일정조회.html';
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 검증 진행 중인 항목들을 실시간으로 업데이트 (시뮬레이션)
+            setTimeout(() => {
+                const processingCard = document.querySelector('.verification-status.processing');
+                if (processingCard) {
+                    processingCard.className = 'verification-status success';
+                    processingCard.innerHTML = '<span class="status-icon">✅</span>검증 완료';
+                    
+                    // 스켈레톤 로딩을 실제 데이터로 교체
+                    const skeletons = processingCard.parentElement.querySelectorAll('.skeleton');
+                    skeletons.forEach((skeleton, index) => {
+                        skeleton.classList.remove('skeleton');
+                        const data = [
+                            '서울특별시 종로구 익선동 일대',
+                            '24시간 개방 (상점별 영업시간 상이)'
+                        ];
+                        skeleton.textContent = data[index] || '정보 확인됨';
+                    });
+
+                    // 점수 업데이트
+                    const scoreCircle = processingCard.parentElement.querySelector('.score-circle');
+                    scoreCircle.className = 'score-circle high';
+                    scoreCircle.innerHTML = '88';
+
+                    TripGen.showToast('익선동 한옥마을 검증이 완료되었습니다!', 'success');
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

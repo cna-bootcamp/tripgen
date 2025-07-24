@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripGen - 여행 일정 생성 서비스 프로토타입</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <style>
+        /* 인덱스 페이지 전용 스타일 */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            color: white;
+            padding: var(--space-20) 0;
+            text-align: center;
+            margin-bottom: var(--space-16);
+        }
+
+        .hero h1 {
+            font-size: var(--text-4xl);
+            margin-bottom: var(--space-4);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .hero p {
+            font-size: var(--text-lg);
+            margin-bottom: var(--space-8);
+            opacity: 0.9;
+        }
+
+        .prototype-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-6);
+            margin-bottom: var(--space-16);
+        }
+
+        .prototype-card {
+            background: white;
+            border-radius: 12px;
+            padding: var(--space-6);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .prototype-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .prototype-card .card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .prototype-card .card-number {
+            background: var(--primary-blue);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-bold);
+            font-size: var(--text-lg);
+        }
+
+        .prototype-card h3 {
+            margin: 0;
+            font-size: var(--text-xl);
+            color: var(--gray-800);
+        }
+
+        .prototype-card .service-tag {
+            display: inline-block;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            padding: var(--space-1) var(--space-3);
+            border-radius: 12px;
+            font-size: var(--text-xs);
+            font-weight: var(--font-medium);
+            margin-bottom: var(--space-3);
+        }
+
+        .prototype-card .priority {
+            position: absolute;
+            top: var(--space-4);
+            right: var(--space-4);
+            padding: var(--space-1) var(--space-2);
+            border-radius: 4px;
+            font-size: var(--text-xs);
+            font-weight: var(--font-medium);
+        }
+
+        .priority.must { background: var(--error); color: white; }
+        .priority.should { background: var(--warning); color: white; }
+        .priority.could { background: var(--info); color: white; }
+
+        .prototype-card p {
+            color: var(--gray-600);
+            margin-bottom: var(--space-4);
+            line-height: 1.6;
+        }
+
+        .prototype-card .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--space-4);
+        }
+
+        .prototype-card .btn {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .stats {
+            background: var(--gray-50);
+            padding: var(--space-12) 0;
+            margin-bottom: var(--space-16);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-8);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: var(--text-4xl);
+            font-weight: var(--font-bold);
+            color: var(--primary-blue);
+            margin-bottom: var(--space-2);
+        }
+
+        .stat-label {
+            color: var(--gray-600);
+            font-size: var(--text-base);
+        }
+
+        .quick-nav {
+            background: white;
+            border-radius: 12px;
+            padding: var(--space-8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: var(--space-16);
+        }
+
+        .quick-nav h2 {
+            text-align: center;
+            margin-bottom: var(--space-6);
+            color: var(--gray-800);
+        }
+
+        .nav-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            justify-content: center;
+        }
+
+        .nav-buttons .btn {
+            flex: 1;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: var(--space-8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: var(--space-16);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-8);
+        }
+
+        .info-item h3 {
+            color: var(--primary-blue);
+            margin-bottom: var(--space-3);
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
+            color: var(--gray-700);
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: var(--success);
+            font-weight: var(--font-bold);
+        }
+
+        @media (max-width: 767px) {
+            .hero {
+                padding: var(--space-12) 0;
+            }
+            
+            .hero h1 {
+                font-size: var(--text-3xl);
+            }
+            
+            .prototype-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+            }
+            
+            .nav-buttons .btn {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <nav class="nav container">
+            <a href="#" class="nav-brand">TripGen</a>
+            <ul class="nav-menu">
+                <li><a href="#prototypes" class="nav-link">프로토타입</a></li>
+                <li><a href="#features" class="nav-link">기능 소개</a></li>
+                <li><a href="#guide" class="nav-link">사용 가이드</a></li>
+            </ul>
+            <button class="mobile-menu-toggle" aria-label="메뉴 열기">☰</button>
+        </nav>
+        <div class="mobile-overlay"></div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="main">
+        <!-- 히어로 섹션 -->
+        <section class="hero">
+            <div class="container">
+                <h1>TripGen 프로토타입</h1>
+                <p>AI 기반 여행 일정 생성 서비스의 완전한 UI/UX 프로토타입</p>
+                <a href="#prototypes" class="btn btn-secondary btn-lg">프로토타입 보기</a>
+            </div>
+        </section>
+
+        <!-- 통계 섹션 -->
+        <section class="stats">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">12</div>
+                        <div class="stat-label">핵심 화면</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">5</div>
+                        <div class="stat-label">마이크로서비스</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">17</div>
+                        <div class="stat-label">유저스토리</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">반응형 지원</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 빠른 네비게이션 -->
+        <section class="quick-nav">
+            <div class="container">
+                <h2>주요 사용자 플로우</h2>
+                <div class="nav-buttons">
+                    <a href="01-대시보드.html" class="btn btn-primary">시작하기</a>
+                    <a href="02-멤버관리.html" class="btn btn-secondary">프로파일 설정</a>
+                    <a href="05-AI일정생성.html" class="btn btn-primary">AI 일정 생성</a>
+                    <a href="11-지도통합화면.html" class="btn btn-secondary">지도 보기</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 프로토타입 목록 -->
+        <section id="prototypes" class="container">
+            <h2 class="text-center mb-8">프로토타입 화면 목록</h2>
+            <div class="prototype-grid">
+                <!-- 01. 대시보드 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">01</div>
+                        <h3>대시보드</h3>
+                    </div>
+                    <div class="service-tag">공통 서비스</div>
+                    <p>서비스 진입점 및 프로젝트 관리. 새 여행 프로젝트 생성, 진행 중인 프로젝트 목록 조회, 최근 활동 표시</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="01-대시보드.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 02. 멤버관리 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">02</div>
+                        <h3>멤버관리</h3>
+                    </div>
+                    <div class="service-tag">PROF Service</div>
+                    <p>여행 멤버 정보 등록 및 관리. 기본 정보, 건강상태, 선호도 설정으로 개인화된 일정 생성 기반 마련</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="02-멤버관리.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 03. 여행일정설정 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">03</div>
+                        <h3>여행일정설정</h3>
+                    </div>
+                    <div class="service-tag">PROF Service</div>
+                    <p>기본 여행 정보 설정. 여행 기간, 출발지/도착지, 숙소 정보, 선호 관광지 카테고리 설정</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="03-여행일정설정.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 04. 이동수단설정 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority should">Should</div>
+                    <div class="card-header">
+                        <div class="card-number">04</div>
+                        <h3>이동수단설정</h3>
+                    </div>
+                    <div class="service-tag">PROF Service</div>
+                    <p>선호 이동수단 설정. 대중교통/자가용 선택, 세부 옵션, 예산 범위, 지역별 선호도 설정</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="04-이동수단설정.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 05. AI일정생성 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">05</div>
+                        <h3>AI일정생성</h3>
+                    </div>
+                    <div class="service-tag">ITGEN Service</div>
+                    <p>Claude API 기반 맞춤형 일정 생성. 실시간 진행률 표시, 생성 중 취소, 재생성 옵션 제공</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="05-AI일정생성.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 06. 생성된일정조회 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">06</div>
+                        <h3>생성된일정조회</h3>
+                    </div>
+                    <div class="service-tag">ITGEN Service</div>
+                    <p>AI가 생성한 여행 일정 조회 및 관리. 날짜별/시간대별 일정, 장소 상세 정보, 수정/재배치 기능</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="06-생성된일정조회.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 07. 장소상세정보 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">07</div>
+                        <h3>장소상세정보</h3>
+                    </div>
+                    <div class="service-tag">ITGEN + LOC + MAP + REV</div>
+                    <p>특정 장소의 상세 정보 조회. 기본 정보, 사진 갤러리, 평점/리뷰, 지도 위치, 주변 장소 추천</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="07-장소상세정보.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 08. 장소검증결과 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">08</div>
+                        <h3>장소검증결과</h3>
+                    </div>
+                    <div class="service-tag">ITGEN Service</div>
+                    <p>AI 추천 장소의 실존 여부 및 정보 검증. 주소, 영업시간, 연락처 확인, 대안 장소 제안</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="08-장소검증결과.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 09. 주변장소검색 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">09</div>
+                        <h3>주변장소검색</h3>
+                    </div>
+                    <div class="service-tag">LOC Service</div>
+                    <p>현재 위치 주변 관심 장소 검색. 위치 자동 감지, 국내외 지역 판별, 카테고리별 필터링</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="09-주변장소검색.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 10. 이동경로확인 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">10</div>
+                        <h3>이동경로확인</h3>
+                    </div>
+                    <div class="service-tag">LOC Service</div>
+                    <p>이동수단별 정확한 이동 시간과 거리 계산. 대중교통/자가용/도보, 실시간 교통상황, 대안 경로</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="10-이동경로확인.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 11. 지도통합화면 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority must">Must</div>
+                    <div class="card-header">
+                        <div class="card-number">11</div>
+                        <h3>지도통합화면</h3>
+                    </div>
+                    <div class="service-tag">MAP Service</div>
+                    <p>카카오맵과 구글맵 API 통합. 지역별 자동 선택, API 폴백 처리, 레이어 컨트롤, 경로 표시</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="11-지도통합화면.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 12. 리뷰평점조회 -->
+                <div class="prototype-card animate-on-scroll">
+                    <div class="priority should">Should</div>
+                    <div class="card-header">
+                        <div class="card-number">12</div>
+                        <h3>리뷰평점조회</h3>
+                    </div>
+                    <div class="service-tag">REV Service</div>
+                    <p>추천 장소들의 최신 리뷰와 평점 정보. 다중 플랫폼 리뷰 수집, 필터링, 번역, 신뢰도 분석</p>
+                    <div class="card-footer">
+                        <span class="status status-success">완료</span>
+                        <a href="12-리뷰평점조회.html" class="btn btn-primary btn-sm">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 기능 소개 -->
+        <section id="features" class="info-section">
+            <div class="container">
+                <h2 class="text-center mb-8">주요 기능</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <h3>🎨 디자인 시스템</h3>
+                        <ul class="feature-list">
+                            <li>일관된 컬러 팔레트와 타이포그래피</li>
+                            <li>재사용 가능한 UI 컴포넌트</li>
+                            <li>반응형 웹 디자인 (320px ~ 1280px+)</li>
+                            <li>접근성 고려 (WCAG 2.1 AA)</li>
+                        </ul>
+                    </div>
+                    <div class="info-item">
+                        <h3>⚡ 인터랙션</h3>
+                        <ul class="feature-list">
+                            <li>실시간 폼 유효성 검사</li>
+                            <li>부드러운 애니메이션과 전환 효과</li>
+                            <li>토스트 알림 및 모달 다이얼로그</li>
+                            <li>키보드 네비게이션 지원</li>
+                        </ul>
+                    </div>
+                    <div class="info-item">
+                        <h3>🔧 기술 스택</h3>
+                        <ul class="feature-list">
+                            <li>순수 HTML5, CSS3, JavaScript</li>
+                            <li>CSS Variables 기반 테마 시스템</li>
+                            <li>ES6+ 모던 JavaScript</li>
+                            <li>공통 컴포넌트 라이브러리</li>
+                        </ul>
+                    </div>
+                    <div class="info-item">
+                        <h3>📱 사용자 경험</h3>
+                        <ul class="feature-list">
+                            <li>직관적인 사용자 플로우</li>
+                            <li>모바일 퍼스트 디자인</li>
+                            <li>로딩 상태 및 스켈레톤 UI</li>
+                            <li>오프라인 대응 및 에러 처리</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 사용 가이드 -->
+        <section id="guide" class="info-section">
+            <div class="container">
+                <h2 class="text-center mb-8">사용 가이드</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <h3>🚀 시작하기</h3>
+                        <p>대시보드에서 "새 여행 계획하기" 버튼을 클릭하여 여행 일정 생성을 시작하세요. 단계별 가이드가 제공됩니다.</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>📝 프로파일 설정</h3>
+                        <p>멤버 정보, 여행 일정, 이동수단을 차례로 설정하면 AI가 개인화된 여행 일정을 생성합니다.</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>🤖 AI 일정 생성</h3>
+                        <p>Claude API를 활용한 맞춤형 일정 생성. 실시간 진행률을 확인하고 원하지 않으면 언제든 취소할 수 있습니다.</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>🗺️ 지도 및 리뷰</h3>
+                        <p>생성된 일정을 지도에서 확인하고, 각 장소의 리뷰와 평점을 통해 여행 계획을 완성하세요.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 TripGen. AI 기반 여행 일정 생성 서비스 프로토타입</p>
+            <p>Made with ❤️ by 최프론트/뷰어</p>
+        </div>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        // 인덱스 페이지 전용 스크립트
+        document.addEventListener('DOMContentLoaded', function() {
+            // 부드러운 스크롤 네비게이션
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // 네비게이션 액티브 상태
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section[id]');
+
+            function updateActiveNav() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop - 100;
+                    if (window.pageYOffset >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${current}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', updateActiveNav);
+            updateActiveNav();
+
+            // 카드 호버 효과 강화
+            const cards = document.querySelectorAll('.prototype-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // 통계 카운터 애니메이션
+            const stats = document.querySelectorAll('.stat-number');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const target = entry.target;
+                        const finalValue = target.textContent.replace(/[^0-9]/g, '');
+                        if (finalValue) {
+                            animateCounter(target, 0, parseInt(finalValue), 2000);
+                        }
+                    }
+                });
+            });
+
+            stats.forEach(stat => observer.observe(stat));
+
+            function animateCounter(element, start, end, duration) {
+                const startTime = performance.now();
+                const isPercentage = element.textContent.includes('%');
+
+                function updateCounter(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const current = Math.floor(start + (end - start) * progress);
+                    
+                    element.textContent = current + (isPercentage ? '%' : '');
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCounter);
+                    }
+                }
+                
+                requestAnimationFrame(updateCounter);
+            }
+
+            // 키보드 단축키
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + 숫자키로 프로토타입 바로가기
+                if ((e.ctrlKey || e.metaKey) && e.key >= '0' && e.key <= '9') {
+                    e.preventDefault();
+                    const pageNum = e.key.padStart(2, '0');
+                    const pages = {
+                        '00': 'index.html',
+                        '01': '01-대시보드.html',
+                        '02': '02-멤버관리.html',
+                        '03': '03-여행일정설정.html',
+                        '04': '04-이동수단설정.html',
+                        '05': '05-AI일정생성.html',
+                        '06': '06-생성된일정조회.html',
+                        '07': '07-장소상세정보.html',
+                        '08': '08-장소검증결과.html',
+                        '09': '09-주변장소검색.html'
+                    };
+                    
+                    // Ctrl/Cmd + Shift + 숫자키로 10-12번 화면 바로가기
+                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['1', '2', '3'].includes(e.key)) {
+                        e.preventDefault();
+                        const additionalPages = {
+                            '1': '10-이동경로확인.html',
+                            '2': '11-지도통합화면.html',
+                            '3': '12-리뷰평점조회.html'
+                        };
+                        const page = additionalPages[e.key];
+                        if (page) {
+                            window.location.href = page;
+                        }
+                        return;
+                    }
+                    
+                    const page = pages[pageNum];
+                    if (page) {
+                        window.location.href = page;
+                    }
+                }
+                
+                // ESC로 상단 이동
+                if (e.key === 'Escape') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+
+            // 툴팁 표시
+            TripGen.showToast('키보드 단축키: Ctrl+0~9 (01~09 화면), Ctrl+Shift+1~3 (10~12 화면), ESC (상단 이동)', 'info', 6000);
+        });
+    </script>
+</body>
+</html>

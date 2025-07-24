@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>생성된일정조회 - TripGen</title>
+  <link rel="stylesheet" href="assets/css/common.css">
+  <style>
+    /* 생성된 일정 조회 특화 스타일 */
+    .itinerary-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-6);
+    }
+
+    /* 일정 헤더 */
+    .itinerary-header {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
+      border-radius: 16px;
+      padding: var(--space-8);
+      color: white;
+      margin-bottom: var(--space-8);
+    }
+
+    .itinerary-title {
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-4);
+      color: white;
+    }
+
+    .trip-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+      margin-top: var(--space-6);
+    }
+
+    .overview-item {
+      background: rgba(255, 255, 255, 0.2);
+      padding: var(--space-4);
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .overview-label {
+      font-size: var(--text-sm);
+      opacity: 0.9;
+      margin-bottom: var(--space-2);
+    }
+
+    .overview-value {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+    }
+
+    /* 액션 버튼들 */
+    .itinerary-actions {
+      display: flex;
+      gap: var(--space-4);
+      margin-bottom: var(--space-8);
+      flex-wrap: wrap;
+    }
+
+    .itinerary-actions .btn {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    /* 날짜별 탭 네비게이션 */
+    .day-tabs {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-6);
+      overflow-x: auto;
+      padding-bottom: var(--space-2);
+    }
+
+    .day-tab {
+      background: white;
+      border: 2px solid var(--gray-200);
+      border-radius: 12px;
+      padding: var(--space-4) var(--space-6);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      min-width: 120px;
+      text-align: center;
+    }
+
+    .day-tab:hover {
+      border-color: var(--primary-blue);
+      background: var(--gray-50);
+    }
+
+    .day-tab.active {
+      background: var(--primary-blue);
+      color: white;
+      border-color: var(--primary-blue);
+    }
+
+    .day-tab .tab-date {
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      margin-bottom: var(--space-1);
+    }
+
+    .day-tab .tab-day {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+    }
+
+    /* 일정 컨텐츠 */
+    .day-content {
+      display: none;
+    }
+
+    .day-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* 타임라인 */
+    .timeline {
+      position: relative;
+      padding-left: var(--space-8);
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: var(--space-4);
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--gray-300);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: var(--space-6);
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: calc(-1 * var(--space-4) - 6px);
+      top: var(--space-4);
+      width: 12px;
+      height: 12px;
+      background: var(--primary-blue);
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px var(--primary-blue);
+    }
+
+    .time-slot {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .time-slot:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .time-header {
+      background: var(--gray-50);
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .time-label {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      color: var(--primary-blue);
+    }
+
+    .time-period {
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      background: white;
+      padding: var(--space-1) var(--space-3);
+      border-radius: 20px;
+    }
+
+    /* 장소 카드들 */
+    .places-grid {
+      padding: var(--space-6);
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .place-card {
+      display: flex;
+      gap: var(--space-4);
+      align-items: center;
+      padding: var(--space-4);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .place-card:hover {
+      background: var(--gray-50);
+      border-color: var(--primary-blue);
+    }
+
+    .place-number {
+      background: var(--primary-blue);
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: var(--font-semibold);
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+
+    .place-info {
+      flex: 1;
+    }
+
+    .place-name {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-1);
+      color: var(--gray-800);
+    }
+
+    .place-address {
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      margin-bottom: var(--space-2);
+    }
+
+    .place-details {
+      display: flex;
+      gap: var(--space-4);
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+
+    .place-detail {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .place-actions {
+      display: flex;
+      gap: var(--space-2);
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      background: none;
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+      padding: var(--space-2);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--gray-600);
+      min-width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-btn:hover {
+      background: var(--primary-blue);
+      color: white;
+      border-color: var(--primary-blue);
+    }
+
+    .action-btn.map-btn:hover {
+      background: var(--secondary-orange);
+      border-color: var(--secondary-orange);
+    }
+
+    .action-btn.edit-btn:hover {
+      background: var(--info);
+      border-color: var(--info);
+    }
+
+    .action-btn.delete-btn:hover {
+      background: var(--error);
+      border-color: var(--error);
+    }
+
+    /* 이동 시간 표시 */
+    .travel-time {
+      text-align: center;
+      padding: var(--space-3);
+      margin: var(--space-2) 0;
+      background: var(--gray-100);
+      border-radius: 8px;
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+    }
+
+    .travel-time .travel-icon {
+      margin-right: var(--space-2);
+    }
+
+    /* 빈 상태 */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12);
+      color: var(--gray-500);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+      opacity: 0.5;
+    }
+
+    /* 반응형 */
+    @media (max-width: 767px) {
+      .itinerary-container {
+        padding: var(--space-4);
+      }
+
+      .itinerary-header {
+        padding: var(--space-6);
+      }
+
+      .itinerary-title {
+        font-size: var(--text-2xl);
+      }
+
+      .itinerary-actions {
+        flex-direction: column;
+      }
+
+      .itinerary-actions .btn {
+        flex: none;
+      }
+
+      .day-tabs {
+        justify-content: flex-start;
+      }
+
+      .timeline {
+        padding-left: var(--space-6);
+      }
+
+      .place-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .place-actions {
+        align-self: stretch;
+        justify-content: space-between;
+      }
+
+      .places-grid {
+        padding: var(--space-4);
+      }
+    }
+
+    @media (min-width: 768px) {
+      .places-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 모달 스타일 */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: var(--space-6);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-4);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .modal-title {
+      font-size: var(--text-xl);
+      font-weight: var(--font-semibold);
+      margin: 0;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: var(--text-2xl);
+      cursor: pointer;
+      color: var(--gray-500);
+      padding: var(--space-2);
+    }
+
+    .modal-close:hover {
+      color: var(--gray-800);
+    }
+
+    /* 상태 표시 */
+    .status-badge {
+      display: inline-block;
+      padding: var(--space-1) var(--space-3);
+      border-radius: 20px;
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      text-transform: uppercase;
+    }
+
+    .status-badge.verified {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .status-badge.unverified {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <nav class="nav container">
+      <a href="#" class="nav-brand">TripGen</a>
+      <ul class="nav-menu">
+        <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+        <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
+        <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
+        <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
+        <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
+        <li><a href="06-생성된일정조회.html" class="nav-link active">일정조회</a></li>
+        <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+      </ul>
+      <button class="mobile-menu-toggle">☰</button>
+    </nav>
+  </header>
+
+  <div class="mobile-overlay"></div>
+
+  <main class="main">
+    <!-- 스테퍼 -->
+    <div class="container" style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: center; align-items: center; gap: 1rem;">
+        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('01-대시보드.html')">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">1</div>
+          <span style="font-size: 0.875rem; font-weight: 500;">대시보드</span>
+        </div>
+        <div style="width: 60px; height: 2px; background: var(--success);"></div>
+        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('02-멤버관리.html')">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">2</div>
+          <span style="font-size: 0.875rem; font-weight: 500;">멤버관리</span>
+        </div>
+        <div style="width: 60px; height: 2px; background: var(--success);"></div>
+        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('03-여행일정설정.html')">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">3</div>
+          <span style="font-size: 0.875rem; font-weight: 500;">일정설정</span>
+        </div>
+        <div style="width: 60px; height: 2px; background: var(--success);"></div>
+        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('04-이동수단설정.html')">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">4</div>
+          <span style="font-size: 0.875rem; font-weight: 500;">이동수단</span>
+        </div>
+        <div style="width: 60px; height: 2px; background: var(--success);"></div>
+        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('05-AI일정생성.html')">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">5</div>
+          <span style="font-size: 0.875rem; font-weight: 500;">AI일정생성</span>
+        </div>
+        <div style="width: 60px; height: 2px; background: var(--primary-blue);"></div>
+        <div style="display: flex; align-items: center; color: var(--primary-blue);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">6</div>
+          <span style="font-size: 0.875rem; font-weight: 500;">일정조회</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="itinerary-container">
+      <!-- 일정 헤더 -->
+      <div class="itinerary-header">
+        <h1 class="itinerary-title">도쿄 3일 2박 여행</h1>
+        <p>AI가 생성한 맞춤형 여행 일정입니다</p>
+        
+        <div class="trip-overview">
+          <div class="overview-item">
+            <div class="overview-label">여행 기간</div>
+            <div class="overview-value">2025.08.15 - 08.17</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">여행 멤버</div>
+            <div class="overview-value">2명 (성인)</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">주요 이동수단</div>
+            <div class="overview-value">대중교통</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">총 방문지</div>
+            <div class="overview-value">12곳</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 액션 버튼들 -->
+      <div class="itinerary-actions">
+        <button class="btn btn-primary" onclick="regenerateItinerary()">
+          🔄 일정 재생성
+        </button>
+        <button class="btn btn-secondary" onclick="editItinerary()">
+          ✏️ 일정 수정
+        </button>
+        <button class="btn btn-secondary" onclick="saveItinerary()">
+          💾 일정 저장
+        </button>
+        <button class="btn btn-secondary" onclick="shareItinerary()">
+          📤 공유하기
+        </button>
+      </div>
+
+      <!-- 날짜별 탭 -->
+      <div class="day-tabs">
+        <div class="day-tab active" data-day="1">
+          <div class="tab-date">8월 15일 (목)</div>
+          <div class="tab-day">첫째 날</div>
+        </div>
+        <div class="day-tab" data-day="2">
+          <div class="tab-date">8월 16일 (금)</div>
+          <div class="tab-day">둘째 날</div>
+        </div>
+        <div class="day-tab" data-day="3">
+          <div class="tab-date">8월 17일 (토)</div>
+          <div class="tab-day">셋째 날</div>
+        </div>
+      </div>
+
+      <!-- 첫째 날 일정 -->
+      <div class="day-content active" id="day-1">
+        <div class="timeline">
+          <!-- 오전 일정 -->
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">09:00 - 12:00</div>
+                <div class="time-period">오전</div>
+              </div>
+              
+              <div class="places-grid">
+                <div class="place-card">
+                  <div class="place-number">1</div>
+                  <div class="place-info">
+                    <div class="place-name">센소지 (浅草寺)</div>
+                    <div class="place-address">도쿄도 다이토구 아사쿠사 2-3-1</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>2시간 30분</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🏛️</span>
+                        <span>전통 사원</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(1)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(1)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(1)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(1)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                <div class="travel-time">
+                  <span class="travel-icon">🚇</span>
+                  지하철로 15분 이동 (긴자선 → 우에노역)
+                </div>
+
+                <div class="place-card">
+                  <div class="place-number">2</div>
+                  <div class="place-info">
+                    <div class="place-name">우에노 공원</div>
+                    <div class="place-address">도쿄도 다이토구 우에노코엔</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>1시간</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🌳</span>
+                        <span>공원/산책</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(2)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(2)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(2)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(2)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 점심 일정 -->
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">12:00 - 14:00</div>
+                <div class="time-period">점심</div>
+              </div>
+              
+              <div class="places-grid">
+                <div class="place-card">
+                  <div class="place-number">3</div>
+                  <div class="place-info">
+                    <div class="place-name">이치란 라멘 아메요코점</div>
+                    <div class="place-address">도쿄도 다이토구 우에노 4-7-8</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>1시간 30분</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🍜</span>
+                        <span>라멘</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(3)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(3)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(3)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(3)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 오후 일정 -->
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">14:30 - 18:00</div>
+                <div class="time-period">오후</div>
+              </div>
+              
+              <div class="places-grid">
+                <div class="place-card">
+                  <div class="place-number">4</div>
+                  <div class="place-info">
+                    <div class="place-name">하라주쿠 & 다케시타 거리</div>
+                    <div class="place-address">도쿄도 시부야구 진구마에 1-19-9</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>2시간</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🛍️</span>
+                        <span>쇼핑/문화</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(4)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(4)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(4)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(4)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                <div class="travel-time">
+                  <span class="travel-icon">🚇</span>
+                  JR 야마노테선으로 7분 이동 (하라주쿠 → 시부야)
+                </div>
+
+                <div class="place-card">
+                  <div class="place-number">5</div>
+                  <div class="place-info">
+                    <div class="place-name">시부야 스카이</div>
+                    <div class="place-address">도쿄도 시부야구 시부야 2-24-12</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>1시간 30분</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🏙️</span>
+                        <span>전망대</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(5)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(5)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(5)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(5)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 저녁 일정 -->
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">18:30 - 21:00</div>
+                <div class="time-period">저녁</div>
+              </div>
+              
+              <div class="places-grid">
+                <div class="place-card">
+                  <div class="place-number">6</div>
+                  <div class="place-info">
+                    <div class="place-name">긴자 스시잔마이</div>
+                    <div class="place-address">도쿄도 츄오구 긴자 4-2-15</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>2시간</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🍣</span>
+                        <span>스시</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(6)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(6)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(6)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(6)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 둘째 날 일정 -->
+      <div class="day-content" id="day-2">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">09:00 - 12:00</div>
+                <div class="time-period">오전</div>
+              </div>
+              
+              <div class="places-grid">
+                <div class="place-card">
+                  <div class="place-number">1</div>
+                  <div class="place-info">
+                    <div class="place-name">츠키지 시장</div>
+                    <div class="place-address">도쿄도 츄오구 츠키지 5-2-1</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>2시간</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🐟</span>
+                        <span>시장/음식</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(7)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(7)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(7)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(7)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 셋째 날 일정 -->
+      <div class="day-content" id="day-3">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">09:00 - 12:00</div>
+                <div class="time-period">오전</div>
+              </div>
+              
+              <div class="places-grid">
+                <div class="place-card">
+                  <div class="place-number">1</div>
+                  <div class="place-info">
+                    <div class="place-name">도쿄역 & 쇼핑</div>
+                    <div class="place-address">도쿄도 치요다구 마루노우치 1-9-1</div>
+                    <div class="place-details">
+                      <div class="place-detail">
+                        <span>⏱️</span>
+                        <span>3시간</span>
+                      </div>
+                      <div class="place-detail">
+                        <span>🛍️</span>
+                        <span>쇼핑/기념품</span>
+                      </div>
+                      <div class="place-detail">
+                        <span class="status-badge verified">검증완료</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="place-actions">
+                    <button class="action-btn map-btn" onclick="showMap(8)" data-tooltip="지도에서 보기">
+                      🗺️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(8)" data-tooltip="상세 정보">
+                      ℹ️
+                    </button>
+                    <button class="action-btn edit-btn" onclick="editPlace(8)" data-tooltip="수정">
+                      ✏️
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deletePlace(8)" data-tooltip="삭제">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 장소 상세 정보 모달 -->
+  <div class="modal" id="placeDetailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">장소 상세 정보</h3>
+        <button class="modal-close" onclick="TripGen.closeModal('placeDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="placeDetailContent">
+          <!-- 동적으로 채워질 내용 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 일정 수정 모달 -->
+  <div class="modal" id="editItineraryModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">일정 수정</h3>
+        <button class="modal-close" onclick="TripGen.closeModal('editItineraryModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>일정 수정 기능이 곧 제공됩니다.</p>
+        <p>현재는 개별 장소의 수정만 가능합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 TripGen. 모든 권리 보유.</p>
+    </div>
+  </footer>
+
+  <script src="assets/js/common.js"></script>
+  <script>
+    // 날짜별 탭 전환 기능
+    function initDayTabs() {
+      const tabs = document.querySelectorAll('.day-tab');
+      const contents = document.querySelectorAll('.day-content');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const dayNumber = tab.getAttribute('data-day');
+          
+          // 모든 탭과 컨텐츠 비활성화
+          tabs.forEach(t => t.classList.remove('active'));
+          contents.forEach(c => c.classList.remove('active'));
+          
+          // 선택된 탭과 컨텐츠 활성화
+          tab.classList.add('active');
+          document.getElementById(`day-${dayNumber}`).classList.add('active');
+        });
+      });
+    }
+
+    // 일정 관련 기능들
+    function regenerateItinerary() {
+      TripGen.confirmDialog('일정을 다시 생성하시겠습니까? 현재 수정사항이 모두 사라집니다.', () => {
+        // AI일정생성 페이지로 이동
+        window.location.href = '05-AI일정생성.html';
+      });
+    }
+
+    function editItinerary() {
+      TripGen.openModal('editItineraryModal');
+    }
+
+    function saveItinerary() {
+      // 저장 로직
+      TripGen.showToast('일정이 저장되었습니다.', 'success');
+    }
+
+    function shareItinerary() {
+      // 공유 기능
+      if (navigator.share) {
+        navigator.share({
+          title: '도쿄 3일 2박 여행 일정',
+          text: 'AI가 생성한 맞춤형 여행 일정을 확인해보세요!',
+          url: window.location.href
+        });
+      } else {
+        // 폴백: URL 복사
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          TripGen.showToast('링크가 클립보드에 복사되었습니다.', 'success');
+        });
+      }
+    }
+
+    // 장소 관련 기능들
+    function showMap(placeId) {
+      // 지도 보기 (임시)
+      TripGen.showToast('지도 기능이 곧 제공됩니다.', 'info');
+    }
+
+    function editPlace(placeId) {
+      // 장소 상세 정보 표시
+      const placeDetails = {
+        1: {
+          name: '센소지 (浅草寺)',
+          address: '도쿄도 다이토구 아사쿠사 2-3-1',
+          description: '도쿄에서 가장 오래된 사원으로, 628년에 창건되었습니다. 전통적인 일본 문화를 체험할 수 있는 대표적인 관광지입니다.',
+          openHours: '06:00 - 17:00',
+          phone: '+81-3-3842-0181',
+          website: 'https://www.senso-ji.jp/',
+          rating: 4.5,
+          price: '무료',
+          tips: '이른 아침에 방문하면 상대적으로 한적합니다. 주변 나카미세도리에서 기념품 쇼핑도 가능합니다.'
+        }
+        // 다른 장소들도 추가 가능
+      };
+
+      const place = placeDetails[placeId];
+      if (place) {
+        document.getElementById('placeDetailContent').innerHTML = `
+          <div class="place-detail-info">
+            <h4>${place.name}</h4>
+            <p><strong>주소:</strong> ${place.address}</p>
+            <p><strong>설명:</strong> ${place.description}</p>
+            <p><strong>운영시간:</strong> ${place.openHours}</p>
+            <p><strong>전화번호:</strong> ${place.phone}</p>
+            <p><strong>웹사이트:</strong> <a href="${place.website}" target="_blank">${place.website}</a></p>
+            <p><strong>평점:</strong> ⭐ ${place.rating}/5.0</p>
+            <p><strong>입장료:</strong> ${place.price}</p>
+            <p><strong>팁:</strong> ${place.tips}</p>
+          </div>
+        `;
+        TripGen.openModal('placeDetailModal');
+      }
+    }
+
+    function deletePlace(placeId) {
+      TripGen.confirmDialog('이 장소를 일정에서 삭제하시겠습니까?', () => {
+        // 삭제 로직 (실제로는 서버 통신)
+        TripGen.showToast('장소가 삭제되었습니다.', 'success');
+        // DOM에서 해당 장소 카드 제거하는 로직 추가 가능
+      });
+    }
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      initDayTabs();
+      
+      // 페이지 로드 애니메이션
+      setTimeout(() => {
+        document.querySelectorAll('.timeline-item').forEach((item, index) => {
+          setTimeout(() => {
+            item.classList.add('fade-in');
+          }, index * 100);
+        });
+      }, 300);
+    });
+
+    // 드래그 앤 드롭 기능 (간단한 구현)
+    let draggedElement = null;
+
+    document.querySelectorAll('.place-card').forEach(card => {
+      card.setAttribute('draggable', true);
+      
+      card.addEventListener('dragstart', (e) => {
+        draggedElement = e.target;
+        e.target.style.opacity = '0.5';
+      });
+      
+      card.addEventListener('dragend', (e) => {
+        e.target.style.opacity = '';
+        draggedElement = null;
+      });
+      
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (draggedElement && draggedElement !== e.target) {
+          // 실제 재정렬 로직
+          TripGen.showToast('일정 순서가 변경되었습니다.', 'info');
+        }
+      });
+    });
+
+    // 스테퍼 네비게이션 함수
+    function navigateToStep(url) {
+      window.location.href = url;
+    }
+  </script>
+</body>
+</html>

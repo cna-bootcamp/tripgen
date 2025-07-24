@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리뷰 평점 조회 - TripGen</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <style>
+        /* 리뷰평점조회 전용 스타일 */
+        .review-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+            color: white;
+            padding: var(--space-8) 0;
+            border-radius: 0 0 24px 24px;
+            margin-bottom: var(--space-6);
+        }
+
+        .place-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .place-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            background: linear-gradient(45deg, var(--gray-300), var(--gray-200));
+            flex-shrink: 0;
+            object-fit: cover;
+        }
+
+        .place-details h1 {
+            font-size: var(--text-3xl);
+            margin-bottom: var(--space-2);
+            color: white;
+        }
+
+        .place-category {
+            background: rgba(255, 255, 255, 0.2);
+            padding: var(--space-1) var(--space-3);
+            border-radius: 16px;
+            font-size: var(--text-sm);
+            display: inline-block;
+            margin-bottom: var(--space-2);
+        }
+
+        .overall-rating {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .rating-score {
+            font-size: var(--text-4xl);
+            font-weight: var(--font-bold);
+            color: var(--secondary-yellow);
+        }
+
+        .rating-stars {
+            display: flex;
+            gap: var(--space-1);
+            margin-bottom: var(--space-2);
+        }
+
+        .star {
+            width: 24px;
+            height: 24px;
+            color: var(--secondary-yellow);
+        }
+
+        .star.filled {
+            fill: currentColor;
+        }
+
+        .star.empty {
+            fill: rgba(255, 255, 255, 0.3);
+        }
+
+        .rating-summary {
+            font-size: var(--text-base);
+            opacity: 0.9;
+        }
+
+        .review-tabs {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: var(--space-6);
+            overflow: hidden;
+        }
+
+        .tab-header {
+            display: flex;
+            border-bottom: 1px solid var(--gray-200);
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .tab-header::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-button {
+            flex: 1;
+            min-width: 120px;
+            padding: var(--space-4) var(--space-3);
+            background: none;
+            border: none;
+            font-size: var(--text-base);
+            font-weight: var(--font-medium);
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+
+        .tab-button.active {
+            color: var(--primary-blue);
+            border-bottom-color: var(--primary-blue);
+            background: rgba(46, 134, 171, 0.05);
+        }
+
+        .tab-button:hover {
+            color: var(--primary-blue);
+            background: rgba(46, 134, 171, 0.05);
+        }
+
+        .platform-logo {
+            width: 20px;
+            height: 20px;
+            margin-right: var(--space-2);
+            border-radius: 4px;
+            background: var(--gray-300);
+        }
+
+        .platform-stats {
+            font-size: var(--text-xs);
+            color: var(--gray-500);
+            margin-top: var(--space-1);
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: var(--space-6);
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+
+        .filters-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .filter-chip {
+            padding: var(--space-2) var(--space-4);
+            border: 2px solid var(--gray-300);
+            border-radius: 20px;
+            background: white;
+            color: var(--gray-700);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-chip.active {
+            border-color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .filter-chip:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .rating-distribution {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: var(--space-6);
+            margin-bottom: var(--space-6);
+        }
+
+        .distribution-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-4);
+            color: var(--gray-800);
+        }
+
+        .rating-bar {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+
+        .rating-label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            min-width: 60px;
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--secondary-orange);
+            transition: width 0.3s ease;
+        }
+
+        .rating-count {
+            min-width: 40px;
+            text-align: right;
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+        }
+
+        .reviews-list {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .reviews-header {
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reviews-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+        }
+
+        .reviews-count {
+            color: var(--gray-600);
+            font-size: var(--text-base);
+        }
+
+        .sort-dropdown {
+            padding: var(--space-2) var(--space-3);
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            background: white;
+            color: var(--gray-700);
+            font-size: var(--text-sm);
+            cursor: pointer;
+        }
+
+        .review-item {
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--gray-200);
+            transition: background 0.2s ease;
+        }
+
+        .review-item:hover {
+            background: var(--gray-50);
+        }
+
+        .review-item:last-child {
+            border-bottom: none;
+        }
+
+        .review-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-3);
+        }
+
+        .reviewer-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .reviewer-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary-blue), var(--primary-blue-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: var(--font-semibold);
+            font-size: var(--text-sm);
+        }
+
+        .reviewer-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .reviewer-name {
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+            margin-bottom: var(--space-1);
+        }
+
+        .review-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            font-size: var(--text-xs);
+            color: var(--gray-500);
+        }
+
+        .review-rating {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .review-stars {
+            display: flex;
+            gap: 2px;
+        }
+
+        .review-star {
+            width: 16px;
+            height: 16px;
+            color: var(--secondary-yellow);
+        }
+
+        .review-score {
+            font-weight: var(--font-semibold);
+            color: var(--gray-700);
+        }
+
+        .review-content {
+            margin-bottom: var(--space-4);
+        }
+
+        .review-text {
+            line-height: 1.6;
+            color: var(--gray-700);
+            margin-bottom: var(--space-3);
+        }
+
+        .review-text.translated {
+            background: rgba(59, 130, 246, 0.05);
+            padding: var(--space-3);
+            border-radius: 8px;
+            border-left: 4px solid var(--info);
+        }
+
+        .review-actions {
+            display: flex;
+            gap: var(--space-3);
+            align-items: center;
+        }
+
+        .action-button {
+            background: none;
+            border: none;
+            color: var(--gray-500);
+            font-size: var(--text-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            padding: var(--space-2);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .action-button:hover {
+            background: var(--gray-100);
+            color: var(--primary-blue);
+        }
+
+        .translate-btn {
+            color: var(--info);
+        }
+
+        .translate-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .helpful-count {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            color: var(--gray-500);
+            font-size: var(--text-sm);
+        }
+
+        .load-more {
+            padding: var(--space-6);
+            text-align: center;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .trust-score {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+            padding: var(--space-1) var(--space-2);
+            border-radius: 12px;
+            font-size: var(--text-xs);
+            font-weight: var(--font-medium);
+        }
+
+        .trust-high {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .trust-medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .trust-low {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .language-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+            padding: var(--space-1) var(--space-2);
+            border-radius: 12px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: var(--text-xs);
+            font-weight: var(--font-medium);
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: var(--space-2) var(--space-4);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 767px) {
+            .place-info {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .overall-rating {
+                justify-content: center;
+            }
+
+            .filter-group {
+                justify-content: center;
+            }
+
+            .review-header-info {
+                flex-direction: column;
+                gap: var(--space-3);
+            }
+
+            .review-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .tab-header {
+                justify-content: flex-start;
+            }
+
+            .tab-button {
+                min-width: 100px;
+                font-size: var(--text-sm);
+            }
+        }
+
+        /* 다크모드 지원 */
+        @media (prefers-color-scheme: dark) {
+            .review-tabs,
+            .filters-section,
+            .rating-distribution,
+            .reviews-list {
+                background: var(--gray-800);
+                color: var(--gray-100);
+            }
+
+            .review-item:hover {
+                background: var(--gray-700);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="01-대시보드.html" class="nav-brand">TripGen</a>
+                <ul class="nav-menu">
+                    <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
+                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
+                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
+                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
+                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
+                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                </ul>
+                <button class="mobile-menu-toggle">☰</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="mobile-overlay"></div>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main">
+        <div class="container">
+            <!-- 장소 정보 헤더 -->
+            <div class="review-header">
+                <div class="container">
+                    <a href="07-장소상세정보.html" class="back-button">
+                        ← 장소 정보로 돌아가기
+                    </a>
+                    
+                    <div class="place-info">
+                        <img src="https://via.placeholder.com/80x80/2E86AB/FFFFFF?text=명동" alt="명동교자" class="place-image">
+                        <div class="place-details">
+                            <div class="place-category">한식 • 만두전문점</div>
+                            <h1>명동교자 본점</h1>
+                            <div class="overall-rating">
+                                <div class="rating-score">4.2</div>
+                                <div>
+                                    <div class="rating-stars">
+                                        <svg class="star filled" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                        <svg class="star filled" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                        <svg class="star filled" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                        <svg class="star filled" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                        <svg class="star empty" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="rating-summary">총 1,247개 리뷰</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 플랫폼별 탭 -->
+            <div class="review-tabs">
+                <div class="tab-header">
+                    <button class="tab-button active" data-platform="all">
+                        <div style="display: flex; align-items: center;">
+                            <div class="platform-logo" style="background: linear-gradient(45deg, #4285f4, #ea4335);"></div>
+                            전체
+                        </div>
+                        <div class="platform-stats">1,247개 리뷰</div>
+                    </button>
+                    <button class="tab-button" data-platform="google">
+                        <div style="display: flex; align-items: center;">
+                            <div class="platform-logo" style="background: #4285f4;"></div>
+                            구글
+                        </div>
+                        <div class="platform-stats">542개 • 4.3점</div>
+                    </button>
+                    <button class="tab-button" data-platform="naver">
+                        <div style="display: flex; align-items: center;">
+                            <div class="platform-logo" style="background: #03c75a;"></div>
+                            네이버
+                        </div>
+                        <div class="platform-stats">398개 • 4.1점</div>
+                    </button>
+                    <button class="tab-button" data-platform="tripadvisor">
+                        <div style="display: flex; align-items: center;">
+                            <div class="platform-logo" style="background: #00af87;"></div>
+                            트립어드바이저
+                        </div>
+                        <div class="platform-stats">185개 • 4.2점</div>
+                    </button>
+                    <button class="tab-button" data-platform="foursquare">
+                        <div style="display: flex; align-items: center;">
+                            <div class="platform-logo" style="background: #f94877;"></div>
+                            포스퀘어
+                        </div>
+                        <div class="platform-stats">122개 • 4.0점</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 필터 섹션 -->
+            <div class="filters-section">
+                <div class="filters-header">
+                    <h3 class="filters-title">리뷰 필터</h3>
+                </div>
+                
+                <div style="margin-bottom: var(--space-4);">
+                    <h4 style="font-size: var(--text-base); font-weight: var(--font-medium); margin-bottom: var(--space-3); color: var(--gray-700);">평점별</h4>
+                    <div class="filter-group">
+                        <button class="filter-chip active" data-filter="rating-all">전체</button>
+                        <button class="filter-chip" data-filter="rating-5">5점</button>
+                        <button class="filter-chip" data-filter="rating-4">4점</button>
+                        <button class="filter-chip" data-filter="rating-3">3점</button>
+                        <button class="filter-chip" data-filter="rating-2">2점</button>
+                        <button class="filter-chip" data-filter="rating-1">1점</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: var(--space-4);">
+                    <h4 style="font-size: var(--text-base); font-weight: var(--font-medium); margin-bottom: var(--space-3); color: var(--gray-700);">감정 분석</h4>
+                    <div class="filter-group">
+                        <button class="filter-chip active" data-filter="sentiment-all">전체</button>
+                        <button class="filter-chip" data-filter="sentiment-positive">긍정적</button>
+                        <button class="filter-chip" data-filter="sentiment-neutral">중립적</button>
+                        <button class="filter-chip" data-filter="sentiment-negative">부정적</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="font-size: var(--text-base); font-weight: var(--font-medium); margin-bottom: var(--space-3); color: var(--gray-700);">언어별</h4>
+                    <div class="filter-group">
+                        <button class="filter-chip active" data-filter="lang-all">전체</button>
+                        <button class="filter-chip" data-filter="lang-ko">한국어</button>
+                        <button class="filter-chip" data-filter="lang-en">영어</button>
+                        <button class="filter-chip" data-filter="lang-ja">일본어</button>
+                        <button class="filter-chip" data-filter="lang-zh">중국어</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 평점 분포 -->
+            <div class="rating-distribution">
+                <h3 class="distribution-title">평점 분포</h3>
+                <div class="rating-bar">
+                    <div class="rating-label">
+                        <span>5점</span>
+                        <svg class="star" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 45%;"></div>
+                    </div>
+                    <div class="rating-count">562</div>
+                </div>
+                <div class="rating-bar">
+                    <div class="rating-label">
+                        <span>4점</span>
+                        <svg class="star" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 32%;"></div>
+                    </div>
+                    <div class="rating-count">398</div>
+                </div>
+                <div class="rating-bar">
+                    <div class="rating-label">
+                        <span>3점</span>
+                        <svg class="star" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 15%;"></div>
+                    </div>
+                    <div class="rating-count">187</div>
+                </div>
+                <div class="rating-bar">
+                    <div class="rating-label">
+                        <span>2점</span>
+                        <svg class="star" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 6%;"></div>
+                    </div>
+                    <div class="rating-count">74</div>
+                </div>
+                <div class="rating-bar">
+                    <div class="rating-label">
+                        <span>1점</span>
+                        <svg class="star" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 2%;"></div>
+                    </div>
+                    <div class="rating-count">26</div>
+                </div>
+            </div>
+
+            <!-- 리뷰 목록 -->
+            <div class="reviews-list">
+                <div class="reviews-header">
+                    <div>
+                        <h3 class="reviews-title">리뷰</h3>
+                        <div class="reviews-count">1,247개 리뷰</div>
+                    </div>
+                    <select class="sort-dropdown">
+                        <option value="latest">최신순</option>
+                        <option value="rating-high">평점 높은순</option>
+                        <option value="rating-low">평점 낮은순</option>
+                        <option value="helpful">도움순</option>
+                    </select>
+                </div>
+
+                <!-- 리뷰 항목들 -->
+                <div class="review-item">
+                    <div class="review-header-info">
+                        <div class="reviewer-info">
+                            <div class="reviewer-avatar">김</div>
+                            <div class="reviewer-details">
+                                <div class="reviewer-name">김여행</div>
+                                <div class="review-meta">
+                                    <span class="language-indicator">🇰🇷 한국어</span>
+                                    <span class="trust-score trust-high">신뢰도 높음</span>
+                                    <span>2024.01.15</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="review-rating">
+                            <div class="review-stars">
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <span class="review-score">5.0</span>
+                        </div>
+                    </div>
+                    <div class="review-content">
+                        <p class="review-text">명동교자 본점은 정말 유명한 만큼 맛도 훌륭합니다! 특히 물만두가 정말 맛있고, 김치만두도 아삭아삭한 식감이 좋았어요. 줄을 서서 기다릴 가치가 있는 맛집이라고 생각합니다. 다만 항상 사람이 많아서 대기시간이 길다는 점은 아쉬워요.</p>
+                    </div>
+                    <div class="review-actions">
+                        <button class="action-button">
+                            👍 도움됨
+                        </button>
+                        <div class="helpful-count">
+                            <span>32명이 도움이 되었다고 했습니다</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-item">
+                    <div class="review-header-info">
+                        <div class="reviewer-info">
+                            <div class="reviewer-avatar">J</div>
+                            <div class="reviewer-details">
+                                <div class="reviewer-name">John Smith</div>
+                                <div class="review-meta">
+                                    <span class="language-indicator">🇺🇸 영어</span>
+                                    <span class="trust-score trust-medium">신뢰도 보통</span>
+                                    <span>2024.01.12</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="review-rating">
+                            <div class="review-stars">
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <span class="review-score">4.0</span>
+                        </div>
+                    </div>
+                    <div class="review-content">
+                        <p class="review-text">Famous dumpling place in Myeongdong! The dumplings were quite good, especially the steamed ones. The wait was about 30 minutes which wasn't too bad considering how popular this place is. Staff was friendly and the atmosphere was bustling. Would recommend for tourists looking for authentic Korean dumplings.</p>
+                        <p class="review-text translated" style="display: none;">명동의 유명한 만두집입니다! 만두가 꽤 맛있었고, 특히 찐만두가 좋았어요. 이 곳이 얼마나 인기 있는지를 생각하면 30분 정도 기다린 것은 그리 나쁘지 않았습니다. 직원들이 친절했고 분위기도 활기찼어요. 정통 한국 만두를 찾는 관광객들에게 추천합니다.</p>
+                    </div>
+                    <div class="review-actions">
+                        <button class="action-button translate-btn" onclick="toggleTranslation(this)">
+                            🌐 번역하기
+                        </button>
+                        <button class="action-button">
+                            👍 도움됨
+                        </button>
+                        <div class="helpful-count">
+                            <span>18명이 도움이 되었다고 했습니다</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-item">
+                    <div class="review-header-info">
+                        <div class="reviewer-info">
+                            <div class="reviewer-avatar">田</div>
+                            <div class="reviewer-details">
+                                <div class="reviewer-name">田中太郎</div>
+                                <div class="review-meta">
+                                    <span class="language-indicator">🇯🇵 일본어</span>
+                                    <span class="trust-score trust-high">신뢰도 높음</span>
+                                    <span>2024.01.10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="review-rating">
+                            <div class="review-stars">
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor" opacity="0.5">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <span class="review-score">4.5</span>
+                        </div>
+                    </div>
+                    <div class="review-content">
+                        <p class="review-text">明洞餃子の本店に行ってきました。とても有名なお店だと聞いていましたが、期待通りの美味しさでした！水餃子が特に美味しく、皮がもちもちで中の具材も新鮮でした。キムチ餃子も辛さがちょうどよく、日本人の口にも合うと思います。ただ、いつも混んでいるので時間に余裕を持って行くことをお勧めします。</p>
+                        <p class="review-text translated" style="display: none;">명동교자 본점에 다녀왔습니다. 매우 유명한 가게라고 들었는데, 기대한 만큼 맛있었어요! 물만두가 특히 맛있고, 피가 쫄깃쫄깃하고 속 재료도 신선했습니다. 김치만두도 매운맛이 적당해서 일본인 입맛에도 잘 맞을 것 같아요. 다만, 항상 붐비므로 시간 여유를 가지고 가는 것을 추천합니다.</p>
+                    </div>
+                    <div class="review-actions">
+                        <button class="action-button translate-btn" onclick="toggleTranslation(this)">
+                            🌐 번역하기
+                        </button>
+                        <button class="action-button">
+                            👍 도움됨
+                        </button>
+                        <div class="helpful-count">
+                            <span>25명이 도움이 되었다고 했습니다</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-item">
+                    <div class="review-header-info">
+                        <div class="reviewer-info">
+                            <div class="reviewer-avatar">이</div>
+                            <div class="reviewer-details">
+                                <div class="reviewer-name">이맛집</div>
+                                <div class="review-meta">
+                                    <span class="language-indicator">🇰🇷 한국어</span>
+                                    <span class="trust-score trust-medium">신뢰도 보통</span>
+                                    <span>2024.01.08</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="review-rating">
+                            <div class="review-stars">
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <span class="review-score">3.0</span>
+                        </div>
+                    </div>
+                    <div class="review-content">
+                        <p class="review-text">유명세에 비해서는 조금 아쉬웠습니다. 맛이 나쁘지는 않지만 기대했던 것보다는 평범했어요. 대기시간이 너무 길고, 가격도 관광지라서 그런지 좀 비싼 편이에요. 한 번 가볼 만은 하지만 다시 갈 정도는 아닌 것 같아요. 서비스도 바쁘다 보니 좀 아쉬운 부분이 있었습니다.</p>
+                    </div>
+                    <div class="review-actions">
+                        <button class="action-button">
+                            👍 도움됨
+                        </button>
+                        <div class="helpful-count">
+                            <span>12명이 도움이 되었다고 했습니다</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-item">
+                    <div class="review-header-info">
+                        <div class="reviewer-info">
+                            <div class="reviewer-avatar">王</div>
+                            <div class="reviewer-details">
+                                <div class="reviewer-name">王小明</div>
+                                <div class="review-meta">
+                                    <span class="language-indicator">🇨🇳 중국어</span>
+                                    <span class="trust-score trust-low">신뢰도 낮음</span>
+                                    <span>2024.01.05</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="review-rating">
+                            <div class="review-stars">
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                <svg class="review-star" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <span class="review-score">5.0</span>
+                        </div>
+                    </div>
+                    <div class="review-content">
+                        <p class="review-text">非常好吃的饺子店！明洞教子的水饺特别鲜美，皮薄馅大，汤汁很浓郁。虽然要排队，但是绝对值得等待。店内环境也很干净，服务员态度很好。推荐给所有来首尔旅游的朋友们，这里是体验正宗韩式饺子的好地方！</p>
+                        <p class="review-text translated" style="display: none;">매우 맛있는 만두집입니다! 명동교자의 물만두가 특별히 신선하고, 피는 얇고 속은 많으며, 국물이 진짜 진합니다. 줄을 서야 하지만 절대 기다릴 가치가 있어요. 매장 환경도 매우 깨끗하고, 직원들 태도도 좋습니다. 서울에 여행 오는 모든 친구들에게 추천해요, 여기는 정통 한식 만두를 체험할 수 있는 좋은 곳입니다!</p>
+                    </div>
+                    <div class="review-actions">
+                        <button class="action-button translate-btn" onclick="toggleTranslation(this)">
+                            🌐 번역하기
+                        </button>
+                        <button class="action-button">
+                            👍 도움됨
+                        </button>
+                        <div class="helpful-count">
+                            <span>8명이 도움이 되었다고 했습니다</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 더 보기 버튼 -->
+                <div class="load-more">
+                    <button class="btn btn-secondary">더 많은 리뷰 보기</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 TripGen. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        // 리뷰평점조회 전용 JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            initTabs();
+            initFilters();
+            initReviewActions();
+        });
+
+        // 탭 초기화
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // 모든 탭 버튼에서 active 클래스 제거
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // 클릭된 탭에 active 클래스 추가
+                    this.classList.add('active');
+                    
+                    // 플랫폼별 리뷰 필터링 (실제 구현에서는 API 호출)
+                    const platform = this.dataset.platform;
+                    filterReviewsByPlatform(platform);
+                    
+                    // 토스트 메시지 표시
+                    const platformName = this.textContent.trim().split('\n')[0];
+                    TripGen.showToast(`${platformName} 리뷰를 불러오는 중...`, 'info', 2000);
+                });
+            });
+        }
+
+        // 필터 초기화
+        function initFilters() {
+            const filterChips = document.querySelectorAll('.filter-chip');
+            
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', function() {
+                    const filterGroup = this.parentElement;
+                    const filterType = this.dataset.filter.split('-')[0];
+                    
+                    // 같은 그룹 내의 다른 필터에서 active 클래스 제거
+                    filterGroup.querySelectorAll('.filter-chip').forEach(c => {
+                        if (c.dataset.filter.startsWith(filterType)) {
+                            c.classList.remove('active');
+                        }
+                    });
+                    
+                    // 클릭된 필터에 active 클래스 추가
+                    this.classList.add('active');
+                    
+                    // 필터 적용
+                    applyFilters();
+                });
+            });
+
+            // 정렬 드롭다운
+            const sortDropdown = document.querySelector('.sort-dropdown');
+            sortDropdown.addEventListener('change', function() {
+                const sortType = this.value;
+                sortReviews(sortType);
+            });
+        }
+
+        // 리뷰 액션 초기화
+        function initReviewActions() {
+            const helpfulButtons = document.querySelectorAll('.action-button');
+            
+            helpfulButtons.forEach(button => {
+                if (button.textContent.includes('도움됨')) {
+                    button.addEventListener('click', function() {
+                        // 도움됨 상태 토글
+                        if (this.style.color === 'rgb(46, 134, 171)') {
+                            this.style.color = '';
+                            this.textContent = '👍 도움됨';
+                        } else {
+                            this.style.color = 'var(--primary-blue)';
+                            this.textContent = '👍 도움됨 (감사합니다!)';
+                        }
+                        
+                        // 도움됨 카운트 업데이트 (실제로는 서버에서 처리)
+                        const countElement = this.parentElement.querySelector('.helpful-count span');
+                        if (countElement) {
+                            const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]);
+                            const newCount = this.style.color ? currentCount + 1 : currentCount - 1;
+                            countElement.textContent = `${newCount}명이 도움이 되었다고 했습니다`;
+                        }
+                    });
+                }
+            });
+        }
+
+        // 번역 토글 함수
+        function toggleTranslation(button) {
+            const reviewItem = button.closest('.review-item');
+            const originalText = reviewItem.querySelector('.review-text:not(.translated)');
+            const translatedText = reviewItem.querySelector('.review-text.translated');
+            
+            if (translatedText.style.display === 'none') {
+                // 번역 표시
+                originalText.style.display = 'none';
+                translatedText.style.display = 'block';
+                button.textContent = '🌐 원문 보기';
+                button.classList.add('active');
+                
+                TripGen.showToast('번역이 완료되었습니다', 'success', 2000);
+            } else {
+                // 원문 표시
+                originalText.style.display = 'block';
+                translatedText.style.display = 'none';
+                button.textContent = '🌐 번역하기';
+                button.classList.remove('active');
+            }
+        }
+
+        // 플랫폼별 리뷰 필터링
+        function filterReviewsByPlatform(platform) {
+            const reviewItems = document.querySelectorAll('.review-item');
+            
+            // 실제 구현에서는 서버에서 플랫폼별 데이터를 가져옴
+            console.log(`Filtering reviews by platform: ${platform}`);
+            
+            // 애니메이션 효과
+            reviewItems.forEach((item, index) => {
+                item.style.opacity = '0.5';
+                setTimeout(() => {
+                    item.style.opacity = '1';
+                }, index * 100);
+            });
+        }
+
+        // 필터 적용
+        function applyFilters() {
+            const activeFilters = {
+                rating: document.querySelector('.filter-chip[data-filter^="rating-"].active')?.dataset.filter,
+                sentiment: document.querySelector('.filter-chip[data-filter^="sentiment-"].active')?.dataset.filter,
+                language: document.querySelector('.filter-chip[data-filter^="lang-"].active')?.dataset.filter
+            };
+            
+            console.log('Applied filters:', activeFilters);
+            
+            // 실제 구현에서는 필터에 따라 리뷰를 숨기거나 표시
+            const reviewItems = document.querySelectorAll('.review-item');
+            reviewItems.forEach((item, index) => {
+                // 필터링 애니메이션
+                item.style.transform = 'translateY(10px)';
+                item.style.opacity = '0.7';
+                
+                setTimeout(() => {
+                    item.style.transform = 'translateY(0)';
+                    item.style.opacity = '1';
+                }, index * 50);
+            });
+            
+            TripGen.showToast('필터가 적용되었습니다', 'info', 2000);
+        }
+
+        // 리뷰 정렬
+        function sortReviews(sortType) {
+            console.log(`Sorting reviews by: ${sortType}`);
+            
+            const reviewContainer = document.querySelector('.reviews-list');
+            const reviewItems = Array.from(document.querySelectorAll('.review-item'));
+            
+            // 로딩 상태 표시
+            reviewContainer.style.opacity = '0.7';
+            
+            // 정렬 로직 (실제로는 서버에서 처리)
+            setTimeout(() => {
+                // 간단한 애니메이션 효과
+                reviewItems.forEach((item, index) => {
+                    item.style.transform = 'translateX(-10px)';
+                    setTimeout(() => {
+                        item.style.transform = 'translateX(0)';
+                    }, index * 100);
+                });
+                
+                reviewContainer.style.opacity = '1';
+                TripGen.showToast('리뷰가 정렬되었습니다', 'success', 2000);
+            }, 1000);
+        }
+
+        // 더 보기 버튼 클릭 이벤트
+        document.querySelector('.load-more .btn').addEventListener('click', function() {
+            const originalText = this.textContent;
+            TripGen.showLoading(this, '리뷰 로딩 중...');
+            
+            setTimeout(() => {
+                TripGen.hideLoading(this, originalText);
+                TripGen.showToast('추가 리뷰를 불러왔습니다', 'success');
+                
+                // 실제로는 새로운 리뷰 아이템들을 추가
+                console.log('Loading more reviews...');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

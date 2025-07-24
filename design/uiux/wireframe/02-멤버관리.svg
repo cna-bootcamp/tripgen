@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1024 768" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .primary-blue { fill: #2E86AB; }
+      .primary-blue-light { fill: #A23B72; }
+      .secondary-orange { fill: #F18F01; }
+      .secondary-green { fill: #C73E1D; }
+      .gray-50 { fill: #F8FAFC; }
+      .gray-100 { fill: #F1F5F9; }
+      .gray-200 { fill: #E2E8F0; }
+      .gray-300 { fill: #CBD5E1; }
+      .gray-400 { fill: #94A3B8; }
+      .gray-600 { fill: #475569; }
+      .gray-700 { fill: #334155; }
+      .gray-800 { fill: #1E293B; }
+      .success { fill: #10B981; }
+      .warning { fill: #F59E0B; }
+      .error { fill: #EF4444; }
+      
+      .text-xs { font-size: 12px; }
+      .text-sm { font-size: 14px; }
+      .text-base { font-size: 16px; }
+      .text-lg { font-size: 18px; }
+      .text-xl { font-size: 20px; }
+      .text-2xl { font-size: 24px; }
+      
+      .font-medium { font-weight: 500; }
+      .font-semibold { font-weight: 600; }
+      .font-bold { font-weight: 700; }
+      
+      text { font-family: 'Pretendard', sans-serif; }
+      
+      .card {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      }
+      
+      .btn-primary {
+        filter: drop-shadow(0 2px 4px rgba(46, 134, 171, 0.2));
+      }
+      
+      /* 반응형 스타일 */
+      @media (max-width: 768px) {
+        .desktop-only { display: none; }
+        .mobile-grid { 
+          transform: scale(1);
+        }
+      }
+      
+      @media (min-width: 769px) {
+        .mobile-only { display: none; }
+      }
+    </style>
+  </defs>
+  
+  <!-- 배경 -->
+  <rect width="100%" height="100%" class="gray-50"/>
+  
+  <!-- 헤더 -->
+  <rect x="0" y="0" width="100%" height="80" class="primary-blue"/>
+  
+  <!-- 뒤로가기 버튼 -->
+  <circle cx="40" cy="40" r="20" fill="rgba(255,255,255,0.1)"/>
+  <path d="M35 40 L45 35 M35 40 L45 45 M25 40 L45 40" stroke="white" stroke-width="2" fill="none"/>
+  
+  <!-- 제목 -->
+  <text x="80" y="35" fill="white" class="text-2xl font-semibold">여행 멤버 관리</text>
+  <text x="80" y="55" fill="#A23B72" class="text-sm">제주도 힐링 여행</text>
+  
+  <!-- 헤더 우측 - 저장 버튼 -->
+  <rect x="880" y="25" width="80" height="30" rx="6" fill="rgba(255,255,255,0.1)"/>
+  <text x="920" y="45" text-anchor="middle" fill="white" class="text-sm font-medium">저장</text>
+  
+  <!-- 메인 컨텐츠 영역 -->
+  <rect x="32" y="120" width="960" height="608" class="gray-50"/>
+  
+  <!-- 멤버 추가 버튼 -->
+  <rect x="48" y="140" width="940" height="60" rx="12" fill="white" stroke="#2E86AB" stroke-width="2" stroke-dasharray="8,8" class="card"/>
+  <circle cx="512" cy="170" r="16" fill="rgba(46, 134, 171, 0.1)"/>
+  <path d="M504 170 L520 170 M512 162 L512 178" stroke="#2E86AB" stroke-width="2"/>
+  <text x="540" y="175" class="text-lg font-medium primary-blue">새 멤버 추가</text>
+  
+  <!-- 현재 멤버 목록 제목 -->
+  <text x="48" y="250" class="text-xl font-semibold gray-800">현재 멤버 (4명)</text>
+  <text x="48" y="275" class="text-sm gray-600">각 멤버의 정보를 확인하고 수정할 수 있습니다</text>
+  
+  <!-- 멤버 카드 1 - 방장 -->
+  <g class="card">
+    <rect x="48" y="300" width="460" height="140" rx="12" fill="white" stroke="#E2E8F0"/>
+    
+    <!-- 방장 뱃지 -->
+    <rect x="60" y="312" width="50" height="20" rx="10" class="secondary-orange"/>
+    <text x="85" y="325" text-anchor="middle" fill="white" class="text-xs font-medium">방장</text>
+    
+    <!-- 프로필 이미지 -->
+    <circle cx="90" cy="370" r="32" class="primary-blue"/>
+    <text x="90" y="378" text-anchor="middle" fill="white" class="text-xl font-bold">김</text>
+    
+    <!-- 멤버 정보 -->
+    <text x="140" y="345" class="text-lg font-semibold gray-800">김여행</text>
+    <text x="140" y="365" class="text-sm gray-600">나이: 28세 | 성별: 여성</text>
+    
+    <!-- 건강 상태 -->
+    <circle cx="140" cy="385" r="4" class="success"/>
+    <text x="152" y="390" class="text-sm gray-600">건강상태: 양호</text>
+    
+    <!-- 선호도 태그 -->
+    <rect x="140" y="400" width="50" height="20" rx="10" fill="#E0F2FE"/>
+    <text x="165" y="413" text-anchor="middle" class="text-xs" fill="#0369A1">자연</text>
+    
+    <rect x="200" y="400" width="50" height="20" rx="10" fill="#FEF3C7"/>
+    <text x="225" y="413" text-anchor="middle" class="text-xs" fill="#D97706">힐링</text>
+    
+    <!-- 액션 버튼 -->
+    <rect x="420" y="320" width="70" height="30" rx="6" fill="none" stroke="#2E86AB" stroke-width="1"/>
+    <text x="455" y="338" text-anchor="middle" class="text-sm primary-blue">수정</text>
+    
+    <rect x="420" y="360" width="70" height="30" rx="6" class="gray-200"/>
+    <text x="455" y="378" text-anchor="middle" class="text-sm gray-500">삭제불가</text>
+  </g>
+  
+  <!-- 멤버 카드 2 -->
+  <g class="card">
+    <rect x="528" y="300" width="460" height="140" rx="12" fill="white" stroke="#E2E8F0"/>
+    
+    <!-- 프로필 이미지 -->
+    <circle cx="570" cy="370" r="32" class="primary-blue-light"/>
+    <text x="570" y="378" text-anchor="middle" fill="white" class="text-xl font-bold">이</text>
+    
+    <!-- 멤버 정보 -->
+    <text x="620" y="345" class="text-lg font-semibold gray-800">이친구</text>
+    <text x="620" y="365" class="text-sm gray-600">나이: 26세 | 성별: 남성</text>
+    
+    <!-- 건강 상태 -->
+    <circle cx="620" cy="385" r="4" class="warning"/>
+    <text x="632" y="390" class="text-sm gray-600">건강상태: 주의 (허리 디스크)</text>
+    
+    <!-- 선호도 태그 -->
+    <rect x="620" y="400" width="50" height="20" rx="10" fill="#ECFDF5"/>
+    <text x="645" y="413" text-anchor="middle" class="text-xs" fill="#059669">액티비티</text>
+    
+    <rect x="680" y="400" width="50" height="20" rx="10" fill="#FEF3C7"/>
+    <text x="705" y="413" text-anchor="middle" class="text-xs" fill="#D97706">음식</text>
+    
+    <!-- 액션 버튼 -->
+    <rect x="900" y="320" width="70" height="30" rx="6" fill="none" stroke="#2E86AB" stroke-width="1"/>
+    <text x="935" y="338" text-anchor="middle" class="text-sm primary-blue">수정</text>
+    
+    <rect x="900" y="360" width="70" height="30" rx="6" fill="none" stroke="#EF4444" stroke-width="1"/>
+    <text x="935" y="378" text-anchor="middle" class="text-sm error">삭제</text>
+  </g>
+  
+  <!-- 멤버 카드 3 -->
+  <g class="card">
+    <rect x="48" y="460" width="460" height="140" rx="12" fill="white" stroke="#E2E8F0"/>
+    
+    <!-- 프로필 이미지 -->
+    <circle cx="90" cy="530" r="32" class="secondary-green"/>
+    <text x="90" y="538" text-anchor="middle" fill="white" class="text-xl font-bold">박</text>
+    
+    <!-- 멤버 정보 -->
+    <text x="140" y="505" class="text-lg font-semibold gray-800">박동반</text>
+    <text x="140" y="525" class="text-sm gray-600">나이: 30세 | 성별: 여성</text>
+    
+    <!-- 건강 상태 -->
+    <circle cx="140" cy="545" r="4" class="success"/>
+    <text x="152" y="550" class="text-sm gray-600">건강상태: 양호</text>
+    
+    <!-- 선호도 태그 -->
+    <rect x="140" y="560" width="50" height="20" rx="10" fill="#F3E8FF"/>
+    <text x="165" y="573" text-anchor="middle" class="text-xs" fill="#7C3AED">문화</text>
+    
+    <rect x="200" y="560" width="50" height="20" rx="10" fill="#FEE2E2"/>
+    <text x="225" y="573" text-anchor="middle" class="text-xs" fill="#DC2626">쇼핑</text>
+    
+    <!-- 액션 버튼 -->
+    <rect x="420" y="480" width="70" height="30" rx="6" fill="none" stroke="#2E86AB" stroke-width="1"/>
+    <text x="455" y="498" text-anchor="middle" class="text-sm primary-blue">수정</text>
+    
+    <rect x="420" y="520" width="70" height="30" rx="6" fill="none" stroke="#EF4444" stroke-width="1"/>
+    <text x="455" y="538" text-anchor="middle" class="text-sm error">삭제</text>
+  </g>
+  
+  <!-- 멤버 카드 4 -->
+  <g class="card">
+    <rect x="528" y="460" width="460" height="140" rx="12" fill="white" stroke="#E2E8F0"/>
+    
+    <!-- 프로필 이미지 -->
+    <circle cx="570" cy="530" r="32" class="gray-400"/>
+    <text x="570" y="538" text-anchor="middle" fill="white" class="text-xl font-bold">최</text>
+    
+    <!-- 멤버 정보 -->
+    <text x="620" y="505" class="text-lg font-semibold gray-800">최동행</text>
+    <text x="620" y="525" class="text-sm gray-600">나이: 25세 | 성별: 남성</text>
+    
+    <!-- 건강 상태 -->
+    <circle cx="620" cy="545" r="4" class="error"/>
+    <text x="632" y="550" class="text-sm gray-600">건강상태: 주의 (고혈압)</text>
+    
+    <!-- 선호도 태그 -->
+    <rect x="620" y="560" width="50" height="20" rx="10" fill="#E0F2FE"/>
+    <text x="645" y="573" text-anchor="middle" class="text-xs" fill="#0369A1">역사</text>
+    
+    <rect x="680" y="560" width="50" height="20" rx="10" fill="#ECFDF5"/>
+    <text x="705" y="573" text-anchor="middle" class="text-xs" fill="#059669">사진</text>
+    
+    <!-- 액션 버튼 -->
+    <rect x="900" y="480" width="70" height="30" rx="6" fill="none" stroke="#2E86AB" stroke-width="1"/>
+    <text x="935" y="498" text-anchor="middle" class="text-sm primary-blue">수정</text>
+    
+    <rect x="900" y="520" width="70" height="30" rx="6" fill="none" stroke="#EF4444" stroke-width="1"/>
+    <text x="935" y="538" text-anchor="middle" class="text-sm error">삭제</text>
+  </g>
+  
+  <!-- 하단 액션 버튼 -->
+  <rect x="48" y="640" width="940" height="60" rx="12" fill="white" stroke="#E2E8F0" class="card"/>
+  
+  <!-- 이전/다음 버튼 -->
+  <rect x="68" y="660" width="100" height="40" rx="8" fill="none" stroke="#2E86AB" stroke-width="2"/>
+  <text x="118" y="683" text-anchor="middle" class="text-base primary-blue">← 이전</text>
+  
+  <rect x="856" y="660" width="100" height="40" rx="8" class="primary-blue btn-primary"/>
+  <text x="906" y="683" text-anchor="middle" fill="white" class="text-base font-medium">다음 →</text>
+  
+  <!-- 진행 상황 표시 -->
+  <text x="512" y="675" text-anchor="middle" class="text-sm gray-600">1 / 4 단계</text>
+  <rect x="462" y="685" width="100" height="4" rx="2" class="gray-200"/>
+  <rect x="462" y="685" width="25" height="4" rx="2" class="primary-blue"/>
+  
+  <!-- 모바일 전용 표시 -->
+  <g class="mobile-only">
+    <text x="512" y="730" text-anchor="middle" class="text-xs gray-500">모바일에서는 카드가 세로 배치됩니다</text>
+  </g>
+</svg>

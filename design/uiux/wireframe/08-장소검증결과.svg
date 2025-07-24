@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .primary-blue { fill: #2E86AB; }
+      .primary-blue-light { fill: #A23B72; }
+      .primary-blue-dark { fill: #1B5E7F; }
+      .secondary-orange { fill: #F18F01; }
+      .secondary-green { fill: #C73E1D; }
+      .secondary-yellow { fill: #FFD23F; }
+      .gray-50 { fill: #F8FAFC; }
+      .gray-100 { fill: #F1F5F9; }
+      .gray-200 { fill: #E2E8F0; }
+      .gray-300 { fill: #CBD5E1; }
+      .gray-400 { fill: #94A3B8; }
+      .gray-500 { fill: #64748B; }
+      .gray-600 { fill: #475569; }
+      .gray-700 { fill: #334155; }
+      .gray-800 { fill: #1E293B; }
+      .gray-900 { fill: #0F172A; }
+      .success { fill: #10B981; }
+      .warning { fill: #F59E0B; }
+      .error { fill: #EF4444; }
+      .info { fill: #3B82F6; }
+      
+      .text-xs { font-size: 12px; }
+      .text-sm { font-size: 14px; }
+      .text-base { font-size: 16px; }
+      .text-lg { font-size: 18px; }
+      .text-xl { font-size: 20px; }
+      .text-2xl { font-size: 24px; }
+      
+      .font-normal { font-weight: 400; }
+      .font-medium { font-weight: 500; }
+      .font-semibold { font-weight: 600; }
+      .font-bold { font-weight: 700; }
+      
+      text { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="375" height="812" class="gray-50"/>
+  
+  <!-- Status Bar -->
+  <rect x="0" y="0" width="375" height="44" fill="white"/>
+  <text x="30" y="28" class="text-sm font-medium gray-900">9:41</text>
+  <text x="310" y="28" class="text-sm font-medium gray-900">100%</text>
+  
+  <!-- Header -->
+  <rect x="0" y="44" width="375" height="56" fill="white"/>
+  <rect x="0" y="99" width="375" height="1" class="gray-200"/>
+  
+  <!-- Back Button -->
+  <circle cx="32" cy="72" r="20" class="gray-100"/>
+  <path d="M28 72 L36 68 L36 76 Z" class="gray-600"/>
+  
+  <!-- Title -->
+  <text x="187.5" y="77" text-anchor="middle" class="text-lg font-semibold gray-900">장소 검증 결과</text>
+  
+  <!-- Verification Status -->
+  <rect x="20" y="115" width="335" height="80" rx="12" fill="white"/>
+  <rect x="20" y="115" width="335" height="80" rx="12" stroke="#E2E8F0" stroke-width="1" fill="none"/>
+  
+  <!-- Status Badge -->
+  <rect x="30" y="130" width="80" height="24" rx="12" class="success"/>
+  <text x="70" y="143" text-anchor="middle" class="text-xs font-medium" fill="white">검증완료</text>
+  
+  <!-- Status Icon -->
+  <circle cx="320" cy="142" r="12" class="success"/>
+  <path d="M316 142 L319 145 L324 138" stroke="white" stroke-width="2" fill="none"/>
+  
+  <!-- Status Description -->
+  <text x="30" y="170" class="text-sm font-semibold gray-900">장소 정보가 정확히 확인되었습니다</text>
+  <text x="30" y="185" class="text-xs font-normal gray-600">최종 검증일: 2024-07-24 14:30</text>
+  
+  <!-- Comparison Section -->
+  <text x="20" y="225" class="text-lg font-semibold gray-900">정보 비교</text>
+  
+  <!-- Original Info Card -->
+  <rect x="20" y="240" width="335" height="140" rx="12" fill="white"/>
+  <rect x="20" y="240" width="335" height="140" rx="12" stroke="#E2E8F0" stroke-width="1" fill="none"/>
+  
+  <text x="30" y="260" class="text-sm font-semibold gray-700">원본 추천 정보</text>
+  <rect x="30" y="265" width="60" height="20" rx="10" class="gray-200"/>
+  <text x="60" y="277" text-anchor="middle" class="text-xs font-medium gray-600">AI 추천</text>
+  
+  <text x="30" y="295" class="text-sm font-medium gray-900">경복궁</text>
+  <text x="30" y="310" class="text-xs font-normal gray-600">📍 서울특별시 종로구 사직로 161</text>
+  <text x="30" y="325" class="text-xs font-normal gray-600">📞 02-3700-3900</text>
+  <text x="30" y="340" class="text-xs font-normal gray-600">🕐 09:00 - 18:00</text>
+  <text x="30" y="355" class="text-xs font-normal gray-600">💰 성인 3,000원</text>
+  
+  <!-- Verified Info Card -->
+  <rect x="20" y="395" width="335" height="140" rx="12" fill="white"/>
+  <rect x="20" y="395" width="335" height="140" rx="12" stroke="#10B981" stroke-width="2" fill="none"/>
+  
+  <text x="30" y="415" class="text-sm font-semibold gray-700">검증된 정보</text>
+  <rect x="30" y="420" width="60" height="20" rx="10" class="success"/>
+  <text x="60" y="432" text-anchor="middle" class="text-xs font-medium" fill="white">검증완료</text>
+  
+  <text x="30" y="450" class="text-sm font-medium gray-900">경복궁</text>
+  <text x="30" y="465" class="text-xs font-normal gray-600">📍 서울특별시 종로구 사직로 161</text>
+  <text x="30" y="480" class="text-xs font-normal gray-600">📞 02-3700-3900</text>
+  <text x="30" y="495" class="text-xs font-normal gray-600">🕐 09:00 - 18:00 (동절기 17:00)</text>
+  <text x="30" y="510" class="text-xs font-normal gray-600">💰 성인 3,000원, 청소년 1,500원</text>
+  
+  <!-- Update Notice -->
+  <rect x="20" y="550" width="335" height="60" rx="8" class="info" opacity="0.1"/>
+  <rect x="20" y="550" width="335" height="60" rx="8" stroke="#3B82F6" stroke-width="1" fill="none"/>
+  
+  <circle cx="35" cy="570" r="8" class="info"/>
+  <text x="35" y="575" text-anchor="middle" class="text-xs" fill="white">i</text>
+  
+  <text x="50" y="570" class="text-sm font-medium gray-900">업데이트된 정보</text>
+  <text x="50" y="585" class="text-xs font-normal gray-600">동절기 운영시간과 청소년 요금 정보가 추가되었습니다.</text>
+  
+  <!-- Alternative Places Section (Hidden - shows when verification fails) -->
+  <!--
+  <text x="20" y="640" class="text-lg font-semibold gray-900">대안 장소 제안</text>
+  
+  <rect x="20" y="655" width="335" height="80" rx="12" fill="white"/>
+  <rect x="20" y="655" width="335" height="80" rx="12" stroke="#E2E8F0" stroke-width="1" fill="none"/>
+  
+  <rect x="30" y="665" width="60" height="40" rx="8" class="gray-200"/>
+  <text x="60" y="688" text-anchor="middle" class="text-xs gray-600">이미지</text>
+  
+  <text x="100" y="680" class="text-sm font-medium gray-900">창덕궁</text>
+  <text x="100" y="695" class="text-xs font-normal gray-600">★ 4.6 · 도보 10분</text>
+  <text x="100" y="710" class="text-xs font-normal gray-600">유네스코 세계문화유산</text>
+  
+  <rect x="300" y="675" width="40" height="24" rx="12" class="primary-blue"/>
+  <text x="320" y="688" text-anchor="middle" class="text-xs font-medium" fill="white">선택</text>
+  -->
+  
+  <!-- Action Button -->
+  <rect x="20" y="640" width="335" height="48" rx="8" class="primary-blue"/>
+  <text x="187.5" y="667" text-anchor="middle" class="text-base font-medium" fill="white">정보 업데이트 요청</text>
+  
+  <!-- Additional Info -->
+  <rect x="20" y="705" width="335" height="60" rx="8" class="gray-100"/>
+  
+  <text x="30" y="725" class="text-sm font-medium gray-700">검증 상세 정보</text>
+  <text x="30" y="740" class="text-xs font-normal gray-600">• 공식 웹사이트 정보 확인</text>
+  <text x="30" y="752" class="text-xs font-normal gray-600">• 전화 문의를 통한 운영시간 재확인</text>
+  
+  <!-- Tab Bar -->
+  <rect x="0" y="750" width="375" height="62" fill="white"/>
+  <rect x="0" y="750" width="375" height="1" class="gray-200"/>
+  
+  <!-- Home Tab -->
+  <circle cx="75" cy="775" r="12" class="gray-300"/>
+  <text x="75" y="800" text-anchor="middle" class="text-xs gray-500">홈</text>
+  
+  <!-- Schedule Tab -->
+  <circle cx="150" cy="775" r="12" class="primary-blue"/>
+  <text x="150" y="800" text-anchor="middle" class="text-xs primary-blue">일정</text>
+  
+  <!-- Search Tab -->
+  <circle cx="225" cy="775" r="12" class="gray-300"/>
+  <text x="225" y="800" text-anchor="middle" class="text-xs gray-500">검색</text>
+  
+  <!-- Profile Tab -->
+  <circle cx="300" cy="775" r="12" class="gray-300"/>
+  <text x="300" y="800" text-anchor="middle" class="text-xs gray-500">프로필</text>
+  
+  <!-- Responsive adjustments for larger screens -->
+  <style>
+    @media (min-width: 768px) {
+      svg { max-width: 768px; }
+    }
+    @media (min-width: 1024px) {
+      svg { max-width: 1024px; }
+    }
+  </style>
+</svg>

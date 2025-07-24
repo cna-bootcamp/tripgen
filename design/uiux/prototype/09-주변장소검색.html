@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주변장소검색 - TripGen</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <style>
+        /* 주변장소검색 특화 스타일 */
+        .location-search-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 160px);
+        }
+
+        /* 검색 헤더 */
+        .search-header {
+            background: white;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--gray-200);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .current-location {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+            color: var(--gray-600);
+            font-size: var(--text-sm);
+        }
+
+        .location-icon {
+            width: 16px;
+            height: 16px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: var(--space-3) var(--space-12) var(--space-3) var(--space-4);
+            border: 2px solid var(--gray-300);
+            border-radius: 12px;
+            font-size: var(--text-base);
+            background: var(--gray-50);
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-blue);
+            background: white;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: var(--space-4);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+        }
+
+        /* 필터 바 */
+        .filter-bar {
+            background: white;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            gap: var(--space-3);
+            overflow-x: auto;
+        }
+
+        .filter-chip {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: var(--text-sm);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            min-width: fit-content;
+        }
+
+        .filter-chip.active {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        .filter-chip:hover {
+            background: var(--primary-blue-light);
+            border-color: var(--primary-blue-light);
+        }
+
+        .radius-selector {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: var(--text-sm);
+            min-width: fit-content;
+        }
+
+        .radius-select {
+            border: none;
+            background: transparent;
+            font-size: var(--text-sm);
+            color: var(--gray-700);
+        }
+
+        /* 컨텐츠 영역 */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .view-toggle-btn {
+            flex: 1;
+            padding: var(--space-3);
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-toggle-btn.active {
+            color: var(--primary-blue);
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        /* 지도 영역 */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: var(--gray-100);
+            display: none;
+        }
+
+        .map-container.active {
+            display: block;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-blue-light), var(--primary-blue));
+            color: white;
+            font-size: var(--text-lg);
+            position: relative;
+        }
+
+        .map-markers {
+            position: absolute;
+            top: 20%;
+            left: 30%;
+            width: 20px;
+            height: 20px;
+            background: var(--error);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+        }
+
+        .map-markers::after {
+            content: '';
+            position: absolute;
+            top: 40%;
+            right: 40%;
+            width: 10px;
+            height: 10px;
+            background: var(--error);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg) translate(20px, -20px);
+        }
+
+        /* 결과 목록 */
+        .results-container {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--gray-50);
+        }
+
+        .results-container.active {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4);
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .results-count {
+            color: var(--gray-600);
+            font-size: var(--text-sm);
+        }
+
+        .sort-select {
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: var(--text-sm);
+            background: white;
+        }
+
+        .results-list {
+            padding: var(--space-2);
+        }
+
+        .place-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: var(--space-3);
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .place-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .place-image {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(135deg, var(--gray-300), var(--gray-200));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            font-size: var(--text-sm);
+        }
+
+        .place-content {
+            padding: var(--space-4);
+        }
+
+        .place-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-2);
+        }
+
+        .place-name {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .place-distance {
+            font-size: var(--text-sm);
+            color: var(--gray-500);
+            background: var(--gray-100);
+            padding: var(--space-1) var(--space-2);
+            border-radius: 4px;
+        }
+
+        .place-category {
+            display: inline-block;
+            padding: var(--space-1) var(--space-2);
+            background: var(--secondary-orange);
+            color: white;
+            font-size: var(--text-xs);
+            border-radius: 4px;
+            margin-bottom: var(--space-2);
+        }
+
+        .place-rating {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            margin-bottom: var(--space-2);
+        }
+
+        .stars {
+            color: var(--secondary-yellow);
+        }
+
+        .rating-text {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+        }
+
+        .place-address {
+            color: var(--gray-600);
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-3);
+        }
+
+        .place-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--gray-300);
+            color: var(--gray-700);
+            padding: var(--space-2) var(--space-3);
+            border-radius: 6px;
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        /* 카테고리 탭 */
+        .category-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            overflow-x: auto;
+        }
+
+        .category-tab {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-4);
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .category-tab.active {
+            color: var(--primary-blue);
+            border-bottom-color: var(--primary-blue);
+        }
+
+        .category-icon {
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            border-radius: 2px;
+        }
+
+        /* 로딩 상태 */
+        .loading-skeleton {
+            padding: var(--space-2);
+        }
+
+        .skeleton-card {
+            background: white;
+            border-radius: 12px;
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+        }
+
+        .skeleton-line {
+            height: 12px;
+            background: var(--gray-200);
+            border-radius: 6px;
+            margin-bottom: var(--space-2);
+        }
+
+        .skeleton-line.short {
+            width: 60%;
+        }
+
+        .skeleton-line.medium {
+            width: 80%;
+        }
+
+        /* 빈 상태 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-16);
+            text-align: center;
+            color: var(--gray-500);
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--gray-300);
+            border-radius: 50%;
+            margin-bottom: var(--space-4);
+        }
+
+        /* 반응형 */
+        @media (min-width: 768px) {
+            .content-area {
+                flex-direction: row;
+            }
+
+            .map-container {
+                flex: 1;
+                display: block;
+            }
+
+            .results-container {
+                width: 400px;
+                border-left: 1px solid var(--gray-200);
+            }
+
+            .view-toggle {
+                display: none;
+            }
+
+            .place-card {
+                margin-bottom: var(--space-4);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .results-container {
+                width: 480px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="01-대시보드.html" class="nav-brand">TripGen</a>
+                <ul class="nav-menu">
+                    <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
+                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
+                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
+                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
+                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
+                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                </ul>
+                <button class="mobile-menu-toggle">☰</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 모바일 오버레이 -->
+    <div class="mobile-overlay"></div>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="main">
+        <div class="container">
+            <!-- 페이지 제목 -->
+            <div class="page-header mb-6">
+                <h1>주변장소검색</h1>
+                <p class="text-gray-600">현재 위치 주변의 관심 장소를 검색하고 탐색해보세요.</p>
+            </div>
+
+            <!-- 주변장소검색 컨테이너 -->
+            <div class="location-search-container">
+                <!-- 검색 헤더 -->
+                <div class="search-header">
+                    <div class="current-location">
+                        <span class="location-icon"></span>
+                        <span id="currentLocationText">서울특별시 강남구 역삼동</span>
+                        <button class="btn-outline btn-sm" onclick="detectLocation()">위치 재설정</button>
+                    </div>
+                    
+                    <div class="search-input-group">
+                        <input type="text" class="search-input" id="searchInput" placeholder="장소명이나 키워드를 입력하세요">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </div>
+
+                <!-- 필터 바 -->
+                <div class="filter-bar">
+                    <div class="radius-selector">
+                        <span>반경</span>
+                        <select class="radius-select" id="radiusSelect">
+                            <option value="500">500m</option>
+                            <option value="1000" selected>1km</option>
+                            <option value="2000">2km</option>
+                            <option value="5000">5km</option>
+                            <option value="10000">10km</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-chip active" data-category="all">
+                        전체
+                    </div>
+                    <div class="filter-chip" data-category="restaurant">
+                        🍽️ 음식점
+                    </div>
+                    <div class="filter-chip" data-category="tourist">
+                        🏛️ 관광지
+                    </div>
+                    <div class="filter-chip" data-category="shopping">
+                        🛍️ 쇼핑
+                    </div>
+                    <div class="filter-chip" data-category="accommodation">
+                        🏨 숙박
+                    </div>
+                    <div class="filter-chip" data-category="culture">
+                        🎭 문화시설
+                    </div>
+                </div>
+
+                <!-- 컨텐츠 영역 -->
+                <div class="content-area">
+                    <!-- 뷰 토글 (모바일) -->
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" onclick="switchView('list')">목록</button>
+                        <button class="view-toggle-btn" onclick="switchView('map')">지도</button>
+                    </div>
+
+                    <!-- 지도 컨테이너 -->
+                    <div class="map-container" id="mapContainer">
+                        <div class="map-placeholder">
+                            <div>
+                                <div class="map-markers"></div>
+                                <p>지도 연동 화면</p>
+                                <p style="font-size: var(--text-sm); opacity: 0.8;">카카오맵/구글맵 API 연동 영역</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 결과 컨테이너 -->
+                    <div class="results-container active" id="resultsContainer">
+                        <!-- 결과 헤더 -->
+                        <div class="results-header">
+                            <div class="results-count">
+                                <span id="resultsCount">12</span>개 장소 찾음
+                            </div>
+                            <select class="sort-select" id="sortSelect">
+                                <option value="distance">거리순</option>
+                                <option value="rating">평점순</option>
+                                <option value="name">이름순</option>
+                                <option value="review">리뷰순</option>
+                            </select>
+                        </div>
+
+                        <!-- 결과 목록 -->
+                        <div class="results-list" id="resultsList">
+                            <!-- 장소 카드들 -->
+                            <div class="place-card">
+                                <div class="place-image">📸 이미지 영역</div>
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">강남역 맛집거리</h3>
+                                        <span class="place-distance">250m</span>
+                                    </div>
+                                    <span class="place-category">음식점</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.2 (128개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">서울 강남구 강남대로 지하 396</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(1)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(1)">길찾기</button>
+                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(1)">일정추가</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-image">📸 이미지 영역</div>
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">코엑스몰</h3>
+                                        <span class="place-distance">800m</span>
+                                    </div>
+                                    <span class="place-category">쇼핑</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★★</span>
+                                        <span class="rating-text">4.5 (2,341개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">서울 강남구 영동대로 513</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(2)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(2)">길찾기</button>
+                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(2)">일정추가</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-image">📸 이미지 영역</div>
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">봉은사</h3>
+                                        <span class="place-distance">1.2km</span>
+                                    </div>
+                                    <span class="place-category">관광지</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.1 (456개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">서울 강남구 봉은사로 531</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(3)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(3)">길찾기</button>
+                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(3)">일정추가</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-image">📸 이미지 영역</div>
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">선릉</h3>
+                                        <span class="place-distance">900m</span>
+                                    </div>
+                                    <span class="place-category">관광지</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★☆☆</span>
+                                        <span class="rating-text">3.8 (89개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">서울 강남구 선릉로100길 1</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(4)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(4)">길찾기</button>
+                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(4)">일정추가</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 네비게이션 -->
+    <div style="position: fixed; bottom: var(--space-4); right: var(--space-4); z-index: 100;">
+        <div style="display: flex; gap: var(--space-2);">
+            <a href="08-장소검증결과.html" class="btn btn-secondary">← 장소검증결과</a>
+            <a href="10-이동경로확인.html" class="btn btn-primary">이동경로확인 →</a>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/common.js"></script>
+    <script>
+        // 현재 선택된 카테고리와 뷰
+        let currentCategory = 'all';
+        let currentView = 'list';
+        let currentRadius = 1000;
+
+        // 더미 데이터
+        const places = [
+            {
+                id: 1,
+                name: '강남역 맛집거리',
+                category: 'restaurant',
+                distance: 250,
+                rating: 4.2,
+                reviewCount: 128,
+                address: '서울 강남구 강남대로 지하 396',
+                image: null
+            },
+            {
+                id: 2,
+                name: '코엑스몰',
+                category: 'shopping',
+                distance: 800,
+                rating: 4.5,
+                reviewCount: 2341,
+                address: '서울 강남구 영동대로 513',
+                image: null
+            },
+            {
+                id: 3,
+                name: '봉은사',
+                category: 'tourist',
+                distance: 1200,
+                rating: 4.1,
+                reviewCount: 456,
+                address: '서울 강남구 봉은사로 531',
+                image: null
+            },
+            {
+                id: 4,
+                name: '선릉',
+                category: 'tourist',
+                distance: 900,
+                rating: 3.8,
+                reviewCount: 89,
+                address: '서울 강남구 선릉로100길 1',
+                image: null
+            },
+            {
+                id: 5,
+                name: '현대백화점 무역센터점',
+                category: 'shopping',
+                distance: 600,
+                rating: 4.3,
+                reviewCount: 567,
+                address: '서울 강남구 테헤란로 517',
+                image: null
+            },
+            {
+                id: 6,
+                name: '삼성역 카페거리',
+                category: 'restaurant',
+                distance: 1100,
+                rating: 4.0,
+                reviewCount: 234,
+                address: '서울 강남구 테헤란로 지하',
+                image: null
+            }
+        ];
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initLocationSearch();
+            bindEvents();
+            renderResults();
+        });
+
+        // 초기화
+        function initLocationSearch() {
+            // 위치 감지 시뮬레이션
+            setTimeout(() => {
+                document.getElementById('currentLocationText').textContent = '서울특별시 강남구 역삼동 (위치 감지 완료)';
+                TripGen.showToast('현재 위치가 감지되었습니다.', 'success');
+            }, 1000);
+        }
+
+        // 이벤트 바인딩
+        function bindEvents() {
+            // 검색 입력
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', TripGen.Utils.debounce(handleSearch, 300));
+
+            // 반경 선택
+            const radiusSelect = document.getElementById('radiusSelect');
+            radiusSelect.addEventListener('change', handleRadiusChange);
+
+            // 카테고리 필터
+            const filterChips = document.querySelectorAll('.filter-chip');
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', () => handleCategoryFilter(chip));
+            });
+
+            // 정렬 선택
+            const sortSelect = document.getElementById('sortSelect');
+            sortSelect.addEventListener('change', handleSortChange);
+        }
+
+        // 위치 감지
+        function detectLocation() {
+            if (navigator.geolocation) {
+                TripGen.showToast('위치를 감지하고 있습니다...', 'info');
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        // 실제로는 역지오코딩 API를 호출
+                        setTimeout(() => {
+                            document.getElementById('currentLocationText').textContent = 
+                                `현재 위치 (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                            TripGen.showToast('위치가 업데이트되었습니다.', 'success');
+                            searchNearbyPlaces();
+                        }, 1000);
+                    },
+                    function(error) {
+                        TripGen.showToast('위치 감지에 실패했습니다.', 'error');
+                    }
+                );
+            } else {
+                TripGen.showToast('이 브라우저는 위치 서비스를 지원하지 않습니다.', 'error');
+            }
+        }
+
+        // 검색 처리
+        function handleSearch(event) {
+            const query = event.target.value.trim();
+            if (query.length >= 2) {
+                searchPlaces(query);
+            } else if (query.length === 0) {
+                renderResults();
+            }
+        }
+
+        // 장소 검색
+        function searchPlaces(query) {
+            showLoading();
+            
+            // 실제로는 API 호출
+            setTimeout(() => {
+                const filteredPlaces = places.filter(place => 
+                    place.name.toLowerCase().includes(query.toLowerCase()) ||
+                    place.address.toLowerCase().includes(query.toLowerCase())
+                );
+                
+                renderResults(filteredPlaces);
+                hideLoading();
+                
+                TripGen.showToast(`'${query}' 검색 완료`, 'success');
+            }, 800);
+        }
+
+        // 반경 변경
+        function handleRadiusChange(event) {
+            currentRadius = parseInt(event.target.value);
+            searchNearbyPlaces();
+        }
+
+        // 주변 장소 검색
+        function searchNearbyPlaces() {
+            showLoading();
+            
+            // 실제로는 위치 기반 API 호출
+            setTimeout(() => {
+                const filteredPlaces = places.filter(place => 
+                    place.distance <= currentRadius &&
+                    (currentCategory === 'all' || place.category === currentCategory)
+                );
+                
+                renderResults(filteredPlaces);
+                hideLoading();
+            }, 1000);
+        }
+
+        // 카테고리 필터
+        function handleCategoryFilter(chip) {
+            // 기존 활성 카테고리 해제
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            
+            // 새 카테고리 활성화
+            chip.classList.add('active');
+            currentCategory = chip.dataset.category;
+            
+            searchNearbyPlaces();
+        }
+
+        // 정렬 변경
+        function handleSortChange(event) {
+            const sortBy = event.target.value;
+            const currentPlaces = getCurrentPlaces();
+            
+            let sortedPlaces = [...currentPlaces];
+            
+            switch (sortBy) {
+                case 'distance':
+                    sortedPlaces.sort((a, b) => a.distance - b.distance);
+                    break;
+                case 'rating':
+                    sortedPlaces.sort((a, b) => b.rating - a.rating);
+                    break;
+                case 'name':
+                    sortedPlaces.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case 'review':
+                    sortedPlaces.sort((a, b) => b.reviewCount - a.reviewCount);
+                    break;
+            }
+            
+            renderResults(sortedPlaces);
+        }
+
+        // 현재 표시된 장소들 가져오기
+        function getCurrentPlaces() {
+            return places.filter(place => 
+                place.distance <= currentRadius &&
+                (currentCategory === 'all' || place.category === currentCategory)
+            );
+        }
+
+        // 결과 렌더링
+        function renderResults(placesToShow = null) {
+            const resultsList = document.getElementById('resultsList');
+            const resultsCount = document.getElementById('resultsCount');
+            
+            const displayPlaces = placesToShow || getCurrentPlaces();
+            
+            resultsCount.textContent = displayPlaces.length;
+            
+            if (displayPlaces.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"></div>
+                        <h3>검색 결과가 없습니다</h3>
+                        <p>다른 키워드나 더 넓은 반경으로 검색해보세요.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultsList.innerHTML = displayPlaces.map(place => `
+                <div class="place-card">
+                    <div class="place-image">📸 이미지 영역</div>
+                    <div class="place-content">
+                        <div class="place-header">
+                            <h3 class="place-name">${place.name}</h3>
+                            <span class="place-distance">${TripGen.Utils.formatDistance(place.distance)}</span>
+                        </div>
+                        <span class="place-category">${getCategoryName(place.category)}</span>
+                        <div class="place-rating">
+                            <span class="stars">${generateStars(place.rating)}</span>
+                            <span class="rating-text">${place.rating} (${TripGen.Utils.formatNumber(place.reviewCount)}개 리뷰)</span>
+                        </div>
+                        <p class="place-address">${place.address}</p>
+                        <div class="place-actions">
+                            <button class="btn-outline" onclick="showPlaceDetails(${place.id})">상세정보</button>
+                            <button class="btn-outline" onclick="showRoute(${place.id})">길찾기</button>
+                            <button class="btn btn-primary btn-sm" onclick="addToItinerary(${place.id})">일정추가</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 카테고리 이름 변환
+        function getCategoryName(category) {
+            const categoryMap = {
+                'restaurant': '음식점',
+                'tourist': '관광지',
+                'shopping': '쇼핑',
+                'accommodation': '숙박',
+                'culture': '문화시설'
+            };
+            return categoryMap[category] || '기타';
+        }
+
+        // 별점 생성
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+            
+            return '★'.repeat(fullStars) + 
+                   (hasHalfStar ? '☆' : '') + 
+                   '☆'.repeat(emptyStars);
+        }
+
+        // 뷰 전환 (모바일)
+        function switchView(view) {
+            const listView = document.getElementById('resultsContainer');
+            const mapView = document.getElementById('mapContainer');
+            const toggleBtns = document.querySelectorAll('.view-toggle-btn');
+            
+            toggleBtns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (view === 'list') {
+                listView.classList.add('active');
+                mapView.classList.remove('active');
+            } else {
+                listView.classList.remove('active');
+                mapView.classList.add('active');
+            }
+            
+            currentView = view;
+        }
+
+        // 장소 상세정보
+        function showPlaceDetails(placeId) {
+            const place = places.find(p => p.id === placeId);
+            if (place) {
+                // 실제로는 장소 상세정보 페이지로 이동
+                TripGen.showToast(`${place.name} 상세정보를 확인합니다.`, 'info');
+                setTimeout(() => {
+                    window.location.href = '07-장소상세정보.html';
+                }, 1000);
+            }
+        }
+
+        // 길찾기
+        function showRoute(placeId) {
+            const place = places.find(p => p.id === placeId);
+            if (place) {
+                TripGen.showToast(`${place.name}까지의 경로를 확인합니다.`, 'info');
+                setTimeout(() => {
+                    window.location.href = '10-이동경로확인.html';
+                }, 1000);
+            }
+        }
+
+        // 일정에 추가
+        function addToItinerary(placeId) {
+            const place = places.find(p => p.id === placeId);
+            if (place) {
+                TripGen.confirmDialog(
+                    `'${place.name}'을(를) 일정에 추가하시겠습니까?`,
+                    () => {
+                        TripGen.showToast(`${place.name}이(가) 일정에 추가되었습니다.`, 'success');
+                    }
+                );
+            }
+        }
+
+        // 로딩 표시
+        function showLoading() {
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = `
+                <div class="loading-skeleton">
+                    ${Array(3).fill().map(() => `
+                        <div class="skeleton-card">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line short"></div>
+                            <div class="skeleton-line medium"></div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 로딩 숨기기
+        function hideLoading() {
+            // renderResults 함수에서 처리됨
+        }
+    </script>
+</body>
+</html>
