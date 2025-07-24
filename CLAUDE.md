@@ -10,6 +10,7 @@
   - [서비스 기획 가이드](#서비스-기획-가이드)
   - [설계 가이드](#설계-가이드)
   - [개발 가이드](#개발-가이드)
+  - [참조 문서](#참조-문서)
   - [기술 도구](#기술-도구)
 
 ## 스쿼드 소개
@@ -179,9 +180,9 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 
 - **아키텍처 패턴 선정 가이드**
   - 설명: 클라우드 아키텍처 패턴 선정 방법 안내 
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/requirements/architecture-patterns.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/architecture-patterns.md
   - 파일명: architecture-patterns.md
-
+  
 - **공통 설계 원칙**
   - 설명: 모든 설계 시 적용할 공통 설계 원칙 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/common-principles.md
@@ -220,6 +221,14 @@ AI 기반 여행 상세 일정 생성 서비스 개발
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/build/backing-service.md
   - 파일명: backing-service.md
 
+---
+
+## 참조 문서
+- **High Level 아키텍처 정의서 템플릿**
+  - 설명: MSA 7대 컴포넌트별로 상위 수준의 아키텍처를 정의한 문서   
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/highlevel-architecture-template.md
+  - 파일명: highlevel-architecture-template.md
+  
 ---
 
 ## 기술 도구
