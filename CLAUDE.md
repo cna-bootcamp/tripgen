@@ -238,7 +238,12 @@ AI 기반 여행 상세 일정 생성 서비스 개발
   - 설명: MSA 7대 컴포넌트별로 상위 수준의 아키텍처를 정의한 문서   
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/highlevel-architecture-template.md
   - 파일명: highlevel-architecture-template.md
-  
+
+- **제품별 버전 가이드**
+  - 설명: 개발언어, 개발 프레임워크, AI제품 등의 버전 참조를 위한 페이지 링크 제공  
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/version-link.md
+  - 파일명: version-link.md
+    
 ---
 
 ## 기술 도구
