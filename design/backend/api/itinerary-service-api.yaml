@@ -57,10 +57,11 @@ paths:
     post:
       x-user-story: RQ-ITIN-001
       x-controller: ItineraryController
+      x-async: true
       tags:
         - itineraries
       summary: AI 기반 일정 자동 생성
-      description: 여행 정보와 멤버 특성을 고려하여 일일 상세 일정을 자동으로 생성합니다
+      description: 여행 정보와 멤버 특성을 고려하여 일일 상세 일정을 자동으로 생성합니다 (비동기 처리)
       operationId: generateItinerary
       parameters:
         - $ref: '#/components/parameters/TripId'
@@ -81,15 +82,110 @@ paths:
                   breakfast: "08:00"
                   lunch: "12:00"
                   dinner: "18:00"
+              maxRetries: 3
+              timeoutSeconds: 30
       responses:
-        '201':
-          description: 일정이 성공적으로 생성됨
+        '202':
+          description: 일정 생성 요청이 접수되었습니다
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Itinerary'
+                type: object
+                required:
+                  - jobId
+                  - status
+                  - message
+                properties:
+                  jobId:
+                    type: string
+                    format: uuid
+                    description: 일정 생성 작업 ID
+                    example: "550e8400-e29b-41d4-a716-446655440007"
+                  status:
+                    type: string
+                    enum: [PENDING]
+                    description: 작업 상태
+                    example: "PENDING"
+                  message:
+                    type: string
+                    description: 상태 메시지
+                    example: "일정 생성 요청이 접수되었습니다. 잠시 후 상태를 확인해주세요."
         '400':
           $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /api/itinerary/trips/{tripId}/generation-status/{jobId}:
+    get:
+      x-user-story: RQ-ITIN-001
+      x-controller: ItineraryController
+      tags:
+        - itineraries
+      summary: 일정 생성 진행 상태 조회
+      description: AI 일정 생성 작업의 진행 상태를 조회합니다
+      operationId: getGenerationStatus
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: 생성 상태 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationStatus'
+              examples:
+                pending:
+                  summary: 대기 중
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440007"
+                    status: "PENDING"
+                    progress: 0
+                    message: "일정 생성 요청이 대기열에 있습니다."
+                    createdAt: "2024-01-15T09:00:00Z"
+                processing:
+                  summary: 처리 중
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440007"
+                    status: "PROCESSING"
+                    progress: 45
+                    message: "Claude API를 통해 일정을 생성하고 있습니다..."
+                    createdAt: "2024-01-15T09:00:00Z"
+                    startedAt: "2024-01-15T09:00:05Z"
+                completed:
+                  summary: 완료
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440007"
+                    status: "COMPLETED"
+                    progress: 100
+                    message: "일정 생성이 완료되었습니다."
+                    createdAt: "2024-01-15T09:00:00Z"
+                    startedAt: "2024-01-15T09:00:05Z"
+                    completedAt: "2024-01-15T09:00:25Z"
+                    result:
+                      itineraryId: "550e8400-e29b-41d4-a716-446655440003"
+                      date: "2024-07-02"
+                      dayNumber: 2
+                failed:
+                  summary: 실패
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440007"
+                    status: "FAILED"
+                    progress: 30
+                    message: "Claude API 응답 시간 초과로 일정 생성에 실패했습니다."
+                    createdAt: "2024-01-15T09:00:00Z"
+                    startedAt: "2024-01-15T09:00:05Z"
+                    failedAt: "2024-01-15T09:00:35Z"
+                    error:
+                      code: "TIMEOUT"
+                      message: "Claude API response timeout after 30 seconds"
+                      retryCount: 3
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -542,6 +638,16 @@ components:
         type: string
         format: uuid
         example: "550e8400-e29b-41d4-a716-446655440006"
+    
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      description: 일정 생성 작업 고유 ID
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440007"
 
   schemas:
     Itinerary:
@@ -619,6 +725,20 @@ components:
           maxLength: 1000
           description: 사용자가 자유롭게 입력하는 추가 요구사항 (자연어)
           example: "오후 3시쯤 카페에서 휴식 시간을 갖고 싶어요. 가급적 대중교통으로 이동 가능한 곳으로 추천해주세요. 매운 음식은 피해주세요."
+        maxRetries:
+          type: integer
+          description: Claude API 호출 실패 시 최대 재시도 횟수
+          minimum: 0
+          maximum: 5
+          default: 3
+          example: 3
+        timeoutSeconds:
+          type: integer
+          description: Claude API 응답 대기 시간 (초)
+          minimum: 10
+          maximum: 300
+          default: 30
+          example: 30
         preferences:
           type: object
           description: 일정 생성 선호 옵션
@@ -1228,6 +1348,132 @@ components:
           type: string
           description: 요청 경로
           example: "/api/itinerary/trips/550e8400-e29b-41d4-a716-446655440001/itineraries"
+    
+    GenerationStatus:
+      type: object
+      required:
+        - jobId
+        - status
+        - progress
+        - message
+        - createdAt
+      properties:
+        jobId:
+          type: string
+          format: uuid
+          description: 작업 고유 ID
+          example: "550e8400-e29b-41d4-a716-446655440007"
+        status:
+          type: string
+          description: 작업 상태
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+          example: "PROCESSING"
+        progress:
+          type: integer
+          description: 진행률 (0-100)
+          minimum: 0
+          maximum: 100
+          example: 45
+        message:
+          type: string
+          description: 현재 상태 메시지
+          example: "Claude API를 통해 일정을 생성하고 있습니다..."
+        createdAt:
+          type: string
+          format: date-time
+          description: 작업 생성 시간
+          example: "2024-01-15T09:00:00Z"
+        startedAt:
+          type: string
+          format: date-time
+          description: 작업 시작 시간
+          example: "2024-01-15T09:00:05Z"
+        completedAt:
+          type: string
+          format: date-time
+          description: 작업 완료 시간
+          example: "2024-01-15T09:00:25Z"
+        failedAt:
+          type: string
+          format: date-time
+          description: 작업 실패 시간
+          example: "2024-01-15T09:00:35Z"
+        result:
+          type: object
+          description: 성공 시 결과 데이터
+          properties:
+            itineraryId:
+              type: string
+              format: uuid
+              description: 생성된 일정 ID
+              example: "550e8400-e29b-41d4-a716-446655440003"
+            date:
+              type: string
+              format: date
+              description: 일정 날짜
+              example: "2024-07-02"
+            dayNumber:
+              type: integer
+              description: 여행 중 며칠째
+              example: 2
+        error:
+          type: object
+          description: 실패 시 오류 정보
+          properties:
+            code:
+              type: string
+              description: 오류 코드
+              example: "TIMEOUT"
+            message:
+              type: string
+              description: 오류 메시지
+              example: "Claude API response timeout after 30 seconds"
+            retryCount:
+              type: integer
+              description: 재시도 횟수
+              example: 3
+    
+    ClaudeGenerationLog:
+      type: object
+      required:
+        - id
+        - jobId
+        - timestamp
+        - logType
+        - message
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 로그 고유 ID
+          example: "550e8400-e29b-41d4-a716-446655440008"
+        jobId:
+          type: string
+          format: uuid
+          description: 작업 ID
+          example: "550e8400-e29b-41d4-a716-446655440007"
+        timestamp:
+          type: string
+          format: date-time
+          description: 로그 생성 시간
+          example: "2024-01-15T09:00:10Z"
+        logType:
+          type: string
+          description: 로그 유형
+          enum: [REQUEST, RESPONSE, ERROR, RETRY]
+          example: "REQUEST"
+        message:
+          type: string
+          description: 로그 메시지
+          example: "Claude API 호출 시작: 제주도 2일차 일정 생성"
+        details:
+          type: object
+          description: 상세 정보
+          additionalProperties: true
+          example:
+            model: "claude-3-opus-20240229"
+            tokenCount: 1500
+            retryAttempt: 1
 
   responses:
     BadRequest:
@@ -1250,6 +1496,32 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    
+    ServiceUnavailable:
+      description: 서비스 사용 불가 (Claude API 사용 불가)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2024-01-15T10:30:00Z"
+            status: 503
+            error: "Service Unavailable"
+            message: "Claude API is currently unavailable. Please try again later."
+            path: "/api/itinerary/trips/550e8400-e29b-41d4-a716-446655440001/itineraries"
+    
+    GatewayTimeout:
+      description: 게이트웨이 시간 초과 (일정 생성 시간 초과)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2024-01-15T10:30:00Z"
+            status: 504
+            error: "Gateway Timeout"
+            message: "Itinerary generation timed out after 30 seconds. Please check the generation status."
+            path: "/api/itinerary/trips/550e8400-e29b-41d4-a716-446655440001/itineraries"
 
   securitySchemes:
     BearerAuth:

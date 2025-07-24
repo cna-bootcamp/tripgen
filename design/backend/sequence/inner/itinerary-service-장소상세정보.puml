@@ -105,7 +105,7 @@ else 캐시 미스 || refresh=true
     deactivate PR
     
     ' Location Service 통해 실시간 정보 조회
-    PS -> AG: GET /location/places/{placeId}/details
+    PS -> AG: GET /places/{placeId}?include_reviews=true&include_photos=true
     note right: Circuit Breaker 적용된 외부 API 호출
     
     activate AG

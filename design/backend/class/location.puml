@@ -613,35 +613,160 @@ package "com.unicorn.tripgen.location" {
                 - description: String
                 - category: String
                 - subCategories: String
+                - location: String  // GEOGRAPHY(POINT)
                 - latitude: Double
                 - longitude: Double
                 - address: String
+                - streetAddress: String
+                - postalCode: String
+                - country: String
+                - region: String
+                - district: String
+                - neighborhood: String
                 - rating: Double
                 - reviewCount: Integer
                 - priceLevel: Integer
                 - tags: String
                 - thumbnailUrl: String
+                - isActive: Boolean
+                - dataSource: String
+                - externalId: String
                 - createdAt: LocalDateTime
                 - updatedAt: LocalDateTime
-                - version: Long
+                - lastValidated: LocalDateTime
+                - version: Integer
                 + PlaceEntity()
             }
             
-            class PlaceDetailsEntity extends PlaceEntity {
+            class PlaceDetailsEntity {
+                - placeId: String @Id
                 - phone: String
                 - email: String
-                - businessHours: String
-                - amenities: String
+                - socialMedia: String  // JSONB
                 - website: String
                 - reservationUrl: String
-                - lastValidated: LocalDateTime
+                - amenities: String  // JSONB
+                - photos: String  // JSONB
+                - popularTimes: String  // JSONB
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
                 + PlaceDetailsEntity()
+            }
+            
+            class BusinessHoursEntity {
+                - id: Long @Id @GeneratedValue
+                - placeId: String
+                - dayOfWeek: Integer
+                - openTime: LocalTime
+                - closeTime: LocalTime
+                - breakStart: LocalTime
+                - breakEnd: LocalTime
+                - is24Hours: Boolean
+                - isClosed: Boolean
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+                + BusinessHoursEntity()
+            }
+            
+            class SpecialHoursEntity {
+                - id: Long @Id @GeneratedValue
+                - placeId: String
+                - date: LocalDate
+                - openTime: LocalTime
+                - closeTime: LocalTime
+                - isClosed: Boolean
+                - reason: String
+                - createdAt: LocalDateTime
+                + SpecialHoursEntity()
+            }
+            
+            class ReviewEntity {
+                - id: Long @Id @GeneratedValue
+                - placeId: String
+                - externalId: String
+                - author: String
+                - rating: Double
+                - text: String
+                - language: String
+                - helpfulCount: Integer
+                - photos: String  // JSONB
+                - dataSource: String
+                - createdAt: LocalDateTime
+                - importedAt: LocalDateTime
+                + ReviewEntity()
+            }
+            
+            class RegionInfoEntity {
+                - regionCode: String @Id
+                - regionName: String
+                - parentCode: String
+                - characteristics: String  // JSONB
+                - popularCategories: String  // JSONB
+                - seasonalHighlights: String  // JSONB
+                - timezone: String
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
+                + RegionInfoEntity()
+            }
+            
+            class PlaceSearchCacheEntity {
+                - cacheKey: String @Id
+                - searchCriteria: String  // JSONB
+                - resultIds: String  // JSONB
+                - resultCount: Integer
+                - createdAt: LocalDateTime
+                - expiresAt: LocalDateTime
+                + PlaceSearchCacheEntity()
+            }
+            
+            class TranslationCacheEntity {
+                - id: Long @Id @GeneratedValue
+                - originalText: String
+                - sourceLanguage: String
+                - targetLanguage: String
+                - translatedText: String
+                - createdAt: LocalDateTime
+                - expiresAt: LocalDateTime
+                + TranslationCacheEntity()
             }
             
             interface PlaceJpaRepository extends JpaRepository<PlaceEntity, String> {
                 + findByLocationNear(latitude: Double, longitude: Double, distance: Double): List<PlaceEntity>
                 + findByCategoryIn(categories: List<String>): List<PlaceEntity>
                 + findByIdIn(ids: List<String>): List<PlaceEntity>
+            }
+            
+            interface PlaceDetailsJpaRepository extends JpaRepository<PlaceDetailsEntity, String> {
+                + findByPlaceId(placeId: String): Optional<PlaceDetailsEntity>
+            }
+            
+            interface BusinessHoursJpaRepository extends JpaRepository<BusinessHoursEntity, Long> {
+                + findByPlaceId(placeId: String): List<BusinessHoursEntity>
+                + findByPlaceIdAndDayOfWeek(placeId: String, dayOfWeek: Integer): Optional<BusinessHoursEntity>
+            }
+            
+            interface SpecialHoursJpaRepository extends JpaRepository<SpecialHoursEntity, Long> {
+                + findByPlaceIdAndDate(placeId: String, date: LocalDate): Optional<SpecialHoursEntity>
+                + findByPlaceIdAndDateBetween(placeId: String, start: LocalDate, end: LocalDate): List<SpecialHoursEntity>
+            }
+            
+            interface ReviewJpaRepository extends JpaRepository<ReviewEntity, Long> {
+                + findByPlaceId(placeId: String): List<ReviewEntity>
+                + findByPlaceIdOrderByCreatedAtDesc(placeId: String): List<ReviewEntity>
+                + findByDataSourceAndExternalId(dataSource: String, externalId: String): Optional<ReviewEntity>
+            }
+            
+            interface RegionInfoJpaRepository extends JpaRepository<RegionInfoEntity, String> {
+                + findByParentCode(parentCode: String): List<RegionInfoEntity>
+            }
+            
+            interface PlaceSearchCacheJpaRepository extends JpaRepository<PlaceSearchCacheEntity, String> {
+                + deleteByExpiresAtBefore(timestamp: LocalDateTime): void
+            }
+            
+            interface TranslationCacheJpaRepository extends JpaRepository<TranslationCacheEntity, Long> {
+                + findByOriginalTextAndSourceLanguageAndTargetLanguage(originalText: String, sourceLanguage: String, targetLanguage: String): Optional<TranslationCacheEntity>
+                + deleteByExpiresAtBefore(timestamp: LocalDateTime): void
             }
         }
         
@@ -753,7 +878,20 @@ RecommendationResponse --> RegionInfoDto
 MultilingualSearchResponse --> MultilingualPlaceResult
 
 ' Entity 관계
-PlaceDetailsEntity --|> PlaceEntity
+PlaceDetailsEntity }o--|| PlaceEntity : "extends details"
+BusinessHoursEntity }o--|| PlaceEntity : "belongs to"
+SpecialHoursEntity }o--|| PlaceEntity : "belongs to"
+ReviewEntity }o--|| PlaceEntity : "belongs to"
+RegionInfoEntity ||--o{ RegionInfoEntity : "parent-child"
+
+' Repository relationships
 PlaceJpaRepository --> PlaceEntity
+PlaceDetailsJpaRepository --> PlaceDetailsEntity
+BusinessHoursJpaRepository --> BusinessHoursEntity
+SpecialHoursJpaRepository --> SpecialHoursEntity
+ReviewJpaRepository --> ReviewEntity
+RegionInfoJpaRepository --> RegionInfoEntity
+PlaceSearchCacheJpaRepository --> PlaceSearchCacheEntity
+TranslationCacheJpaRepository --> TranslationCacheEntity
 
 @enduml

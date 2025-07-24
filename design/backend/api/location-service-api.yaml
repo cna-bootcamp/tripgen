@@ -19,7 +19,7 @@ tags:
   - name: recommendations
     description: 장소 추천
   - name: validation
-    description: 장소 정보 검증
+    description: 장소 정보 검증 및 Claude 추천 장소 검증
 
 paths:
   /places/search/nearby:
@@ -117,6 +117,13 @@ paths:
               - popularity
               - relevance
             default: distance
+        - name: fuzzyMatch
+          in: query
+          required: false
+          description: 유사 명칭 검색 허용 (Claude 추천 장소명과 유사한 장소 검색 시 사용)
+          schema:
+            type: boolean
+            default: false
         - name: page
           in: query
           required: false
@@ -248,6 +255,94 @@ paths:
           $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+
+  /places/validate-batch:
+    post:
+      tags:
+        - validation
+      summary: Claude 추천 장소 일괄 검증
+      description: Claude가 추천한 장소들의 실제 존재 여부와 정확한 정보를 일괄 검증
+      operationId: validateClaudePlaces
+      x-user-story: RQ-ITI-002
+      x-controller: LocationController
+      x-mcp-provider: auto
+      x-circuit-breaker-timeout: 10000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceValidationRequest'
+            example:
+              places:
+                - name: "에펠탑 근처 카페"
+                  approximate_location:
+                    city: "파리"
+                    country: "프랑스"
+                    landmark: "에펠탑"
+                  category: "cafe"
+                  context: "아침에 크루아상과 커피를 즐기기 좋은 곳"
+                - name: "루브르 박물관 정문 레스토랑"
+                  approximate_location:
+                    city: "파리"
+                    country: "프랑스"
+                    landmark: "루브르 박물관"
+                  category: "restaurant"
+                  context: "점심 식사를 위한 프랑스 전통 요리 레스토랑"
+              search_radius: 500
+              language: "ko"
+      responses:
+        '200':
+          description: 검증 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceValidationResult'
+              example:
+                validation_id: "val_20240120_abc123"
+                total_places: 2
+                validated_places:
+                  - original_name: "에펠탑 근처 카페"
+                    validation_status: "found"
+                    matched_place:
+                      id: "ChIJLU7jZClu5kcR4PcOOO6p3I0"
+                      name: "Café de l'Homme"
+                      address: "17 Place du Trocadéro et du 11 Novembre, 75116 Paris"
+                      location:
+                        latitude: 48.8619
+                        longitude: 2.2887
+                      distance_from_landmark: 350
+                      rating: 4.2
+                      price_level: 3
+                      is_open_now: true
+                    confidence_score: 0.95
+                    alternative_suggestions:
+                      - id: "ChIJW89MjgFu5kcRLxBvBvy0Nkk"
+                        name: "Café Gustave"
+                        distance_from_landmark: 200
+                        reason: "더 가까운 위치의 인기 카페"
+                  - original_name: "루브르 박물관 정문 레스토랑"
+                    validation_status: "found_similar"
+                    matched_place:
+                      id: "ChIJD3uTd9hx5kcR1IQvGfr8dbk"
+                      name: "Le Café Marly"
+                      address: "93 Rue de Rivoli, 75001 Paris"
+                      location:
+                        latitude: 48.8606
+                        longitude: 2.3354
+                      distance_from_landmark: 150
+                      rating: 4.0
+                      price_level: 4
+                      is_open_now: false
+                    confidence_score: 0.85
+                    notes: "루브르 박물관 내부에 위치한 고급 레스토랑"
+                validation_timestamp: "2024-01-20T10:30:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /places/recommendations/regional:
     get:
@@ -998,6 +1093,258 @@ components:
           enum: [kakao, google, mixed, cached]
         api_version:
           type: string
+
+    PlaceValidationRequest:
+      type: object
+      required:
+        - places
+      properties:
+        places:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PlaceToValidate'
+          description: 검증할 장소 목록
+        search_radius:
+          type: integer
+          minimum: 100
+          maximum: 5000
+          default: 1000
+          description: 랜드마크 기준 검색 반경 (미터)
+        language:
+          type: string
+          pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+          default: ko
+          description: 결과 언어 코드
+        include_alternatives:
+          type: boolean
+          default: true
+          description: 대체 장소 제안 포함 여부
+
+    PlaceToValidate:
+      type: object
+      required:
+        - name
+        - approximate_location
+      properties:
+        name:
+          type: string
+          description: Claude가 추천한 장소명
+          example: "에펠탑 근처 카페"
+        approximate_location:
+          $ref: '#/components/schemas/ApproximateLocation'
+        category:
+          type: string
+          description: 예상 카테고리
+          enum:
+            - restaurant
+            - cafe
+            - tourist_attraction
+            - accommodation
+            - shopping
+            - entertainment
+        context:
+          type: string
+          description: 추천 맥락 (아침 식사용, 휴식 장소 등)
+        preferred_attributes:
+          type: array
+          items:
+            type: string
+          description: 선호 속성 (테라스, 조용한, 전통적인)
+
+    ApproximateLocation:
+      type: object
+      required:
+        - city
+        - country
+      properties:
+        city:
+          type: string
+          description: 도시명
+        country:
+          type: string
+          description: 국가명
+        landmark:
+          type: string
+          description: 주요 랜드마크
+        district:
+          type: string
+          description: 지역/구역명
+        coordinates:
+          type: object
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+          description: 대략적인 좌표 (있는 경우)
+
+    PlaceValidationResult:
+      type: object
+      required:
+        - validation_id
+        - total_places
+        - validated_places
+        - validation_timestamp
+      properties:
+        validation_id:
+          type: string
+          description: 검증 작업 ID
+        total_places:
+          type: integer
+          description: 총 검증 요청 장소 수
+        validated_places:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidatedPlace'
+        validation_timestamp:
+          type: string
+          format: date-time
+          description: 검증 시각
+        cache_hit_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: 캐시 적중률
+
+    ValidatedPlace:
+      type: object
+      required:
+        - original_name
+        - validation_status
+      properties:
+        original_name:
+          type: string
+          description: Claude가 추천한 원래 장소명
+        validation_status:
+          type: string
+          enum:
+            - found
+            - found_similar
+            - not_found
+            - ambiguous
+          description: 검증 상태
+        matched_place:
+          $ref: '#/components/schemas/MatchedPlace'
+        confidence_score:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: 매칭 신뢰도
+        alternative_suggestions:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/AlternativePlaceSuggestion'
+          description: 대체 장소 제안
+        notes:
+          type: string
+          description: 추가 정보 또는 주의사항
+        validation_warnings:
+          type: array
+          items:
+            type: string
+          description: 검증 경고 (영업시간 불확실, 최근 폐업 가능성)
+
+    MatchedPlace:
+      type: object
+      required:
+        - id
+        - name
+        - address
+        - location
+      properties:
+        id:
+          type: string
+          description: 실제 장소 ID
+        name:
+          type: string
+          description: 실제 장소명
+        address:
+          type: string
+          description: 전체 주소
+        location:
+          $ref: '#/components/schemas/Location'
+        distance_from_landmark:
+          type: integer
+          description: 랜드마크로부터의 거리 (미터)
+        category:
+          type: string
+          description: 실제 카테고리
+        sub_categories:
+          type: array
+          items:
+            type: string
+        rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        review_count:
+          type: integer
+        price_level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        is_open_now:
+          type: boolean
+        business_hours:
+          $ref: '#/components/schemas/BusinessHours'
+        phone:
+          type: string
+        website:
+          type: string
+          format: uri
+        photos:
+          type: array
+          maxItems: 3
+          items:
+            type: string
+            format: uri
+          description: 대표 사진 URL
+
+    AlternativePlaceSuggestion:
+      type: object
+      required:
+        - id
+        - name
+        - reason
+      properties:
+        id:
+          type: string
+          description: 대체 장소 ID
+        name:
+          type: string
+          description: 대체 장소명
+        distance_from_landmark:
+          type: integer
+          description: 랜드마크로부터의 거리 (미터)
+        similarity_score:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: 요청 장소와의 유사도
+        reason:
+          type: string
+          description: 추천 이유
+        rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        price_level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        category_match:
+          type: boolean
+          description: 카테고리 일치 여부
 
     Pagination:
       type: object

@@ -30,7 +30,7 @@ else 캐시 미스
     TR --> TS: List<TransportSetting>
     deactivate TR
     
-    TS -> RC: set("transport:settings:" + tripId, settings, 1800)
+    TS -> RC: set("transport:settings:" + tripId, settings, 3600)
     activate RC
     deactivate RC
     
@@ -238,7 +238,7 @@ end note
 note over RC
 캐시 관리 전략:
 - Key: "transport:settings:{tripId}"
-- TTL: 1800초 (30분)
+- TTL: 3600초 (1시간)
 - 설정 변경 시 즉시 무효화
 - 조회 시 캐시 우선 확인
 end note

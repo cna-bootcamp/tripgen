@@ -19,6 +19,9 @@ TABLE(itineraries, "ITINERARIES\n(일정)") {
     total_distance: DECIMAL(10, 2)
     total_duration: INT
     status: VARCHAR(20) NOT NULL
+    generation_method: VARCHAR(20) NOT NULL
+    validation_status: VARCHAR(30) NOT NULL
+    FK(generation_job_id: VARCHAR(36))
     version: BIGINT NOT NULL
     created_at: TIMESTAMP NOT NULL
     updated_at: TIMESTAMP NOT NULL
@@ -142,10 +145,35 @@ TABLE(cache, "PLACE_CACHE\n(장소 캐시)") {
     updated_at: TIMESTAMP NOT NULL
 }
 
+TABLE(claude_logs, "CLAUDE_GENERATION_LOGS\n(Claude 생성 로그)") {
+    PK(id: VARCHAR(36))
+    --
+    FK(trip_id: VARCHAR(36)) NOT NULL
+    request_date: TIMESTAMP NOT NULL
+    prompt_text: TEXT NOT NULL
+    response_text: TEXT
+    retry_count: INT NOT NULL
+    status: VARCHAR(20) NOT NULL
+    created_at: TIMESTAMP NOT NULL
+}
+
+TABLE(generation_jobs, "GENERATION_JOBS\n(생성 작업)") {
+    PK(job_id: VARCHAR(36))
+    --
+    FK(trip_id: VARCHAR(36)) NOT NULL
+    status: VARCHAR(20) NOT NULL
+    progress: INT NOT NULL
+    error_message: TEXT
+    created_at: TIMESTAMP NOT NULL
+    updated_at: TIMESTAMP NOT NULL
+}
+
 ' 관계 정의
 itineraries ||--o{ activities : "contains"
 itineraries ||--o{ routes : "has"
 itineraries ||--o{ jobs : "tracked by"
+itineraries }o--|| generation_jobs : "created by"
+itineraries ||--o{ claude_logs : "generates"
 activities ||--o{ attachments : "has"
 activities }o--|| cache : "references"
 
@@ -220,6 +248,8 @@ end note
 note bottom of itineraries
     **Check Constraints:**
     - status IN ('DRAFT', 'GENERATING', 'GENERATED', 'CONFIRMED', 'COMPLETED', 'CANCELLED')
+    - generation_method IN ('CLAUDE_API', 'MANUAL')
+    - validation_status IN ('PENDING', 'VALIDATED', 'PARTIALLY_VALIDATED')
     - day_number > 0
     - total_distance >= 0
     - total_duration >= 0
@@ -232,6 +262,31 @@ note bottom of activities
     - latitude >= -90 AND latitude <= 90
     - longitude >= -180 AND longitude <= 180
     - end_time > start_time
+end note
+
+note top of claude_logs
+    **Indexes:**
+    - PRIMARY KEY (id)
+    - INDEX idx_trip_id (trip_id)
+    - INDEX idx_created_at (created_at)
+    - INDEX idx_trip_created (trip_id, created_at)
+    - INDEX idx_status (status)
+    
+    **Check Constraints:**
+    - status IN ('SUCCESS', 'FAILED')
+    - retry_count >= 0
+end note
+
+note top of generation_jobs
+    **Indexes:**
+    - PRIMARY KEY (job_id)
+    - INDEX idx_trip_id (trip_id)
+    - INDEX idx_status (status)
+    - INDEX idx_created_at (created_at)
+    
+    **Check Constraints:**
+    - status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
+    - progress >= 0 AND progress <= 100
 end note
 
 @enduml

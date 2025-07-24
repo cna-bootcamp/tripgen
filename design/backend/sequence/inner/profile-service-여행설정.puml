@@ -36,8 +36,8 @@ else 캐시 미스
     Repository --> Service : List<Trip>
     deactivate Repository
     
-    ' 조회 결과를 캐시에 저장 (TTL: 24시간)
-    Service -> Cache : setex("profile:trips:list", trips, 86400)
+    ' 조회 결과를 캐시에 저장 (TTL: 1시간)
+    Service -> Cache : setex("profile:trips:list", trips, 3600)
     activate Cache
     Cache --> Service : 캐시 저장 완료
     deactivate Cache
@@ -113,7 +113,7 @@ else 유효성 검사 성공
     Cache --> Service : 목록 캐시 삭제 완료
     deactivate Cache
     
-    Service -> Cache : setex("profile:trip:" + tripId, trip, 86400)
+    Service -> Cache : setex("profile:trip:" + tripId, trip, 3600)
     activate Cache
     Cache --> Service : 개별 캐시 저장 완료
     deactivate Cache
@@ -154,7 +154,7 @@ else 캐시 미스
         Controller --> Client : 404 Not Found
     else 여행 존재
         ' 조회된 여행을 캐시에 저장
-        Service -> Cache : setex("profile:trip:" + tripId, trip, 86400)
+        Service -> Cache : setex("profile:trip:" + tripId, trip, 3600)
         activate Cache
         Cache --> Service : 캐시 저장 완료
         deactivate Cache
@@ -236,7 +236,7 @@ else 유효성 검사 성공
         Cache --> Service : 목록 캐시 삭제 완료
         deactivate Cache
         
-        Service -> Cache : setex("profile:trip:" + tripId, updatedTrip, 86400)
+        Service -> Cache : setex("profile:trip:" + tripId, updatedTrip, 3600)
         activate Cache
         Cache --> Service : 개별 캐시 업데이트 완료
         deactivate Cache
@@ -306,8 +306,8 @@ deactivate Controller
 
 note over Cache
 <b>캐시 키 패턴</b>
-- profile:trips:list (여행 목록, TTL: 24시간)
-- profile:trip:{tripId} (개별 여행, TTL: 24시간)
+- profile:trips:list (여행 목록, TTL: 1시간)
+- profile:trip:{tripId} (개별 여행, TTL: 1시간)
 
 <b>캐시 무효화 전략</b>
 - 생성/수정/삭제 시 관련 캐시 즉시 무효화

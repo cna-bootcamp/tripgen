@@ -467,12 +467,13 @@ package "com.unicorn.tripgen.itinerary" {
                 - itineraryRepository: ItineraryRepository
                 - profileServicePort: ProfileServicePort
                 - locationServicePort: LocationServicePort
-                - aiServicePort: AIServicePort
+                - aiOrchestrator: AIOrchestrator
                 - jobQueueService: JobQueueService
                 - eventPublisher: EventPublisher
                 + execute(command: GenerateItineraryCommand): GenerateItineraryResult
                 - createItineraryJob(command: GenerateItineraryCommand): Job
                 - validateTripAccess(tripId: String): void
+                - processAIGeneration(tripProfile: TripProfile, preferences: ItineraryPreferences): GeneratedItinerary
             }
             
             class UpdateItineraryService implements UpdateItineraryUseCase {
@@ -523,6 +524,69 @@ package "com.unicorn.tripgen.itinerary" {
                 + optimizeActivities(activities: List<DailyActivity>): List<DailyActivity>
                 - buildAIRequest(preferences: GenerationPreferences): AIItineraryRequest
                 - parseAIResponse(response: AIItineraryResponse): List<DailyActivity>
+            }
+            
+            ' AI Orchestration Classes
+            class AIOrchestrator {
+                - claudeAPIClient: ClaudeAPIClient
+                - promptBuilder: PromptBuilder
+                - responseParser: ResponseParser
+                - locationValidator: LocationValidator
+                - cachePort: CachePort
+                - maxRetries: Integer
+                + orchestrateGeneration(tripProfile: TripProfile, preferences: ItineraryPreferences): GeneratedItinerary
+                + handleRetry(attempt: Integer, error: Exception): Boolean
+                - validateGeneratedPlaces(activities: List<DailyActivity>): List<PlaceValidationResult>
+                - enrichActivityDetails(activities: List<DailyActivity>): List<DailyActivity>
+                - cacheGenerationResult(key: String, result: GeneratedItinerary): void
+            }
+            
+            class ClaudeAPIClient {
+                - apiKey: String
+                - apiUrl: String
+                - model: String
+                - timeout: Duration
+                - retryPolicy: RetryPolicy
+                + generateItinerary(prompt: String): ClaudeResponse
+                + retry(prompt: String, attempt: Integer): ClaudeResponse
+                - buildRequest(prompt: String): HttpRequest
+                - parseResponse(response: HttpResponse): ClaudeResponse
+                - handleError(error: Exception): void
+            }
+            
+            class PromptBuilder {
+                - templateLoader: TemplateLoader
+                - profileFormatter: ProfileFormatter
+                + buildItineraryPrompt(tripProfile: TripProfile, preferences: ItineraryPreferences): String
+                + buildOptimizationPrompt(activities: List<DailyActivity>, constraints: List<String>): String
+                - formatDestination(destination: String): String
+                - formatPreferences(preferences: ItineraryPreferences): String
+                - formatMemberPreferences(members: List<MemberPreference>): String
+                - formatConstraints(constraints: List<String>): String
+                - loadTemplate(templateName: String): String
+            }
+            
+            class ResponseParser {
+                - jsonMapper: ObjectMapper
+                - validator: ResponseValidator
+                + parseItineraryResponse(response: ClaudeResponse): List<DailyActivity>
+                + parseOptimizationResponse(response: ClaudeResponse): List<DailyActivity>
+                + extractPlaceInfo(jsonNode: JsonNode): PlaceInfo
+                - validateResponse(response: ClaudeResponse): void
+                - extractActivities(content: String): List<ActivityData>
+                - mapToActivity(data: ActivityData): DailyActivity
+                - parseTimeRange(timeString: String): TimeRange
+            }
+            
+            class LocationValidator {
+                - locationServiceClient: LocationServiceClient
+                - validationCache: Cache<String, PlaceValidationResult>
+                - batchSize: Integer
+                + validatePlacesBatch(places: List<PlaceInfo>): List<PlaceValidationResult>
+                + validateSinglePlace(place: PlaceInfo): PlaceValidationResult
+                - searchPlace(placeName: String, location: Coordinate): Optional<PlaceDetail>
+                - calculateConfidenceScore(aiPlace: PlaceInfo, actualPlace: PlaceDetail): Double
+                - cacheValidationResult(placeId: String, result: PlaceValidationResult): void
             }
             
             ' Route Calculation Service
@@ -710,6 +774,74 @@ package "com.unicorn.tripgen.itinerary" {
                 - reasoning: String
                 - alternativeOptions: List<AIActivity>
             }
+            
+            ' AI Related DTOs
+            class ClaudeResponse {
+                - content: String
+                - model: String
+                - usage: UsageInfo
+                - finishReason: String
+                - generatedAt: LocalDateTime
+            }
+            
+            class PlaceValidationResult {
+                - placeId: String
+                - originalName: String
+                - validatedName: String
+                - confidence: Double
+                - status: ValidationStatus
+                - actualLocation: Coordinate
+                - suggestedAlternatives: List<PlaceInfo>
+            }
+            
+            class GenerationJobStatus {
+                - jobId: String
+                - tripId: String
+                - status: JobStatus
+                - progress: Integer
+                - currentStep: String
+                - startedAt: LocalDateTime
+                - estimatedCompletion: LocalDateTime
+                - error: String
+            }
+            
+            class GeneratedItinerary {
+                - itineraryId: String
+                - activities: List<DailyActivity>
+                - totalDistance: Double
+                - totalDuration: Integer
+                - validationResults: List<PlaceValidationResult>
+                - generationLog: ClaudeGenerationLog
+            }
+            
+            class ClaudeGenerationLog {
+                - logId: String
+                - tripId: String
+                - prompt: String
+                - response: String
+                - model: String
+                - tokensUsed: Integer
+                - duration: Long
+                - retryCount: Integer
+                - createdAt: LocalDateTime
+            }
+            
+            ' Enums for AI
+            enum ValidationStatus {
+                EXACT_MATCH
+                FUZZY_MATCH
+                ALTERNATIVE_FOUND
+                NOT_FOUND
+                VALIDATION_ERROR
+            }
+            
+            enum JobStatus {
+                PENDING
+                PROCESSING
+                COMPLETED
+                FAILED
+                CANCELLED
+            }
         }
     }
     
@@ -817,6 +949,9 @@ package "com.unicorn.tripgen.itinerary" {
                 - totalDistance: Double
                 - totalDuration: Integer
                 - status: String
+                - generationMethod: String
+                - validationStatus: String
+                - generationJobId: String
                 - version: Long
                 - createdAt: LocalDateTime
                 - updatedAt: LocalDateTime
@@ -861,6 +996,7 @@ package "com.unicorn.tripgen.itinerary" {
             
             class RouteEntity <<Entity>> {
                 - id: String
+                - itineraryId: String
                 - fromPlaceId: String
                 - toPlaceId: String
                 - distance: Double
@@ -869,6 +1005,27 @@ package "com.unicorn.tripgen.itinerary" {
                 - polyline: String
                 - steps: String
                 - createdAt: LocalDateTime
+            }
+            
+            class ClaudeGenerationLogEntity <<Entity>> {
+                - id: String
+                - tripId: String
+                - requestDate: LocalDateTime
+                - promptText: String
+                - responseText: String
+                - retryCount: Integer
+                - status: String
+                - createdAt: LocalDateTime
+            }
+            
+            class GenerationJobEntity <<Entity>> {
+                - jobId: String
+                - tripId: String
+                - status: String
+                - progress: Integer
+                - errorMessage: String
+                - createdAt: LocalDateTime
+                - updatedAt: LocalDateTime
             }
             
             ' JPA Repositories
@@ -893,6 +1050,18 @@ package "com.unicorn.tripgen.itinerary" {
             interface RouteJpaRepository extends JpaRepository {
                 + findByFromPlaceIdAndToPlaceId(fromId: String, toId: String): Optional<RouteEntity>
                 + findByFromPlaceIdOrToPlaceId(placeId: String): List<RouteEntity>
+            }
+            
+            interface ClaudeGenerationLogJpaRepository extends JpaRepository {
+                + findByTripId(tripId: String): List<ClaudeGenerationLogEntity>
+                + findByStatus(status: String): List<ClaudeGenerationLogEntity>
+                + findTopByTripIdOrderByCreatedAtDesc(tripId: String): Optional<ClaudeGenerationLogEntity>
+            }
+            
+            interface GenerationJobJpaRepository extends JpaRepository {
+                + findByTripId(tripId: String): List<GenerationJobEntity>
+                + findByStatus(status: String): List<GenerationJobEntity>
+                + findTopByTripIdOrderByCreatedAtDesc(tripId: String): Optional<GenerationJobEntity>
             }
             
             ' Repository Adapters
@@ -924,6 +1093,31 @@ package "com.unicorn.tripgen.itinerary" {
                 + delete(id: String): void
             }
             
+            class RouteRepositoryAdapter implements RouteRepository {
+                - jpaRepository: RouteJpaRepository
+                - mapper: RouteMapper
+                + save(route: Route): Route
+                + findByItineraryId(itineraryId: String): List<Route>
+                + findById(id: String): Optional<Route>
+            }
+            
+            class ClaudeGenerationLogRepositoryAdapter {
+                - jpaRepository: ClaudeGenerationLogJpaRepository
+                - mapper: ClaudeGenerationLogMapper
+                + save(log: ClaudeGenerationLog): ClaudeGenerationLog
+                + findByTripId(tripId: String): List<ClaudeGenerationLog>
+                + findLatestByTripId(tripId: String): Optional<ClaudeGenerationLog>
+            }
+            
+            class GenerationJobRepositoryAdapter {
+                - jpaRepository: GenerationJobJpaRepository
+                - mapper: GenerationJobMapper
+                + save(job: GenerationJobStatus): GenerationJobStatus
+                + findByTripId(tripId: String): List<GenerationJobStatus>
+                + findByStatus(status: JobStatus): List<GenerationJobStatus>
+                + updateStatus(jobId: String, status: JobStatus, progress: Integer): void
+            }
+            
             ' Mappers
             class ItineraryMapper {
                 + toEntity(domain: Itinerary): ItineraryEntity
@@ -944,6 +1138,23 @@ package "com.unicorn.tripgen.itinerary" {
                 + toDomain(entity: AttachmentEntity): Attachment
                 + toPhotoAttachment(entity: AttachmentEntity): PhotoAttachment
                 + toMemoAttachment(entity: AttachmentEntity): MemoAttachment
+            }
+            
+            class RouteMapper {
+                + toEntity(domain: Route): RouteEntity
+                + toDomain(entity: RouteEntity): Route
+                + toEntityList(domains: List<Route>): List<RouteEntity>
+                + toDomainList(entities: List<RouteEntity>): List<Route>
+            }
+            
+            class ClaudeGenerationLogMapper {
+                + toEntity(domain: ClaudeGenerationLog): ClaudeGenerationLogEntity
+                + toDomain(entity: ClaudeGenerationLogEntity): ClaudeGenerationLog
+            }
+            
+            class GenerationJobMapper {
+                + toEntity(domain: GenerationJobStatus): GenerationJobEntity
+                + toDomain(entity: GenerationJobEntity): GenerationJobStatus
             }
         }
         
@@ -1102,9 +1313,38 @@ GenerateItineraryService ..> JobQueueService : uses
 JobQueueService ..> JobQueue : uses
 ItinerarySagaOrchestrator ..> SagaRepository : uses
 
+' AI Orchestration relationships
+GenerateItineraryService ..> AIOrchestrator : uses
+AIOrchestrator ..> ClaudeAPIClient : uses
+AIOrchestrator ..> PromptBuilder : uses
+AIOrchestrator ..> ResponseParser : uses
+AIOrchestrator ..> LocationValidator : uses
+LocationValidator ..> LocationServiceClient : uses
+
+' AI Service relationships
+AIItineraryGenerationService ..> AIServicePort : uses
+AIItineraryGenerationService ..> LocationServicePort : uses
+ClaudeAPIClient ..> ClaudeResponse : creates
+PromptBuilder ..> TripProfile : uses
+PromptBuilder ..> ItineraryPreferences : uses
+ResponseParser ..> ClaudeResponse : uses
+ResponseParser ..> DailyActivity : creates
+LocationValidator ..> PlaceValidationResult : creates
+
 ' Repository to Entity relationships
 ItineraryRepositoryAdapter ..> ItineraryJpaRepository : uses
 ActivityRepositoryAdapter ..> ActivityJpaRepository : uses
 AttachmentRepositoryAdapter ..> AttachmentJpaRepository : uses
+RouteRepositoryAdapter ..> RouteJpaRepository : uses
+ClaudeGenerationLogRepositoryAdapter ..> ClaudeGenerationLogJpaRepository : uses
+GenerationJobRepositoryAdapter ..> GenerationJobJpaRepository : uses
+
+' Mapper to Entity relationships
+RouteMapper ..> RouteEntity : maps
+RouteMapper ..> Route : maps
+ClaudeGenerationLogMapper ..> ClaudeGenerationLogEntity : maps
+ClaudeGenerationLogMapper ..> ClaudeGenerationLog : maps
+GenerationJobMapper ..> GenerationJobEntity : maps
+GenerationJobMapper ..> GenerationJobStatus : maps
 
 @enduml

@@ -1,0 +1,167 @@
+@startuml 논리아키텍처
+!theme mono
+skinparam componentStyle uml2
+skinparam defaultFontSize 10
+skinparam component {
+    BackgroundColor<<external>> LightSalmon
+    BackgroundColor<<service>> LightBlue
+    BackgroundColor<<cache>> LightGreen
+    BackgroundColor<<queue>> LightYellow
+    BackgroundColor<<monitor>> LightPink
+    BackgroundColor<<module>> LightGray
+}
+
+title 여행 일정 생성 서비스 - 논리 아키텍처 (Claude API 통합)
+
+' External Layer
+package "External Services" {
+    component "Claude API" <<external>> as claude
+    component "Kakao Local API" <<external>> as kakao
+    component "Weather API" <<external>> as weather
+    component "Transport API" <<external>> as transport
+}
+
+' API Gateway Layer
+package "API Gateway Layer" {
+    component "API Gateway\n(Kong/Spring Cloud Gateway)" as gateway
+}
+
+' Service Layer
+package "Service Layer" {
+    component "Profile Service" <<service>> as profile {
+        component "Member Management" <<module>>
+        component "Travel Settings" <<module>>
+        component "Transport Preferences" <<module>>
+    }
+    
+    component "Itinerary Service" <<service>> as itinerary {
+        component "AI Orchestration" <<module>> as ai_orch
+        component "Claude Integration" <<module>> as claude_int
+        component "Place Validation" <<module>> as place_val
+        component "Itinerary Management" <<module>>
+        component "Route Calculation" <<module>>
+    }
+    
+    component "Location Service" <<service>> as location {
+        component "Place Search" <<module>>
+        component "Place Verification" <<module>>
+        component "Nearby Search" <<module>>
+        component "Place Details" <<module>>
+    }
+}
+
+' Cache Layer
+package "Cache Layer" {
+    component "Redis Cache Cluster" <<cache>> as redis {
+        component "Session Cache" <<cache>>
+        component "Location Cache" <<cache>>
+        component "Claude Response Cache" <<cache>>
+        component "Validation Result Cache" <<cache>>
+    }
+}
+
+' Queue Layer
+package "Message Queue Layer" {
+    component "Azure Service Bus" <<queue>> as queue {
+        component "Itinerary Generation Queue" <<queue>>
+        component "Validation Queue" <<queue>>
+        component "Notification Queue" <<queue>>
+    }
+}
+
+' Data Layer
+package "Data Layer" {
+    database "Profile DB\n(PostgreSQL)" as profile_db
+    database "Itinerary DB\n(PostgreSQL)" as itinerary_db
+    database "Location DB\n(PostgreSQL)" as location_db
+}
+
+' Monitoring Layer
+package "Monitoring & Observability" {
+    component "Application Insights" <<monitor>> as insights {
+        component "Claude API Metrics" <<monitor>>
+        component "Generation Performance" <<monitor>>
+        component "Validation Metrics" <<monitor>>
+    }
+    component "Prometheus + Grafana" <<monitor>> as metrics
+    component "ELK Stack" <<monitor>> as logging
+}
+
+' Infrastructure Layer
+package "Infrastructure Services" {
+    component "Service Mesh\n(Istio/Linkerd)" as mesh
+    component "Circuit Breaker\n(Hystrix/Resilience4j)" as breaker
+}
+
+' External connections
+gateway --> profile
+gateway --> itinerary
+gateway --> location
+
+' Claude API integration flow
+claude ..> ai_orch : "Generate itinerary"
+ai_orch --> claude_int : "Request handling"
+claude_int --> place_val : "Validate places"
+place_val --> location : "Verify locations"
+
+' Service connections
+itinerary --> profile : "Get preferences"
+itinerary --> location : "Validate places"
+itinerary --> queue : "Async processing"
+
+location --> kakao : "Search places"
+location --> weather : "Get weather"
+location --> transport : "Get transport info"
+
+' Cache connections
+profile ..> redis : "Cache data"
+itinerary ..> redis : "Cache responses"
+location ..> redis : "Cache results"
+
+' Queue connections
+queue --> itinerary : "Process jobs"
+claude_int ..> queue : "Async generation"
+
+' Database connections
+profile --> profile_db
+itinerary --> itinerary_db
+location --> location_db
+
+' Monitoring connections
+itinerary ..> insights : "API metrics"
+location ..> insights : "Performance"
+claude_int ..> insights : "Claude usage"
+
+' Infrastructure connections
+mesh -.-> profile : "Traffic management"
+mesh -.-> itinerary : "Traffic management"
+mesh -.-> location : "Traffic management"
+
+breaker -.-> claude : "Fault tolerance"
+breaker -.-> kakao : "Fault tolerance"
+
+note right of claude
+  Claude API Integration:
+  - Haiku model for itinerary generation
+  - Response caching for cost optimization
+  - Retry with exponential backoff
+  - Token usage monitoring
+end note
+
+note bottom of queue
+  Asynchronous Processing:
+  - Long-running AI generation
+  - Batch place validation
+  - Background optimization
+  - Event-driven notifications
+end note
+
+note left of redis
+  Cache Strategy:
+  - Claude responses: 24h TTL
+  - Validation results: 7d TTL
+  - Location data: 1h TTL
+  - Session data: 30m TTL
+end note
+
+@enduml

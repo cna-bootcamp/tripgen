@@ -27,23 +27,37 @@ CREATE TABLE itineraries (
     total_distance DECIMAL(10, 2) DEFAULT 0.00,
     total_duration INT DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+    generation_method VARCHAR(20) NOT NULL DEFAULT 'MANUAL',
+    validation_status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    generation_job_id VARCHAR(36),
     version BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_by VARCHAR(36) NOT NULL,
     updated_by VARCHAR(36) NOT NULL,
     PRIMARY KEY (id),
+    FOREIGN KEY (generation_job_id) REFERENCES generation_jobs(job_id) ON DELETE SET NULL,
     UNIQUE KEY uk_trip_date (trip_id, date),
     INDEX idx_trip_id (trip_id),
     INDEX idx_date (date),
     INDEX idx_status (status),
     INDEX idx_created_at (created_at),
+    INDEX idx_generation_method (generation_method),
+    INDEX idx_validation_status (validation_status),
     CONSTRAINT chk_status CHECK (status IN ('DRAFT', 'GENERATING', 'GENERATED', 'CONFIRMED', 'COMPLETED', 'CANCELLED')),
+    CONSTRAINT chk_generation_method CHECK (generation_method IN ('CLAUDE_API', 'MANUAL')),
+    CONSTRAINT chk_validation_status CHECK (validation_status IN ('PENDING', 'VALIDATED', 'PARTIALLY_VALIDATED')),
     CONSTRAINT chk_day_number CHECK (day_number > 0),
     CONSTRAINT chk_total_distance CHECK (total_distance >= 0),
     CONSTRAINT chk_total_duration CHECK (total_duration >= 0)
 ) ENGINE=InnoDB;
 ```
+
+**테이블 설명:**
+- 여행 일정의 일별 정보를 저장하는 핵심 테이블
+- generation_method: 일정 생성 방법 (Claude API 또는 수동 생성)
+- validation_status: 생성된 일정의 검증 상태
+- generation_job_id: 비동기 생성 작업과의 연결
 
 ### 2.2 daily_activities (일일 활동 테이블)
 ```sql
@@ -229,6 +243,59 @@ CREATE TABLE place_cache (
 ) ENGINE=InnoDB;
 ```
 
+### 2.8 claude_generation_logs (Claude 생성 로그 테이블)
+```sql
+CREATE TABLE claude_generation_logs (
+    id VARCHAR(36) NOT NULL,
+    trip_id VARCHAR(36) NOT NULL,
+    request_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    prompt_text TEXT NOT NULL,
+    response_text TEXT,
+    retry_count INT NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_trip_id (trip_id),
+    INDEX idx_created_at (created_at),
+    INDEX idx_trip_created (trip_id, created_at),
+    INDEX idx_status (status),
+    CONSTRAINT chk_status CHECK (status IN ('SUCCESS', 'FAILED')),
+    CONSTRAINT chk_retry_count CHECK (retry_count >= 0)
+) ENGINE=InnoDB;
+```
+
+**테이블 설명:**
+- Claude API 호출 이력을 저장하는 로그 테이블
+- prompt_text: Claude API에 전송한 프롬프트
+- response_text: Claude API로부터 받은 응답
+- retry_count: 재시도 횟수
+- 디버깅 및 감사 목적으로 활용
+
+### 2.9 generation_jobs (생성 작업 테이블)
+```sql
+CREATE TABLE generation_jobs (
+    job_id VARCHAR(36) NOT NULL,
+    trip_id VARCHAR(36) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    progress INT NOT NULL DEFAULT 0,
+    error_message TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (job_id),
+    INDEX idx_trip_id (trip_id),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at),
+    CONSTRAINT chk_status CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')),
+    CONSTRAINT chk_progress CHECK (progress >= 0 AND progress <= 100)
+) ENGINE=InnoDB;
+```
+
+**테이블 설명:**
+- 비동기 일정 생성 작업을 추적하는 테이블
+- progress: 작업 진행률 (0-100%)
+- 사용자에게 실시간 진행 상황 제공
+- 실패 시 error_message에 상세 내용 저장
+
 ## 3. 파티셔닝 전략
 
 ### 3.1 itineraries 테이블 파티셔닝
@@ -282,6 +349,9 @@ CREATE INDEX idx_itinerary_from_to ON routes(itinerary_id, from_place_id, to_pla
 
 -- Job 처리 최적화
 CREATE INDEX idx_status_scheduled_priority ON itinerary_jobs(status, scheduled_at, priority DESC);
+
+-- Claude 로그 조회 최적화
+CREATE INDEX idx_trip_created ON claude_generation_logs(trip_id, created_at);
 ```
 
 ### 4.2 커버링 인덱스
@@ -380,3 +450,27 @@ CREATE INDEX idx_covering_activity_list ON daily_activities(itinerary_id, order_
 ### 9.3 감사 로그
 - created_at, updated_at 자동 관리
 - 중요 변경사항은 별도 감사 테이블 고려
+
+## 10. Claude API 통합 관련 데이터 흐름
+
+### 10.1 일정 생성 프로세스
+1. **작업 생성**: generation_jobs 테이블에 새 작업 생성 (status: PENDING)
+2. **API 호출**: Claude API 호출 및 claude_generation_logs에 기록
+3. **진행 상황 업데이트**: generation_jobs의 progress 필드 업데이트
+4. **일정 생성**: itineraries 테이블에 생성된 일정 저장
+   - generation_method: 'CLAUDE_API'
+   - validation_status: 'PENDING'
+   - generation_job_id 연결
+5. **완료 처리**: generation_jobs status를 COMPLETED로 변경
+
+### 10.2 실패 처리
+- claude_generation_logs에 실패 이력 저장
+- retry_count 증가
+- generation_jobs의 error_message 업데이트
+- 최대 재시도 횟수 초과 시 FAILED 상태로 변경
+
+### 10.3 검증 프로세스
+- 생성된 일정의 validation_status 관리
+- PENDING: 초기 상태
+- VALIDATED: 모든 장소와 경로 검증 완료
+- PARTIALLY_VALIDATED: 일부만 검증 완료
