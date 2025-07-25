@@ -84,6 +84,26 @@
       font-size: var(--text-lg);
       font-weight: var(--font-semibold);
     }
+    
+    .day-tab .day-number {
+      background: var(--primary-blue);
+      color: white;
+      font-size: var(--text-sm);
+      font-weight: var(--font-bold);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      margin: 0 auto var(--space-2) auto;
+    }
+    
+    .day-tab.active .day-number {
+      background: rgba(255, 255, 255, 0.3);
+      color: white;
+    }
 
     .day-tab .regenerate-btn {
       background: rgba(255, 255, 255, 0.2);
@@ -137,7 +157,7 @@
     .timeline::before {
       content: '';
       position: absolute;
-      left: var(--space-4);
+      left: calc(var(--space-4) - 6px);
       top: 0;
       bottom: 0;
       width: 2px;
@@ -153,7 +173,7 @@
       content: '';
       position: absolute;
       left: calc(-1 * var(--space-4) - 6px);
-      top: var(--space-4);
+      top: calc(var(--space-4) + 6px);
       width: 12px;
       height: 12px;
       background: var(--primary-blue);
@@ -223,19 +243,6 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .place-number {
-      background: var(--primary-blue);
-      color: white;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: var(--font-semibold);
-      font-size: var(--text-sm);
-      flex-shrink: 0;
-    }
 
     .place-info {
       flex: 1;
@@ -246,6 +253,80 @@
       font-weight: var(--font-semibold);
       margin-bottom: var(--space-1);
       color: var(--gray-800);
+    }
+
+    /* 카드에 상대적 위치 지정 */
+    .place-card {
+      position: relative;
+    }
+
+    /* 카드 하단 버튼들 컨테이너 */
+    .place-actions-bottom {
+      position: absolute;
+      bottom: var(--space-2);
+      left: var(--space-2);
+      right: var(--space-2);
+      display: flex;
+      gap: var(--space-2);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+
+    .place-card:hover .place-actions-bottom,
+    .place-card:focus-within .place-actions-bottom {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* 개별 버튼 스타일 - 기본설정 action-btn과 동일 */
+    .place-action-btn {
+      flex: 1;
+      padding: var(--space-1) var(--space-2);
+      border: 1px solid var(--gray-300);
+      border-radius: 4px;
+      background: white;
+      color: var(--gray-700);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      min-width: 40px;
+    }
+
+    .place-action-btn:hover {
+      border-color: var(--gray-400);
+      background: var(--gray-50);
+    }
+
+    /* 상세정보 버튼 */
+    .place-detail-btn:hover {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: white;
+    }
+
+    /* 길찾기 버튼 */
+    .place-directions-btn:hover {
+      background: var(--secondary-orange);
+      border-color: var(--secondary-orange);
+      color: white;
+    }
+
+    /* 삭제 버튼 */
+    .place-delete-btn:hover {
+      background: var(--error);
+      border-color: var(--error);
+      color: white;
+    }
+
+    /* 호버 시 카드 하단에 여백 추가 */
+    .place-card:hover,
+    .place-card:focus-within {
+      padding-bottom: calc(var(--space-4) + 40px);
     }
 
     .place-address {
@@ -384,10 +465,7 @@
       font-weight: var(--font-medium);
     }
 
-    .new-generated {
-      border: 2px solid var(--success);
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.1));
-    }
+    /* new-generated 클래스 스타일 제거 - 첫번째와 동일한 스타일 사용 */
 
     .new-indicator {
       background: var(--success);
@@ -711,7 +789,7 @@
     .nav-progress-wrapper {
       background: #f9fafb;
       border-bottom: 1px solid #e5e7eb;
-      padding: 16px 0;
+      padding: 12px 0;
     }
 
     .nav-progress-steps {
@@ -914,6 +992,19 @@
       background: white;
     }
 
+    .minute-select {
+      width: 80px;
+      padding: var(--space-3);
+      border: 2px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: var(--text-base);
+      font-family: inherit;
+      text-align: center;
+      transition: all 0.3s ease;
+      background: white;
+      cursor: pointer;
+    }
+
     .time-input:focus {
       outline: none;
       border-color: var(--primary-blue);
@@ -1068,57 +1159,8 @@
       </div>
 
       <!-- 날짜별 탭 -->
-      <div class="day-tabs">
-        <div class="day-tab active" data-day="1">
-          <div class="tab-date">9월 1일 (일)</div>
-          <div class="tab-day">1일차 뮌헨</div>
-          <button class="regenerate-btn" onclick="regenerateDay(1)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="2">
-          <div class="tab-date">9월 2일 (월)</div>
-          <div class="tab-day">2일차 뮌헨</div>
-          <button class="regenerate-btn" onclick="regenerateDay(2)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="3">
-          <div class="tab-date">9월 3일 (화)</div>
-          <div class="tab-day">3일차 잘츠부르크</div>
-          <button class="regenerate-btn" onclick="regenerateDay(3)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="4">
-          <div class="tab-date">9월 4일 (수)</div>
-          <div class="tab-day">4일차 잘츠부르크</div>
-          <button class="regenerate-btn" onclick="regenerateDay(4)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="5">
-          <div class="tab-date">9월 5일 (목)</div>
-          <div class="tab-day">5일차 잘츠부르크</div>
-          <button class="regenerate-btn" onclick="regenerateDay(5)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="6">
-          <div class="tab-date">9월 6일 (금)</div>
-          <div class="tab-day">6일차 돌로미티</div>
-          <button class="regenerate-btn" onclick="regenerateDay(6)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="7">
-          <div class="tab-date">9월 7일 (토)</div>
-          <div class="tab-day">7일차 돌로미티</div>
-          <button class="regenerate-btn" onclick="regenerateDay(7)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="8">
-          <div class="tab-date">9월 8일 (일)</div>
-          <div class="tab-day">8일차 돌로미티</div>
-          <button class="regenerate-btn" onclick="regenerateDay(8)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="9">
-          <div class="tab-date">9월 9일 (월)</div>
-          <div class="tab-day">9일차 돌로미티</div>
-          <button class="regenerate-btn" onclick="regenerateDay(9)">🔄 다시 생성</button>
-        </div>
-        <div class="day-tab" data-day="10">
-          <div class="tab-date">9월 10일 (화)</div>
-          <div class="tab-day">10일차 돌로미티</div>
-          <button class="regenerate-btn" onclick="regenerateDay(10)">🔄 다시 생성</button>
-        </div>
+      <div class="day-tabs" id="dayTabs">
+        <!-- 동적으로 생성됨 -->
       </div>
 
       <!-- 첫째 날 일정 -->
@@ -1133,8 +1175,7 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
-                  <div class="place-number">1</div>
+                <div class="place-card">
                   <div class="place-info">
                     <div class="place-name">마리엔플라츠 시계탑</div>
                     <div class="place-address">Marienplatz 1, 80331 München, 독일</div>
@@ -1147,14 +1188,17 @@
                         <span>🏛️</span>
                         <span>역사적 광장</span>
                       </div>
-                      <div class="place-detail">
-                        <span class="status-badge verified">검증완료</span>
-                      </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(1)" data-tooltip="삭제">
-                      🗑️
+                  <div class="place-actions-bottom">
+                    <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('마리엔플라츠 시계탑')">
+                      상세정보
+                    </button>
+                    <button class="place-action-btn place-directions-btn" onclick="openDirections('마리엔플라츠 시계탑')">
+                      길찾기
+                    </button>
+                    <button class="place-action-btn place-delete-btn" onclick="deletePlace(1)">
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -1164,10 +1208,11 @@
                   차량으로 10분 이동 (마리엔플라츠 → 뮌헨 레지덴츠)
                 </div>
 
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
-                  <div class="place-number">2</div>
+                <div class="place-card">
                   <div class="place-info">
-                    <div class="place-name">뮌헨 레지덴츠 궁전</div>
+                    <div class="place-name">
+                      <span class="place-title">뮌헨 레지덴츠 궁전</span>
+                    </div>
                     <div class="place-address">Residenzstraße 1, 80333 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
@@ -1178,14 +1223,17 @@
                         <span>🏰</span>
                         <span>왕궁/박물관</span>
                       </div>
-                      <div class="place-detail">
-                        <span class="status-badge verified">검증완료</span>
-                      </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(2)" data-tooltip="삭제">
-                      🗑️
+                  <div class="place-actions-bottom">
+                    <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('뮌헨 레지덴츠 궁전')">
+                      상세정보
+                    </button>
+                    <button class="place-action-btn place-directions-btn" onclick="openDirections('뮌헨 레지덴츠 궁전')">
+                      길찾기
+                    </button>
+                    <button class="place-action-btn place-delete-btn" onclick="deletePlace(2)">
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -1202,10 +1250,11 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
-                  <div class="place-number">3</div>
+                <div class="place-card">
                   <div class="place-info">
-                    <div class="place-name">호프브로이하우스</div>
+                    <div class="place-name">
+                      <span class="place-title">호프브로이하우스</span>
+                    </div>
                     <div class="place-address">Platzl 9, 80331 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
@@ -1216,14 +1265,17 @@
                         <span>🍺</span>
                         <span>전통 맥주집</span>
                       </div>
-                      <div class="place-detail">
-                        <span class="status-badge verified">검증완료</span>
-                      </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(3)" data-tooltip="삭제">
-                      🗑️
+                  <div class="place-actions-bottom">
+                    <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('호프브로이하우스')">
+                      상세정보
+                    </button>
+                    <button class="place-action-btn place-directions-btn" onclick="openDirections('호프브로이하우스')">
+                      길찾기
+                    </button>
+                    <button class="place-action-btn place-delete-btn" onclick="deletePlace(3)">
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -1240,10 +1292,11 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
-                  <div class="place-number">4</div>
+                <div class="place-card">
                   <div class="place-info">
-                    <div class="place-name">님펜부르크 궁전</div>
+                    <div class="place-name">
+                      <span class="place-title">님펜부르크 궁전</span>
+                    </div>
                     <div class="place-address">Schloß Nymphenburg 1, 80638 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
@@ -1254,14 +1307,17 @@
                         <span>🏰</span>
                         <span>바로크 궁전</span>
                       </div>
-                      <div class="place-detail">
-                        <span class="status-badge verified">검증완료</span>
-                      </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(4)" data-tooltip="삭제">
-                      🗑️
+                  <div class="place-actions-bottom">
+                    <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('님펜부르크 궁전')">
+                      상세정보
+                    </button>
+                    <button class="place-action-btn place-directions-btn" onclick="openDirections('님펜부르크 궁전')">
+                      길찾기
+                    </button>
+                    <button class="place-action-btn place-delete-btn" onclick="deletePlace(4)">
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -1271,10 +1327,11 @@
                   차량으로 20분 이동 (님펜부르크 → 잉글리셔 가르텐)
                 </div>
 
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
-                  <div class="place-number">5</div>
+                <div class="place-card">
                   <div class="place-info">
-                    <div class="place-name">잉글리셔 가르텐</div>
+                    <div class="place-name">
+                      <span class="place-title">잉글리셔 가르텐</span>
+                    </div>
                     <div class="place-address">Englischer Garten, 80538 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
@@ -1285,14 +1342,17 @@
                         <span>🌳</span>
                         <span>도시공원</span>
                       </div>
-                      <div class="place-detail">
-                        <span class="status-badge verified">검증완료</span>
-                      </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(5)" data-tooltip="삭제">
-                      🗑️
+                  <div class="place-actions-bottom">
+                    <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('잉글리셔 가르텐')">
+                      상세정보
+                    </button>
+                    <button class="place-action-btn place-directions-btn" onclick="openDirections('잉글리셔 가르텐')">
+                      길찾기
+                    </button>
+                    <button class="place-action-btn place-delete-btn" onclick="deletePlace(5)">
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -1309,10 +1369,11 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
-                  <div class="place-number">6</div>
+                <div class="place-card">
                   <div class="place-info">
-                    <div class="place-name">라텐하우스</div>
+                    <div class="place-name">
+                      <span class="place-title">라텐하우스</span>
+                    </div>
                     <div class="place-address">Münzstraße 8, 80331 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
@@ -1323,14 +1384,17 @@
                         <span>🥨</span>
                         <span>바이에른 전통요리</span>
                       </div>
-                      <div class="place-detail">
-                        <span class="status-badge verified">검증완료</span>
-                      </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(6)" data-tooltip="삭제">
-                      🗑️
+                  <div class="place-actions-bottom">
+                    <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('라텐하우스')">
+                      상세정보
+                    </button>
+                    <button class="place-action-btn place-directions-btn" onclick="openDirections('라텐하우스')">
+                      길찾기
+                    </button>
+                    <button class="place-action-btn place-delete-btn" onclick="deletePlace(6)">
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -1351,30 +1415,28 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
+                <div class="place-card">
                   <div class="place-number">1</div>
                   <div class="place-info">
-                    <div class="place-name">츠키지 시장</div>
-                    <div class="place-address">도쿄도 츄오구 츠키지 5-2-1</div>
+                    <div class="place-name">노이슈반슈타인 성</div>
+                    <div class="place-address">독일 바이에른주 호엔슈방가우</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
-                        <span>2시간</span>
+                        <span>3시간</span>
                       </div>
                       <div class="place-detail">
-                        <span>🐟</span>
-                        <span>시장/음식</span>
+                        <span>🏰</span>
+                        <span>관광/문화</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
                       </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(7)" data-tooltip="삭제">
-                      🗑️
-                    </button>
-                  </div>
+                  <button class="place-delete-btn" onclick="event.stopPropagation(); deletePlace(7)">
+                    삭제
+                  </button>
                 </div>
               </div>
             </div>
@@ -1393,30 +1455,28 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
+                <div class="place-card">
                   <div class="place-number">1</div>
                   <div class="place-info">
-                    <div class="place-name">도쿄역 & 쇼핑</div>
-                    <div class="place-address">도쿄도 치요다구 마루노우치 1-9-1</div>
+                    <div class="place-name">뮌헨 시내 관광</div>
+                    <div class="place-address">독일 뮌헨 마리엔플라츠</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
                         <span>3시간</span>
                       </div>
                       <div class="place-detail">
-                        <span>🛍️</span>
-                        <span>쇼핑/기념품</span>
+                        <span>🏛️</span>
+                        <span>문화/관광</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
                       </div>
                     </div>
                   </div>
-                  <div class="place-actions">
-                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(8)" data-tooltip="삭제">
-                      🗑️
-                    </button>
-                  </div>
+                  <button class="place-delete-btn" onclick="event.stopPropagation(); deletePlace(8)">
+                    삭제
+                  </button>
                 </div>
               </div>
             </div>
@@ -1437,15 +1497,15 @@
       
       <div class="modal-body">
         <p class="modal-description">
-          해당 날짜 일정을 AI가 새로 생성합니다. 기존 일정은 새로운 일정으로 대체됩니다.
+          해당 날짜 일정을 AI가 새로 생성합니다. 기존 일정은 새 일정으로 대체됩니다.
         </p>
         
         <!-- 시작시간 입력 -->
         <div class="start-time-section">
+          <label for="dayStartTime" class="request-label">
+            여행시작
+          </label>
           <div class="time-input-wrapper">
-            <label for="dayStartTime" class="request-label">
-              여행 시작시간
-            </label>
             <input 
               type="number" 
               id="dayStartTime" 
@@ -1455,6 +1515,15 @@
               max="23"
               value="9">
             <span class="time-unit">시</span>
+            <select id="dayStartMinute" class="time-input minute-select">
+              <option value="0">00</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="40">40</option>
+              <option value="50">50</option>
+            </select>
+            <span class="time-unit">분</span>
           </div>
         </div>
 
@@ -1621,6 +1690,19 @@
       });
     }
 
+    // 장소 상세정보 보기
+    function showPlaceDetail(placeName) {
+      // 장소상세정보 화면으로 이동
+      window.location.href = `07-장소상세정보.html?place=${encodeURIComponent(placeName)}`;
+    }
+
+    // 길찾기 열기
+    function openDirections(placeName) {
+      // Google Maps 길찾기 새 탭에서 바로 열기
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(placeName)}`;
+      window.open(mapsUrl, '_blank');
+    }
+
     // 날짜별 일정 다시 생성 기능
     function regenerateDay(dayNumber) {
       // 이벤트 버블링 방지
@@ -1640,14 +1722,19 @@
       // 기존 요청사항과 시작시간 불러오기 (있다면)
       const savedRequest = localStorage.getItem(`dayRequest_${dayNumber}`) || '';
       const savedStartTime = localStorage.getItem(`dayStartTime_${dayNumber}`) || '9';
+      const savedStartMinute = localStorage.getItem(`dayStartMinute_${dayNumber}`) || '0';
       
       const textarea = document.getElementById('dayRegenerateRequest');
       const charCount = document.getElementById('dayCharCount');
       const startTimeInput = document.getElementById('dayStartTime');
+      const startMinuteSelect = document.getElementById('dayStartMinute');
       
       textarea.value = savedRequest;
       charCount.textContent = savedRequest.length;
       startTimeInput.value = savedStartTime;
+      if (startMinuteSelect) {
+        startMinuteSelect.value = savedStartMinute;
+      }
       
       // 모달 표시
       document.getElementById('regenerateModal').style.display = 'flex';
@@ -1669,8 +1756,10 @@
       
       const textarea = document.getElementById('dayRegenerateRequest');
       const startTimeInput = document.getElementById('dayStartTime');
+      const startMinuteSelect = document.getElementById('dayStartMinute');
       const userRequest = textarea.value.trim();
       const startTime = startTimeInput.value;
+      const startMinute = startMinuteSelect ? startMinuteSelect.value : '0';
       
       // 요청사항과 시작시간 저장
       if (userRequest) {
@@ -1678,7 +1767,8 @@
         console.log(`${dayNumber}일차 요청사항:`, userRequest);
       }
       localStorage.setItem(`dayStartTime_${dayNumber}`, startTime);
-      console.log(`${dayNumber}일차 시작시간:`, startTime + '시');
+      localStorage.setItem(`dayStartMinute_${dayNumber}`, startMinute);
+      console.log(`${dayNumber}일차 시작시간:`, startTime + '시 ' + startMinute + '분');
       
       // 모달 닫기
       closeRegenerateModal();
@@ -1807,10 +1897,11 @@
               
               <div class="places-grid">
                 ${morningPlaces.map((place, index) => `
-                  <div class="place-card new-generated" onclick="window.location.href='07-장소상세정보.html'">
-                    <div class="place-number">${index + 1}</div>
+                  <div class="place-card">
                     <div class="place-info">
-                      <div class="place-name">${place.name}</div>
+                      <div class="place-name">
+                        <span class="place-title">${place.name}</span>
+                      </div>
                       <div class="place-address">${getPlaceAddress(place.name)}</div>
                       <div class="place-details">
                         <div class="place-detail">
@@ -1821,17 +1912,20 @@
                           <span>${getTypeIcon(place.type)}</span>
                           <span>${getCategoryName(place.type)}</span>
                         </div>
-                        <div class="place-detail">
-                          <span class="status-badge verified">검증완료</span>
-                        </div>
                       </div>
                     </div>
-                    <div class="place-actions">
-                      <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(${index + 1})" data-tooltip="삭제">
-                        🗑️
+                    <div class="new-indicator">🆕 새로 생성된 일정</div>
+                    <div class="place-actions-bottom">
+                      <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('${place.name}')">
+                        상세정보
+                      </button>
+                      <button class="place-action-btn place-directions-btn" onclick="openDirections('${place.name}')">
+                        길찾기
+                      </button>
+                      <button class="place-action-btn place-delete-btn" onclick="deletePlace(${index + 1})">
+                        삭제
                       </button>
                     </div>
-                    <div class="new-indicator">🆕 새로 생성된 일정</div>
                   </div>
                   
                   ${index < morningPlaces.length - 1 ? `
@@ -1859,10 +1953,11 @@
               
               <div class="places-grid">
                 ${afternoonPlaces.map((place, index) => `
-                  <div class="place-card new-generated" onclick="window.location.href='07-장소상세정보.html'">
-                    <div class="place-number">${morningPlaces.length + index + 1}</div>
+                  <div class="place-card">
                     <div class="place-info">
-                      <div class="place-name">${place.name}</div>
+                      <div class="place-name">
+                        <span class="place-title">${place.name}</span>
+                      </div>
                       <div class="place-address">${getPlaceAddress(place.name)}</div>
                       <div class="place-details">
                         <div class="place-detail">
@@ -1873,17 +1968,20 @@
                           <span>${getTypeIcon(place.type)}</span>
                           <span>${getCategoryName(place.type)}</span>
                         </div>
-                        <div class="place-detail">
-                          <span class="status-badge verified">검증완료</span>
-                        </div>
                       </div>
                     </div>
-                    <div class="place-actions">
-                      <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(${morningPlaces.length + index + 1})" data-tooltip="삭제">
-                        🗑️
+                    <div class="new-indicator">🆕 새로 생성된 일정</div>
+                    <div class="place-actions-bottom">
+                      <button class="place-action-btn place-detail-btn" onclick="showPlaceDetail('${place.name}')">
+                        상세정보
+                      </button>
+                      <button class="place-action-btn place-directions-btn" onclick="openDirections('${place.name}')">
+                        길찾기
+                      </button>
+                      <button class="place-action-btn place-delete-btn" onclick="deletePlace(${morningPlaces.length + index + 1})">
+                        삭제
                       </button>
                     </div>
-                    <div class="new-indicator">🆕 새로 생성된 일정</div>
                   </div>
                   
                   ${index < afternoonPlaces.length - 1 ? `
@@ -2095,44 +2193,34 @@
     // 여행 정보 로드 함수
     function loadTripInfo() {
       // 기본설정에서 저장된 정보 가져오기
-      let tripName = '여행 계획';
+      let tripName = '유럽가족여행';
       let dateRange = '';
       
       try {
-        // 기본설정 데이터 읽기
-        const basicSettingsData = localStorage.getItem('basicSettingsData');
-        if (basicSettingsData) {
-          const data = JSON.parse(basicSettingsData);
-          if (data.tripName && data.tripName.trim()) {
-            tripName = data.tripName.trim();
-            console.log('여행명 로드됨:', tripName);
-          } else {
-            console.warn('기본설정에서 여행명을 찾을 수 없습니다.');
-          }
-        } else {
-          console.warn('기본설정 데이터가 없습니다.');
+        // 기본설정 데이터 읽기 (공통 함수 사용 - 자동으로 기본값 처리)
+        const data = TripGen.getBasicSettingsData();
+        if (data.tripName && data.tripName.trim()) {
+          tripName = data.tripName.trim();
+          console.log('여행명 로드됨:', tripName);
         }
         
-        // 여행일정 데이터 읽기
-        const tripScheduleData = localStorage.getItem('tripScheduleData');
-        if (tripScheduleData) {
-          const scheduleData = JSON.parse(tripScheduleData);
-          // 첫 번째 여행 계획의 날짜 사용
-          if (scheduleData.startDate_1 && scheduleData.endDate_1) {
-            const startDate = new Date(scheduleData.startDate_1);
-            const endDate = new Date(scheduleData.endDate_1);
-            
-            const startDateStr = startDate.toLocaleDateString('ko-KR', {
-              month: 'long',
-              day: 'numeric'
-            });
-            const endDateStr = endDate.toLocaleDateString('ko-KR', {
-              month: 'long', 
-              day: 'numeric'
-            });
-            
-            dateRange = `(${startDateStr} ~ ${endDateStr})`;
-          }
+        // 여행일정 데이터 읽기 (공통 함수 사용 - 자동으로 기본값 처리)
+        const scheduleData = TripGen.getTripScheduleData();
+        // 첫 번째 여행 계획의 날짜 사용
+        if (scheduleData.startDate_1 && scheduleData.endDate_1) {
+          const startDate = new Date(scheduleData.startDate_1);
+          const endDate = new Date(scheduleData.endDate_1);
+          
+          const startDateStr = startDate.toLocaleDateString('ko-KR', {
+            month: 'long',
+            day: 'numeric'
+          });
+          const endDateStr = endDate.toLocaleDateString('ko-KR', {
+            month: 'long', 
+            day: 'numeric'
+          });
+          
+          dateRange = `(${startDateStr} ~ ${endDateStr})`;
         }
       } catch (error) {
         console.warn('여행 데이터 로드 실패:', error);
@@ -2176,6 +2264,8 @@
 
       // 시작시간 입력 처리
       const startTimeInput = document.getElementById('dayStartTime');
+      const startMinuteSelect = document.getElementById('dayStartMinute');
+      
       if (startTimeInput) {
         // 시간 유효성 검사
         startTimeInput.addEventListener('blur', () => {
@@ -2186,6 +2276,13 @@
             value = 23;
           }
           startTimeInput.value = value;
+        });
+      }
+      
+      // 분 선택 이벤트 리스너 설정
+      if (startMinuteSelect) {
+        startMinuteSelect.addEventListener('change', () => {
+          // 분 선택 시 자동 저장 또는 기타 처리
         });
       }
       
@@ -2207,8 +2304,55 @@
         status: 'in-progress'  // 항상 여행중 상태
     };
 
+    // 여행 일정 탭 생성
+    function generateTripTabs() {
+      const scheduleData = TripGen.getTripScheduleData();
+      const dayTabsContainer = document.getElementById('dayTabs');
+      
+      if (!dayTabsContainer) return;
+      
+      const destinations = [
+        { destination: scheduleData.destination_1, nights: parseInt(scheduleData.stayNights_1) || 2 },
+        { destination: scheduleData.destination_2, nights: parseInt(scheduleData.stayNights_2) || 3 },
+        { destination: scheduleData.destination_3, nights: parseInt(scheduleData.stayNights_3) || 5 }
+      ].filter(dest => dest.destination);
+      
+      let dayCounter = 1;
+      let tabsHTML = '';
+      const startDate = new Date(scheduleData.tripStartDate || '2025-09-01');
+      
+      destinations.forEach((dest, destIndex) => {
+        const cityName = dest.destination.split(' ').pop(); // "독일 뮌헨" → "뮌헨"
+        
+        for (let i = 0; i < dest.nights; i++) {
+          const currentDate = new Date(startDate);
+          currentDate.setDate(startDate.getDate() + (dayCounter - 1));
+          
+          const dateStr = currentDate.toLocaleDateString('ko-KR', {
+            month: 'long',
+            day: 'numeric'
+          });
+          
+          const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()];
+          
+          tabsHTML += `
+            <div class="day-tab ${dayCounter === 1 ? 'active' : ''}" data-day="${dayCounter}">
+              <div class="day-number">${dayCounter}</div>
+              <div class="tab-date">${dateStr} (${dayOfWeek})</div>
+              <div class="tab-day">${cityName}</div>
+              <button class="regenerate-btn" onclick="regenerateDay(${dayCounter})">🔄 다시 생성</button>
+            </div>
+          `;
+          dayCounter++;
+        }
+      });
+      
+      dayTabsContainer.innerHTML = tabsHTML;
+    }
+
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
+      generateTripTabs();
       loadTripInfo();
       initDayTabs();
       initRegenerateModal();

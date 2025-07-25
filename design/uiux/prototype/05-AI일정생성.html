@@ -90,20 +90,48 @@
       line-height: 1.6;
     }
 
+    .generation-buttons {
+      display: flex;
+      gap: var(--space-4);
+      justify-content: center;
+      align-items: center;
+    }
+
     .generate-btn {
       background: linear-gradient(135deg, var(--primary-blue), var(--secondary-orange));
       color: white;
       border: none;
-      padding: var(--space-4) var(--space-8);
+      padding: var(--space-3) var(--space-6);
       border-radius: 50px;
-      font-size: var(--text-lg);
+      font-size: var(--text-base);
       font-weight: var(--font-semibold);
       cursor: pointer;
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
-      min-width: 200px;
-      min-height: 60px;
+      min-width: 100px;
+      min-height: 40px;
+    }
+
+    .generate-cancel-btn {
+      background: transparent;
+      color: var(--gray-600);
+      border: 2px solid var(--gray-300);
+      padding: var(--space-3) var(--space-5);
+      border-radius: 50px;
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 90px;
+      min-height: 40px;
+    }
+
+    .generate-cancel-btn:hover {
+      background: var(--error);
+      color: white;
+      border-color: var(--error);
+      transform: translateY(-2px);
     }
 
     .generate-btn:hover {
@@ -411,7 +439,7 @@
     .nav-progress-wrapper {
       background: var(--gray-50);
       border-bottom: 1px solid var(--gray-200);
-      padding: var(--space-4) 0;
+      padding: 12px 0;
     }
 
     .nav-progress-steps {
@@ -561,6 +589,19 @@
       background: white;
     }
 
+    .minute-select {
+      width: 80px;
+      padding: var(--space-3);
+      border: 2px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: var(--text-base);
+      font-family: inherit;
+      text-align: center;
+      transition: all 0.3s ease;
+      background: white;
+      cursor: pointer;
+    }
+
     .time-input:focus {
       outline: none;
       border-color: var(--primary-blue);
@@ -655,6 +696,17 @@
       .request-section {
         margin: var(--space-6) 0;
       }
+      
+      .generation-buttons {
+        flex-direction: row;
+        gap: var(--space-3);
+        justify-content: center;
+      }
+      
+      .generate-btn, .generate-cancel-btn {
+        flex: 0 0 auto;
+        max-width: 140px;
+      }
     }
   </style>
 </head>
@@ -725,10 +777,10 @@
           
           <!-- 시작시간 입력 -->
           <div class="start-time-section">
+            <label for="startTime" class="request-label">
+              여행시작
+            </label>
             <div class="time-input-wrapper">
-              <label for="startTime" class="request-label">
-                여행 시작시간
-              </label>
               <input 
                 type="number" 
                 id="startTime" 
@@ -738,6 +790,15 @@
                 max="23"
                 value="9">
               <span class="time-unit">시</span>
+              <select id="startMinute" class="time-input minute-select">
+                <option value="0">00</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="40">40</option>
+                <option value="50">50</option>
+              </select>
+              <span class="time-unit">분</span>
             </div>
           </div>
 
@@ -758,9 +819,14 @@
             </div>
           </div>
           
-          <button class="generate-btn" id="generateBtn">
-            ✨ AI 일정 생성하기
-          </button>
+          <div class="generation-buttons">
+            <button class="generate-btn" id="generateBtn">
+              ✨ 생성
+            </button>
+            <button class="generate-cancel-btn" id="generateCancelBtn">
+              취소
+            </button>
+          </div>
         </div>
 
         <!-- 진행률 섹션 -->
@@ -836,11 +902,6 @@
           ← 이전: 여행일정 설정
         </a>
         
-        <div class="nav-center">
-          <button class="nav-btn cancel" onclick="cancelGeneration()">
-            취소
-          </button>
-        </div>
         
         <a href="06-생성된일정조회.html" class="nav-btn disabled" id="nextBtn">
           다음: 생성된일정조회 →
@@ -901,6 +962,7 @@
       
       initializeElements() {
         this.generateBtn = document.getElementById('generateBtn');
+        this.generateCancelBtn = document.getElementById('generateCancelBtn');
         this.progressSection = document.getElementById('progressSection');
         this.generationSteps = document.getElementById('generationSteps');
         this.controls = document.getElementById('controls');
@@ -921,6 +983,7 @@
       
       attachEventListeners() {
         this.generateBtn.addEventListener('click', () => this.startGeneration());
+        this.generateCancelBtn.addEventListener('click', () => this.goToPreviousStep());
         this.cancelBtn.addEventListener('click', () => this.cancelGeneration());
         this.viewResultBtn.addEventListener('click', () => this.viewResult());
         this.regenerateBtn.addEventListener('click', () => this.regenerate());
@@ -928,44 +991,34 @@
       
       loadTripInfo() {
         // 기본설정에서 저장된 정보 가져오기
-        let tripName = '여행 계획';
+        let tripName = '유럽가족여행';
         let dateRange = '';
         
         try {
-          // 기본설정 데이터 읽기
-          const basicSettingsData = localStorage.getItem('basicSettingsData');
-          if (basicSettingsData) {
-            const data = JSON.parse(basicSettingsData);
-            if (data.tripName && data.tripName.trim()) {
-              tripName = data.tripName.trim();
-              console.log('여행명 로드됨:', tripName);
-            } else {
-              console.warn('기본설정에서 여행명을 찾을 수 없습니다.');
-            }
-          } else {
-            console.warn('기본설정 데이터가 없습니다.');
+          // 기본설정 데이터 읽기 (공통 함수 사용 - 자동으로 기본값 처리)
+          const data = TripGen.getBasicSettingsData();
+          if (data.tripName && data.tripName.trim()) {
+            tripName = data.tripName.trim();
+            console.log('여행명 로드됨:', tripName);
           }
           
-          // 여행일정 데이터 읽기
-          const tripScheduleData = localStorage.getItem('tripScheduleData');
-          if (tripScheduleData) {
-            const scheduleData = JSON.parse(tripScheduleData);
-            // 첫 번째 여행 계획의 날짜 사용
-            if (scheduleData.startDate_1 && scheduleData.endDate_1) {
-              const startDate = new Date(scheduleData.startDate_1);
-              const endDate = new Date(scheduleData.endDate_1);
-              
-              const startDateStr = startDate.toLocaleDateString('ko-KR', {
-                month: 'long',
-                day: 'numeric'
-              });
-              const endDateStr = endDate.toLocaleDateString('ko-KR', {
-                month: 'long', 
-                day: 'numeric'
-              });
-              
-              dateRange = `(${startDateStr} ~ ${endDateStr})`;
-            }
+          // 여행일정 데이터 읽기 (공통 함수 사용 - 자동으로 기본값 처리)
+          const scheduleData = TripGen.getTripScheduleData();
+          // 첫 번째 여행 계획의 날짜 사용
+          if (scheduleData.startDate_1 && scheduleData.endDate_1) {
+            const startDate = new Date(scheduleData.startDate_1);
+            const endDate = new Date(scheduleData.endDate_1);
+            
+            const startDateStr = startDate.toLocaleDateString('ko-KR', {
+              month: 'long',
+              day: 'numeric'
+            });
+            const endDateStr = endDate.toLocaleDateString('ko-KR', {
+              month: 'long', 
+              day: 'numeric'
+            });
+            
+            dateRange = `(${startDateStr} ~ ${endDateStr})`;
           }
         } catch (error) {
           console.warn('여행 데이터 로드 실패:', error);
@@ -1014,16 +1067,28 @@
 
         // 시작시간 입력 처리
         if (startTimeInput) {
+          const startMinuteSelect = document.getElementById('startMinute');
+          
           // 저장된 시작시간 불러오기
           const savedStartTime = localStorage.getItem('startTime');
+          const savedStartMinute = localStorage.getItem('startMinute');
           if (savedStartTime) {
             startTimeInput.value = savedStartTime;
+          }
+          if (savedStartMinute && startMinuteSelect) {
+            startMinuteSelect.value = savedStartMinute;
           }
           
           // 입력 시 자동 저장
           startTimeInput.addEventListener('input', () => {
             localStorage.setItem('startTime', startTimeInput.value);
           });
+          
+          if (startMinuteSelect) {
+            startMinuteSelect.addEventListener('change', () => {
+              localStorage.setItem('startMinute', startMinuteSelect.value);
+            });
+          }
 
           // 시간 유효성 검사
           startTimeInput.addEventListener('blur', () => {
@@ -1046,7 +1111,10 @@
 
       getStartTime() {
         const startTimeInput = document.getElementById('startTime');
-        return startTimeInput ? startTimeInput.value : '9';
+        const startMinuteSelect = document.getElementById('startMinute');
+        const hour = startTimeInput ? startTimeInput.value : '9';
+        const minute = startMinuteSelect ? startMinuteSelect.value : '0';
+        return { hour, minute };
       }
       
       async startGeneration() {
@@ -1056,7 +1124,7 @@
         const userRequest = this.getUserRequest();
         const startTime = this.getStartTime();
         
-        console.log('시작시간:', startTime + '시');
+        console.log('시작시간:', startTime.hour + '시 ' + startTime.minute + '분');
         if (userRequest) {
           console.log('사용자 요청사항:', userRequest);
         }
@@ -1227,6 +1295,11 @@
         setTimeout(() => {
           this.startGeneration();
         }, 500);
+      }
+      
+      goToPreviousStep() {
+        // 이전 단계로 이동 (여행일정설정 화면)
+        window.location.href = '03-여행일정설정.html';
       }
     }
     

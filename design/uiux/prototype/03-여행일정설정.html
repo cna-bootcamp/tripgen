@@ -16,8 +16,8 @@
         .form-section {
             background: white;
             border-radius: 12px;
-            padding: var(--space-6);
-            margin-bottom: var(--space-6);
+            padding: var(--space-3);
+            margin-bottom: var(--space-1);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
@@ -25,15 +25,15 @@
             font-size: var(--text-xl);
             font-weight: var(--font-semibold);
             color: var(--gray-800);
-            margin-bottom: var(--space-4);
-            padding-bottom: var(--space-3);
+            margin-bottom: var(--space-2);
+            padding-bottom: var(--space-1);
             border-bottom: 2px solid var(--gray-200);
         }
 
         .form-row {
             display: flex;
             gap: var(--space-4);
-            margin-bottom: var(--space-4);
+            margin-bottom: var(--space-2);
         }
 
         .form-group {
@@ -212,7 +212,7 @@
         #travelPlansContainer::before {
             content: '';
             position: absolute;
-            left: 64px; /* 숙박일 오른쪽에 세로선 배치 */
+            left: 54px; /* 숙박일 오른쪽에 세로선 배치 */
             top: 32px;
             bottom: 32px;
             width: 2px;
@@ -224,7 +224,7 @@
             position: relative;
             display: flex;
             align-items: flex-start;
-            margin-bottom: var(--space-6);
+            margin-bottom: var(--space-3);
         }
 
         /* 숙박일 표시 - 래퍼 내 왼쪽 */
@@ -233,7 +233,8 @@
             width: 48px;
             text-align: center;
             margin-right: var(--space-4);
-            margin-top: 30px;
+            margin-top: 12px;
+            align-self: flex-start;
         }
 
         /* 여행 계획 카드 스타일 */
@@ -298,10 +299,10 @@
 
         /* 카드 컨텐츠 */
         .card-content {
-            padding: var(--space-6);
+            padding: var(--space-2);
             text-align: center;
             position: relative;
-            min-height: 120px;
+            min-height: 60px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -327,7 +328,19 @@
             display: flex;
             gap: var(--space-2);
             justify-content: center;
+            margin-top: 0;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+        
+        .travel-plan-card:hover .card-actions {
             margin-top: var(--space-3);
+            max-height: 50px;
+            opacity: 1;
+            transform: translateY(0);
         }
 
         /* 날짜 범위 - 카드 하단 중앙 */
@@ -335,7 +348,7 @@
             font-size: var(--text-base);
             color: var(--gray-600);
             text-align: center;
-            margin-top: var(--space-6);
+            margin-top: var(--space-1);
         }
 
         .card-actions .btn-edit {
@@ -375,12 +388,12 @@
         }
 
         .card-summary {
-            padding: var(--space-4);
+            padding: var(--space-2);
             display: none; /* 숙박일/숙소 정보 숨김 */
         }
 
         .card-footer {
-            padding: var(--space-3) var(--space-4);
+            padding: var(--space-2) var(--space-3);
             border-top: 1px solid var(--gray-200);
             display: flex;
             justify-content: flex-end;
@@ -388,7 +401,7 @@
         }
 
         .card-edit-form {
-            padding: var(--space-4);
+            padding: var(--space-2);
             background: var(--gray-50);
             border-top: 1px solid var(--gray-200);
             display: none;
@@ -619,7 +632,7 @@
             }
 
             #travelPlansContainer::before {
-                left: 48px;
+                left: 38px;
             }
 
             .timeline-marker {
@@ -636,115 +649,95 @@
             }
         }
 
-        /* Progress Bar Styles */
-        .progress-container {
-            background: var(--gray-50);
-            border-bottom: 1px solid var(--gray-200);
-            padding: var(--space-4) 0;
+        /* Navigation Progress Styles */
+        .nav-progress-wrapper {
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 0;
         }
 
-        .progress-bar {
-            display: flex !important;
-            flex-direction: row !important;
+        .nav-progress-steps {
+            display: flex;
             justify-content: center;
             align-items: center;
-            gap: var(--space-6);
+            gap: 22px;
             max-width: 600px;
             margin: 0 auto;
             flex-wrap: nowrap;
         }
 
-        .progress-step {
-            display: flex !important;
-            flex-direction: column !important;
+        .nav-step {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: var(--space-2);
-            position: relative;
-            cursor: default;
+            gap: 6px;
             flex-shrink: 0;
             min-width: fit-content;
         }
 
-        .progress-step.completed {
+        .nav-step--done {
             cursor: pointer;
         }
 
-        .progress-step.completed:hover {
+        .nav-step--done:hover {
             opacity: 0.8;
         }
 
-        .step-number {
+        .nav-step__circle {
             width: 32px;
             height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: var(--font-semibold);
-            font-size: var(--text-sm);
-            background: var(--gray-300);
-            color: var(--gray-600);
+            font-weight: 600;
+            font-size: 14px;
+            background: #d1d5db;
+            color: #6b7280;
             transition: all 0.2s ease;
         }
 
-        .progress-step.completed .step-number {
-            background: var(--success);
+        .nav-step--done .nav-step__circle {
+            background: #10b981;
             color: white;
         }
 
-        .progress-step.active .step-number {
-            background: var(--primary-blue);
+        .nav-step--current .nav-step__circle {
+            background: #2e86ab;
             color: white;
         }
 
-        .progress-step span {
-            font-size: var(--text-xs);
-            color: var(--gray-600);
+        .nav-step__label {
+            font-size: 12px;
+            color: #6b7280;
             text-align: center;
             white-space: nowrap;
         }
 
-        .progress-step.completed span {
-            color: var(--success);
+        .nav-step--done .nav-step__label {
+            color: #10b981;
         }
 
-        .progress-step.active span {
-            color: var(--primary-blue);
-            font-weight: var(--font-semibold);
+        .nav-step--current .nav-step__label {
+            color: #2e86ab;
+            font-weight: 600;
         }
 
         @media (max-width: 768px) {
-            .progress-bar {
-                gap: var(--space-4);
-                flex-wrap: nowrap !important;
+            .nav-progress-steps {
+                gap: 14px;
                 overflow-x: auto;
-                padding: 0 var(--space-2);
+                padding: 0 8px;
             }
             
-            .progress-step span {
+            .nav-step__label {
                 font-size: 10px;
             }
             
-            .step-number {
+            .nav-step__circle {
                 width: 28px;
                 height: 28px;
                 font-size: 12px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            
-            .progress-bar {
-                gap: var(--space-2);
-                flex-wrap: nowrap !important;
-                overflow-x: auto;
-                padding: 0 var(--space-1);
-            }
-            
-            .progress-step span {
-                font-size: 9px;
-                max-width: 60px;
-                line-height: 1.2;
             }
         }
         /* 사용자 메뉴 스타일 */
@@ -805,26 +798,25 @@
         </div>
     </header>
 
-    <!-- Progress Bar -->
-    <div class="progress-container">
+    <!-- Navigation Progress -->
+    <div class="nav-progress-wrapper">
         <div class="container">
-            <div class="progress-bar">
-                <div class="progress-step completed" onclick="navigateToTripStep('02-기본설정.html')" style="cursor: pointer;">
-                    <div class="step-number">1</div>
-                    <span>기본설정</span>
+            <div class="nav-progress-steps">
+                <div class="nav-step nav-step--done" onclick="navigateToTripStep('02-기본설정.html')" style="cursor: pointer;">
+                    <div class="nav-step__circle">1</div>
+                    <span class="nav-step__label">기본설정</span>
                 </div>
-                <div class="progress-step active">
-                    <div class="step-number">2</div>
-                    <span>일정설정</span>
+                <div class="nav-step nav-step--current">
+                    <div class="nav-step__circle">2</div>
+                    <span class="nav-step__label">일정설정</span>
                 </div>
-                <div class="progress-step" onclick="navigateToTripStep('05-AI일정생성.html')">
-                    <div class="step-number">3</div>
-                    <span>AI일정생성</span>
+                <div class="nav-step" onclick="navigateToTripStep('05-AI일정생성.html')">
+                    <div class="nav-step__circle">3</div>
+                    <span class="nav-step__label">AI일정생성</span>
                 </div>
-                <div class="progress-step" onclick="navigateToTripStep('06-생성된일정조회.html')">
-                    <div class="step-number">4</div>
-                    <span>일정조회</span>
-                </div>
+                <div class="nav-step" onclick="navigateToTripStep('06-생성된일정조회.html')">
+                    <div class="nav-step__circle">4</div>
+                    <span class="nav-step__label">일정조회</span>
                 </div>
             </div>
         </div>
@@ -844,9 +836,8 @@
                     <h3>여행 시작일</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="tripStartDate">여행 시작일 <span class="required">*</span></label>
                             <input type="date" id="tripStartDate" name="tripStartDate" class="input-field" required>
-                            <div class="info-message" style="color: var(--gray-600); font-size: var(--text-sm); margin-top: var(--space-2);">
+                            <div class="info-message" style="color: var(--gray-600); font-size: var(--text-sm); margin-top: var(--space-2); margin-bottom: var(--space-1);">
                                 ℹ️ 여행시작일은 첫 여행지 도착일로 설정하세요
                             </div>
                             <div class="error-message" id="tripStartDateError">여행 시작일을 선택해주세요.</div>
@@ -1270,11 +1261,10 @@
             }
 
             loadSavedData() {
-                const savedData = localStorage.getItem('tripScheduleData');
-                if (!savedData) return;
-
+                // TripGen 공통 함수로 여행일정 데이터 가져오기 (기본값 포함)
+                const data = TripGen.getTripScheduleData();
+                
                 try {
-                    const data = JSON.parse(savedData);
                     
                     // 일반 필드 복원
                     Object.keys(data).forEach(key => {
@@ -1296,6 +1286,11 @@
                             }
                         });
                     }
+
+                    // 기본 여행 계획 데이터 설정
+                    setTimeout(() => {
+                        setDefaultTravelPlanData();
+                    }, 100);
 
                     // 날짜 관련 업데이트
                     this.validateForm();
@@ -1561,10 +1556,11 @@
                 manager.setupTravelPlanEventListeners(travelPlanCounter);
             }
             
-            // 새 계획은 바로 편집 모드로 전환
-            editTravelPlan(travelPlanCounter);
-            
-            TripGen.showToast(`여행 계획 #${travelPlanCounter}가 추가되었습니다.`, 'success');
+            // 새 계획은 바로 편집 모드로 전환 (수동 추가시에만)
+            if (arguments[0] !== 'skipEdit') {
+                editTravelPlan(travelPlanCounter);
+                TripGen.showToast(`여행 계획 #${travelPlanCounter}가 추가되었습니다.`, 'success');
+            }
         }
         
         function editTravelPlan(planId) {
@@ -1806,26 +1802,26 @@
                     name: '유럽가족여행',
                     status: 'in-progress',
                     schedule: {
-                        startDate: new Date().toISOString().split('T')[0],
+                        startDate: '2025-09-01',
                         plans: [
                             {
                                 destination: '독일 뮌헨',
                                 stayNights: 2,
-                                accommodation: '뮌헨 호텔 바이에리셔 호프',
+                                accommodation: '뮌헨 마리엔플라츠 호텔',
                                 checkInTime: 15,
                                 checkOutTime: 11
                             },
                             {
                                 destination: '오스트리아 잘츠부르크',
                                 stayNights: 3,
-                                accommodation: '호텔 잘츠부르거 호프',
+                                accommodation: '잘츠부르크 호텔 솔로스 되엠',
                                 checkInTime: 15,
                                 checkOutTime: 11
                             },
                             {
                                 destination: '이탈리아 돌로미티',
-                                stayNights: 10,
-                                accommodation: '호텔 코르티나',
+                                stayNights: 5,
+                                accommodation: '돌로미티 알파인 리조트',
                                 checkInTime: 15,
                                 checkOutTime: 11
                             }
@@ -1889,8 +1885,9 @@
             // 여행 시작일 설정
             document.getElementById('tripStartDate').value = currentTrip.schedule.startDate;
             
-            // 첫 번째 계획 데이터 설정
+            // 모든 계획 데이터 설정
             if (currentTrip.schedule.plans && currentTrip.schedule.plans.length > 0) {
+                // 첫 번째 계획 (이미 HTML에 존재)
                 const firstPlan = currentTrip.schedule.plans[0];
                 document.getElementById('stayNights_1').value = firstPlan.stayNights;
                 document.getElementById('destination_1').value = firstPlan.destination;
@@ -1903,6 +1900,40 @@
                 if (searchIndicator) {
                     searchIndicator.className = 'search-indicator found';
                     searchIndicator.textContent = '✓';
+                }
+                
+                // 첫 번째 계획 요약 정보 즉시 업데이트
+                const manager = window.tripScheduleManager;
+                if (manager) {
+                    manager.updatePlanSummary(1);
+                }
+                
+                // 나머지 계획들 추가
+                for (let i = 1; i < currentTrip.schedule.plans.length; i++) {
+                    const plan = currentTrip.schedule.plans[i];
+                    addTravelPlan('skipEdit');
+                    
+                    const planIndex = travelPlanCounter;
+                    setTimeout(() => {
+                        document.getElementById(`stayNights_${planIndex}`).value = plan.stayNights;
+                        document.getElementById(`destination_${planIndex}`).value = plan.destination;
+                        document.getElementById(`accommodation_${planIndex}`).value = plan.accommodation;
+                        document.getElementById(`checkInTime_${planIndex}`).value = plan.checkInTime;
+                        document.getElementById(`checkOutTime_${planIndex}`).value = plan.checkOutTime;
+                        
+                        // 숙소 검색 인디케이터 표시
+                        const searchIndicator = document.getElementById(`accommodationSearchIndicator_${planIndex}`);
+                        if (searchIndicator) {
+                            searchIndicator.className = 'search-indicator found';
+                            searchIndicator.textContent = '✓';
+                        }
+                        
+                        // 계획 요약 정보 업데이트
+                        const manager = window.tripScheduleManager;
+                        if (manager) {
+                            manager.updatePlanSummary(planIndex);
+                        }
+                    }, 100 * i);
                 }
             }
             
@@ -1954,10 +1985,9 @@
                     console.error('숙소 검색 인스턴스 생성 오류:', accommodationError);
                 }
                 
-                // 기본 데이터 설정 및 유효성 검사
+                // 추가 유효성 검사 및 버튼 활성화 (기본 데이터는 loadSavedData에서 설정됨)
                 setTimeout(() => {
                     try {
-                        setDefaultTravelPlanData();
                         
                         // 추가 유효성 검사 및 버튼 활성화
                         setTimeout(() => {

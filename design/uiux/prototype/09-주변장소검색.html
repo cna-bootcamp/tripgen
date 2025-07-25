@@ -6,11 +6,41 @@
     <title>주변장소검색 - TripGen</title>
     <link rel="stylesheet" href="assets/css/common.css">
     <style>
+        /* 페이지 헤더 스타일 */
+        .page-header-section {
+            margin-top: 8px;
+            margin-bottom: var(--space-6);
+        }
+
+        .page-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-3);
+            min-height: 40px;
+        }
+
+        .page-title-row h1 {
+            margin: 0;
+            font-size: var(--text-3xl);
+            font-weight: var(--font-bold);
+            color: var(--gray-900);
+            flex: 1;
+            min-width: 0;
+        }
+
+        .page-subtitle {
+            color: var(--gray-600);
+            font-size: var(--text-lg);
+            line-height: 1.6;
+            margin: 0;
+        }
+
         /* 주변장소검색 특화 스타일 */
         .location-search-container {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 160px);
+            min-height: 600px;
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
 
@@ -290,6 +320,9 @@
 
         .results-list {
             padding: var(--space-2);
+            flex: 1;
+            overflow-y: auto;
+            max-height: calc(100vh - 400px);
         }
 
         .place-card {
@@ -587,14 +620,14 @@
     <main class="main">
         <div class="container">
             <!-- 페이지 제목 -->
-            <div class="page-header mb-6" style="margin-top: -20px; padding-top: var(--space-1);">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
-                    <h1 style="margin: 0;">주변장소검색</h1>
+            <div class="page-header-section">
+                <div class="page-title-row">
+                    <h1>주변장소검색</h1>
                     <button onclick="history.back()" class="btn btn-secondary" style="padding: var(--space-2) var(--space-3); font-size: var(--text-sm);">
                         ← 이전
                     </button>
                 </div>
-                <p class="text-gray-600" style="margin-bottom: var(--space-6);">현재 위치 주변의 관심 장소를 검색하고 탐색해보세요.</p>
+                <p class="page-subtitle">현재 위치 주변의 관심 장소를 검색하고 탐색해보세요.</p>
             </div>
 
             <!-- 주변장소검색 컨테이너 -->
@@ -609,7 +642,7 @@
                     <!-- 현재 위치 정보 -->
                     <div class="current-location">
                         <span class="location-icon"></span>
-                        <span id="currentLocationText">서울특별시 강남구 역삼동</span>
+                        <span id="currentLocationText">뮌헨, 독일</span>
                     </div>
                 </div>
 
@@ -647,7 +680,7 @@
                         <!-- 결과 헤더 -->
                         <div class="results-header">
                             <div class="results-count">
-                                <span id="resultsCount">12</span>개 장소 찾음
+                                <span id="resultsCount">13</span>개 장소 찾음
                             </div>
                             <select class="sort-select" id="sortSelect">
                                 <option value="distance">거리순</option>
@@ -663,15 +696,15 @@
                             <div class="place-card">
                                 <div class="place-content">
                                     <div class="place-header">
-                                        <h3 class="place-name">강남역 맛집거리</h3>
-                                        <span class="place-distance">250m</span>
+                                        <h3 class="place-name">마리엔플라츠</h3>
+                                        <span class="place-distance">300m</span>
                                     </div>
-                                    <span class="place-category">맛집</span>
+                                    <span class="place-category">관광지</span>
                                     <div class="place-rating">
                                         <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.2 (128개 리뷰)</span>
+                                        <span class="rating-text">4.3 (5,234개 리뷰)</span>
                                     </div>
-                                    <p class="place-address">서울 강남구 강남대로 지하 396</p>
+                                    <p class="place-address">Marienplatz 1, 80331 München</p>
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(1)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(1)">길찾기</button>
@@ -682,15 +715,15 @@
                             <div class="place-card">
                                 <div class="place-content">
                                     <div class="place-header">
-                                        <h3 class="place-name">코엑스몰</h3>
-                                        <span class="place-distance">800m</span>
+                                        <h3 class="place-name">노이슈반슈타인성</h3>
+                                        <span class="place-distance">120km</span>
                                     </div>
-                                    <span class="place-category">쇼핑</span>
+                                    <span class="place-category">관광지</span>
                                     <div class="place-rating">
                                         <span class="stars">★★★★★</span>
-                                        <span class="rating-text">4.5 (2,341개 리뷰)</span>
+                                        <span class="rating-text">4.6 (15,432개 리뷰)</span>
                                     </div>
-                                    <p class="place-address">서울 강남구 영동대로 513</p>
+                                    <p class="place-address">Neuschwansteinstraße 20, 87645 Schwangau</p>
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(2)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(2)">길찾기</button>
@@ -701,15 +734,15 @@
                             <div class="place-card">
                                 <div class="place-content">
                                     <div class="place-header">
-                                        <h3 class="place-name">봉은사</h3>
-                                        <span class="place-distance">1.2km</span>
+                                        <h3 class="place-name">영국정원</h3>
+                                        <span class="place-distance">2.1km</span>
                                     </div>
-                                    <span class="place-category">관광지</span>
+                                    <span class="place-category">공원</span>
                                     <div class="place-rating">
                                         <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.1 (456개 리뷰)</span>
+                                        <span class="rating-text">4.4 (3,125개 리뷰)</span>
                                     </div>
-                                    <p class="place-address">서울 강남구 봉은사로 531</p>
+                                    <p class="place-address">Englischer Garten, 80538 München</p>
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(3)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(3)">길찾기</button>
@@ -720,18 +753,189 @@
                             <div class="place-card">
                                 <div class="place-content">
                                     <div class="place-header">
-                                        <h3 class="place-name">선릉</h3>
-                                        <span class="place-distance">900m</span>
+                                        <h3 class="place-name">뮌헨 레지덴츠</h3>
+                                        <span class="place-distance">800m</span>
                                     </div>
-                                    <span class="place-category">관광지</span>
+                                    <span class="place-category">박물관</span>
                                     <div class="place-rating">
-                                        <span class="stars">★★★☆☆</span>
-                                        <span class="rating-text">3.8 (89개 리뷰)</span>
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.2 (2,876개 리뷰)</span>
                                     </div>
-                                    <p class="place-address">서울 강남구 선릉로100길 1</p>
+                                    <p class="place-address">Residenzstraße 1, 80333 München</p>
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(4)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(4)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">빅투알리엔마르크트</h3>
+                                        <span class="place-distance">450m</span>
+                                    </div>
+                                    <span class="place-category">시장</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.1 (1,985개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Viktualienmarkt 3, 80331 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(5)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(5)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">프라우엔키르헤</h3>
+                                        <span class="place-distance">600m</span>
+                                    </div>
+                                    <span class="place-category">교회</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.0 (1,245개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Frauenplatz 12, 80331 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(6)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(6)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">님펜부르크 궁전</h3>
+                                        <span class="place-distance">8.5km</span>
+                                    </div>
+                                    <span class="place-category">궁전</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.3 (3,456개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Schloß Nymphenburg 1, 80638 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(7)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(7)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">호프브로이하우스</h3>
+                                        <span class="place-distance">550m</span>
+                                    </div>
+                                    <span class="place-category">맥주홀</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.1 (8,923개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Platzl 9, 80331 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(8)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(8)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">뮌헨 맥주 박물관</h3>
+                                        <span class="place-distance">720m</span>
+                                    </div>
+                                    <span class="place-category">박물관</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.2 (1,654개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Münzstraße 8, 80331 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(9)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(9)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">BMW 박물관</h3>
+                                        <span class="place-distance">12km</span>
+                                    </div>
+                                    <span class="place-category">박물관</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.4 (6,789개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Am Olympiapark 2, 80809 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(10)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(10)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">올림피아파크</h3>
+                                        <span class="place-distance">11km</span>
+                                    </div>
+                                    <span class="place-category">공원</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.5 (4,321개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Spiridon-Louis-Ring 21, 80809 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(11)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(11)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">아지엔교회</h3>
+                                        <span class="place-distance">1.8km</span>
+                                    </div>
+                                    <span class="place-category">교회</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.3 (2,567개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Salvatorplatz 17, 80333 München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(12)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(12)">길찾기</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="place-card">
+                                <div class="place-content">
+                                    <div class="place-header">
+                                        <h3 class="place-name">이자르 강변</h3>
+                                        <span class="place-distance">3.2km</span>
+                                    </div>
+                                    <span class="place-category">자연</span>
+                                    <div class="place-rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span class="rating-text">4.1 (1,876개 리뷰)</span>
+                                    </div>
+                                    <p class="place-address">Isar River, München</p>
+                                    <div class="place-actions">
+                                        <button class="btn-outline" onclick="showPlaceDetails(13)">상세정보</button>
+                                        <button class="btn-outline" onclick="showRoute(13)">길찾기</button>
                                     </div>
                                 </div>
                             </div>
@@ -754,81 +958,141 @@
         const places = [
             {
                 id: 1,
-                name: '강남역 맛집거리',
-                category: 'restaurant',
-                distance: 250,
-                rating: 4.2,
-                reviewCount: 128,
-                address: '서울 강남구 강남대로 지하 396',
+                name: '마리엔플라츠',
+                category: 'tourist',
+                distance: 300,
+                rating: 4.3,
+                reviewCount: 5234,
+                address: 'Marienplatz 1, 80331 München',
                 image: null
             },
             {
                 id: 2,
-                name: '코엑스몰',
-                category: 'shopping',
-                distance: 800,
-                rating: 4.5,
-                reviewCount: 2341,
-                address: '서울 강남구 영동대로 513',
+                name: '노이슈반슈타인성',
+                category: 'tourist',
+                distance: 120000,
+                rating: 4.6,
+                reviewCount: 15432,
+                address: 'Neuschwansteinstraße 20, 87645 Schwangau',
                 image: null
             },
             {
                 id: 3,
-                name: '봉은사',
-                category: 'tourist',
-                distance: 1200,
-                rating: 4.1,
-                reviewCount: 456,
-                address: '서울 강남구 봉은사로 531',
+                name: '영국정원',
+                category: 'park',
+                distance: 2100,
+                rating: 4.4,
+                reviewCount: 3125,
+                address: 'Englischer Garten, 80538 München',
                 image: null
             },
             {
                 id: 4,
-                name: '선릉',
-                category: 'tourist',
-                distance: 900,
-                rating: 3.8,
-                reviewCount: 89,
-                address: '서울 강남구 선릉로100길 1',
+                name: '뮌헨 레지덴츠',
+                category: 'museum',
+                distance: 800,
+                rating: 4.2,
+                reviewCount: 2876,
+                address: 'Residenzstraße 1, 80333 München',
                 image: null
             },
             {
                 id: 5,
-                name: '현대백화점 무역센터점',
-                category: 'shopping',
-                distance: 600,
-                rating: 4.3,
-                reviewCount: 567,
-                address: '서울 강남구 테헤란로 517',
+                name: '빅투알리엔마르크트',
+                category: 'market',
+                distance: 450,
+                rating: 4.1,
+                reviewCount: 1985,
+                address: 'Viktualienmarkt 3, 80331 München',
                 image: null
             },
             {
                 id: 6,
-                name: '삼성역 카페거리',
-                category: 'restaurant',
-                distance: 1100,
+                name: '프라우엔키르헤',
+                category: 'church',
+                distance: 600,
                 rating: 4.0,
-                reviewCount: 234,
-                address: '서울 강남구 테헤란로 지하',
+                reviewCount: 1245,
+                address: 'Frauenplatz 12, 80331 München',
+                image: null
+            },
+            {
+                id: 7,
+                name: '님펜부르크 궁전',
+                category: 'palace',
+                distance: 8500,
+                rating: 4.3,
+                reviewCount: 3456,
+                address: 'Schloß Nymphenburg 1, 80638 München',
+                image: null
+            },
+            {
+                id: 8,
+                name: '호프브로이하우스',
+                category: 'restaurant',
+                distance: 550,
+                rating: 4.1,
+                reviewCount: 8923,
+                address: 'Platzl 9, 80331 München',
+                image: null
+            },
+            {
+                id: 9,
+                name: '뮌헨 맥주 박물관',
+                category: 'museum',
+                distance: 720,
+                rating: 4.2,
+                reviewCount: 1654,
+                address: 'Münzstraße 8, 80331 München',
+                image: null
+            },
+            {
+                id: 10,
+                name: 'BMW 박물관',
+                category: 'museum',
+                distance: 12000,
+                rating: 4.4,
+                reviewCount: 6789,
+                address: 'Am Olympiapark 2, 80809 München',
+                image: null
+            },
+            {
+                id: 11,
+                name: '올림피아파크',
+                category: 'park',
+                distance: 11000,
+                rating: 4.5,
+                reviewCount: 4321,
+                address: 'Spiridon-Louis-Ring 21, 80809 München',
+                image: null
+            },
+            {
+                id: 12,
+                name: '아지엔교회',
+                category: 'church',
+                distance: 1800,
+                rating: 4.3,
+                reviewCount: 2567,
+                address: 'Salvatorplatz 17, 80333 München',
+                image: null
+            },
+            {
+                id: 13,
+                name: '이자르 강변',
+                category: 'nature',
+                distance: 3200,
+                rating: 4.1,
+                reviewCount: 1876,
+                address: 'Isar River, München',
                 image: null
             }
         ];
 
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
-            initLocationSearch();
             bindEvents();
             renderResults();
         });
-
-        // 초기화
-        function initLocationSearch() {
-            // 위치 감지 시뮬레이션
-            setTimeout(() => {
-                document.getElementById('currentLocationText').textContent = '서울특별시 강남구 역삼동';
-                TripGen.showToast('현재 위치가 감지되었습니다.', 'success');
-            }, 1000);
-        }
 
         // 이벤트 바인딩
         function bindEvents() {
@@ -952,7 +1216,7 @@
 
         // 현재 표시된 장소들 가져오기
         function getCurrentPlaces() {
-            const maxDistance = currentTime * 67; // 이동시간을 거리로 변환
+            const maxDistance = currentTime * 1000; // 이동시간을 거리로 변환 (더 넓은 범위)
             return places.filter(place => 
                 place.distance <= maxDistance &&
                 (currentCategory === 'all' || place.category === currentCategory)
@@ -1004,9 +1268,14 @@
         // 카테고리 이름 변환
         function getCategoryName(category) {
             const categoryMap = {
-                'restaurant': '맛집',
                 'tourist': '관광지',
-                'laundry': '빨래방'
+                'park': '공원',
+                'museum': '박물관',
+                'market': '시장',
+                'church': '교회',
+                'palace': '궁전',
+                'restaurant': '맥주홀',
+                'nature': '자연'
             };
             return categoryMap[category] || '기타';
         }
@@ -1040,9 +1309,9 @@
             const place = places.find(p => p.id === placeId);
             if (place) {
                 TripGen.showToast(`${place.name}까지의 경로를 확인합니다.`, 'info');
-                setTimeout(() => {
-                    window.location.href = '10-이동경로확인.html';
-                }, 500);
+                // Google Maps 길찾기 새 탭에서 바로 열기
+                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place.name)}`;
+                window.open(mapsUrl, '_blank');
             }
         }
 

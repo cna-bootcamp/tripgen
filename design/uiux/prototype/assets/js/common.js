@@ -582,6 +582,95 @@ function showModal(title, content, type = 'info') {
   document.addEventListener('keydown', handleEsc);
 }
 
+/**
+ * localStorage 기본값 설정 유틸리티 함수들
+ */
+
+// 기본 여행 설정 데이터
+function getDefaultBasicSettings() {
+  return {
+    tripName: '유럽가족여행',
+    destination: '독일 뮌헨',
+    members: 4,
+    budget: 500,
+    accommodation: '뮌헨 마리엔플라츠 호텔',
+    transportation: '자동차'
+  };
+}
+
+// 기본 여행 일정 데이터 (뮌헨 2박, 잘츠부르크 3박, 돌로미티 5박)
+function getDefaultTripSchedule() {
+  return {
+    tripStartDate: '2025-09-01',
+    tripEndDate: '2025-09-11',
+    startDate_1: '2025-09-01',
+    endDate_1: '2025-09-03',
+    destination_1: '독일 뮌헨',
+    accommodation_1: '뮌헨 마리엔플라츠 호텔',
+    stayNights_1: '2',
+    checkInTime_1: '15',
+    checkOutTime_1: '11',
+    startDate_2: '2025-09-03',
+    endDate_2: '2025-09-06',
+    destination_2: '오스트리아 잘츠부르크',
+    accommodation_2: '잘츠부르크 호텔 솔로스 되엠',
+    stayNights_2: '3',
+    checkInTime_2: '15',
+    checkOutTime_2: '11',
+    startDate_3: '2025-09-06',
+    endDate_3: '2025-09-11',
+    destination_3: '이탈리아 돌로미티',
+    accommodation_3: '돌로미티 알파인 리조트',
+    stayNights_3: '5',
+    checkInTime_3: '15',
+    checkOutTime_3: '11'
+  };
+}
+
+// localStorage에 기본값 설정
+function initializeDefaultData() {
+  // 기본 설정 데이터 초기화
+  if (!localStorage.getItem('basicSettingsData')) {
+    localStorage.setItem('basicSettingsData', JSON.stringify(getDefaultBasicSettings()));
+    console.log('기본 여행 설정 데이터가 설정되었습니다.');
+  }
+  
+  // 여행 일정 데이터 초기화
+  if (!localStorage.getItem('tripScheduleData')) {
+    localStorage.setItem('tripScheduleData', JSON.stringify(getDefaultTripSchedule()));
+    console.log('기본 여행 일정 데이터가 설정되었습니다.');
+  }
+  
+  // 현재 여행 ID 설정
+  if (!localStorage.getItem('currentTripId')) {
+    localStorage.setItem('currentTripId', 'europe-family-trip');
+    console.log('기본 여행 ID가 설정되었습니다.');
+  }
+}
+
+// localStorage에서 데이터 가져오기 (기본값 포함)
+function getBasicSettingsData() {
+  const data = localStorage.getItem('basicSettingsData');
+  if (data) {
+    return JSON.parse(data);
+  } else {
+    const defaultData = getDefaultBasicSettings();
+    localStorage.setItem('basicSettingsData', JSON.stringify(defaultData));
+    return defaultData;
+  }
+}
+
+function getTripScheduleData() {
+  const data = localStorage.getItem('tripScheduleData');
+  if (data) {
+    return JSON.parse(data);
+  } else {
+    const defaultData = getDefaultTripSchedule();
+    localStorage.setItem('tripScheduleData', JSON.stringify(defaultData));
+    return defaultData;
+  }
+}
+
 // 전역으로 노출
 window.TripGen = {
   showLoading,
@@ -591,5 +680,11 @@ window.TripGen = {
   closeModal,
   confirmDialog,
   showModal,
-  Utils
+  Utils,
+  // 기본값 설정 함수들 추가
+  getDefaultBasicSettings,
+  getDefaultTripSchedule,
+  initializeDefaultData,
+  getBasicSettingsData,
+  getTripScheduleData
 };

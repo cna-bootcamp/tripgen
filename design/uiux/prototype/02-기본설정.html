@@ -8,20 +8,102 @@
     <style>
         /* 기본설정 전용 스타일 */
         
-        /* 이동수단 선택 스타일 */
-        .transport-selection {
-            background: var(--gray-50);
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            padding: var(--space-4);
+        /* 페이지 헤더 스타일 - 기본 설정 */
+        .page-header {
+            margin-top: 8px;
+            margin-bottom: var(--space-6);
+        }
+        
+        .page-header h2 {
+            font-size: var(--text-3xl);
+            font-weight: var(--font-bold);
+            color: var(--gray-900);
             margin-bottom: var(--space-4);
         }
-
-        .transport-selection h3 {
+        
+        .page-header p {
+            color: var(--gray-600);
+            font-size: var(--text-lg);
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        /* 멤버 목록 헤더 스타일 */
+        .member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-8);
+            gap: var(--space-4);
+        }
+        
+        .member-header div {
+            flex: 1;
+        }
+        
+        .member-header h2 {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-semibold);
             color: var(--gray-800);
-            margin: 0 0 var(--space-3) 0;
+            margin-bottom: var(--space-3);
+        }
+        
+        .member-header p {
+            color: var(--gray-600);
             font-size: var(--text-base);
-            font-weight: var(--font-medium);
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        .member-header .btn {
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: var(--space-3);
+        }
+        
+        
+        /* 여행 설정 섹션 스타일 */
+        .trip-settings-section {
+            background: white;
+            border-radius: 12px;
+            padding: var(--space-6);
+            margin-bottom: var(--space-6);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: var(--text-xl);
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+            margin-bottom: var(--space-4);
+            margin-top: 0;
+        }
+
+        .trip-name-input {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: var(--text-base);
+            transition: all 0.2s ease;
+            background-color: white;
+        }
+
+        .trip-name-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(46, 134, 171, 0.1);
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: var(--text-xs);
+            margin-top: var(--space-1);
+            display: none;
+        }
+
+        .transport-section {
+            margin-top: var(--space-6);
         }
 
         .transport-options {
@@ -74,108 +156,112 @@
             font-weight: var(--font-medium);
         }
         /* Progress Bar Styles */
-        .progress-bar {
-            display: flex !important;
-            flex-direction: row !important;
+        /* Navigation Progress Styles */
+        .nav-progress-wrapper {
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 0;
+        }
+
+        .nav-progress-steps {
+            display: flex;
             justify-content: center;
             align-items: center;
-            gap: var(--space-6);
+            gap: 22px;
             max-width: 600px;
-            margin: 0 auto var(--space-8);
+            margin: 0 auto;
             flex-wrap: nowrap;
         }
 
-        .progress-step {
-            display: flex !important;
-            flex-direction: column !important;
+        .nav-step {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: var(--space-2);
-            position: relative;
-            cursor: default;
+            gap: 6px;
             flex-shrink: 0;
             min-width: fit-content;
         }
 
-        .progress-step.completed {
+        .nav-step--done {
             cursor: pointer;
         }
 
-        .progress-step.completed:hover {
+        .nav-step--done:hover {
             opacity: 0.8;
         }
 
-        .step-number {
+        .nav-step__circle {
             width: 32px;
             height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: var(--font-semibold);
-            font-size: var(--text-sm);
-            background: var(--gray-300);
-            color: var(--gray-600);
+            font-weight: 600;
+            font-size: 14px;
+            background: #d1d5db;
+            color: #6b7280;
             transition: all 0.2s ease;
         }
 
-        .progress-step.completed .step-number {
-            background: var(--success);
+        .nav-step--done .nav-step__circle {
+            background: #10b981;
             color: white;
         }
 
-        .progress-step.active .step-number {
-            background: var(--primary-blue);
+        .nav-step--current .nav-step__circle {
+            background: #2e86ab;
             color: white;
         }
 
-        .progress-step span {
-            font-size: var(--text-xs);
-            color: var(--gray-600);
+        .nav-step__label {
+            font-size: 12px;
+            color: #6b7280;
             text-align: center;
             white-space: nowrap;
         }
 
-        .progress-step.completed span {
-            color: var(--success);
+        .nav-step--done .nav-step__label {
+            color: #10b981;
         }
 
-        .progress-step.active span {
-            color: var(--primary-blue);
-            font-weight: var(--font-semibold);
+        .nav-step--current .nav-step__label {
+            color: #2e86ab;
+            font-weight: 600;
         }
 
         @media (max-width: 768px) {
-            .progress-bar {
-                gap: var(--space-4);
-                flex-wrap: nowrap !important;
+            .nav-progress-steps {
+                gap: 14px;
                 overflow-x: auto;
-                padding: 0 var(--space-2);
+                padding: 0 8px;
             }
             
-            .progress-step span {
+            .nav-step__label {
                 font-size: 10px;
             }
             
-            .step-number {
+            .nav-step__circle {
                 width: 28px;
                 height: 28px;
+                font-size: 12px;
             }
         }
 
-        /* 멤버 카드 스타일 */
+        /* 멤버 카드 스타일 - 컴팩트 버전 */
         .member-card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            padding: var(--space-6);
-            border: 2px solid var(--gray-200);
-            transition: all 0.3s ease;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: var(--space-3) var(--space-4);
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s ease;
             position: relative;
         }
 
         .member-card:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-blue-light);
         }
 
         .member-card.editing {
@@ -183,55 +269,141 @@
         }
 
         .member-header {
+            margin-bottom: 0;
+        }
+
+        .member-title-row {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: var(--space-4);
+            align-items: center;
+            margin-bottom: var(--space-2);
         }
 
         .member-info h3 {
-            margin: 0 0 var(--space-2) 0;
-            color: var(--gray-800);
+            margin: 0;
+            color: var(--gray-900);
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+        }
+
+        .member-meta-row {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-top: 0;
         }
 
         .member-meta {
             display: flex;
-            gap: var(--space-3);
+            align-items: center;
+            gap: var(--space-1);
             color: var(--gray-600);
             font-size: var(--text-sm);
+            line-height: 1.4;
+            flex-wrap: nowrap;
+        }
+
+        .member-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .member-meta-separator {
+            color: var(--gray-400);
+            font-size: var(--text-xs);
+            margin: 0 4px;
         }
 
         .member-actions {
             display: flex;
-            gap: var(--space-2);
-        }
-
-        .action-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 8px;
-            background: var(--gray-100);
-            color: var(--gray-600);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+            gap: var(--space-1);
+            flex-shrink: 0;
+            opacity: 0;
+            visibility: hidden;
             transition: all 0.2s ease;
         }
 
+        .member-card:hover .member-actions,
+        .member-card:focus-within .member-actions {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .action-btn {
+            padding: var(--space-1) var(--space-2);
+            border: 1px solid var(--gray-300);
+            border-radius: 4px;
+            background: white;
+            color: var(--gray-700);
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            min-width: 40px;
+        }
+
         .action-btn:hover {
-            background: var(--gray-200);
+            border-color: var(--gray-400);
+            background: var(--gray-50);
         }
 
         .action-btn.edit:hover {
             background: var(--primary-blue);
+            border-color: var(--primary-blue);
             color: white;
         }
 
         .action-btn.delete:hover {
             background: var(--error);
+            border-color: var(--error);
             color: white;
+        }
+
+        /* 활동선호도 숨김 처리 */
+        .preferences {
+            display: none;
+        }
+
+        /* 멤버 추가 버튼 컨테이너 */
+        .add-member-button-container {
+            display: flex;
+            justify-content: center;
+            margin: var(--space-6) 0;
+        }
+
+        /* 멤버 추가 버튼 (+) */
+        .add-member-btn {
+            width: 60px;
+            height: 60px;
+            border: 2px dashed var(--primary-blue);
+            border-radius: 50%;
+            background: white;
+            color: var(--primary-blue);
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .add-member-btn:hover {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+            transform: scale(1.05);
+        }
+
+        .add-member-btn:active {
+            transform: scale(0.95);
         }
 
         /* 건강상태 뱃지 */
@@ -468,8 +640,21 @@
             }
 
             .member-meta {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: var(--space-2);
+                line-height: 1.5;
+            }
+            
+            .member-meta-row {
                 flex-direction: column;
-                gap: var(--space-1);
+                align-items: flex-start;
+                gap: var(--space-2);
+            }
+            
+            .member-actions {
+                align-self: flex-end;
+                margin-top: var(--space-2);
             }
         }
 
@@ -540,45 +725,174 @@
     <main class="main">
         <div class="container">
             <!-- Progress Bar -->
-            <div class="progress-bar">
-                <div class="progress-step active">
-                    <div class="step-number">1</div>
-                    <span>기본설정</span>
-                </div>
-                <div class="progress-step" onclick="navigateToTripStep('03-여행일정설정.html')">
-                    <div class="step-number">2</div>
-                    <span>일정설정</span>
-                </div>
-                <div class="progress-step" onclick="navigateToTripStep('05-AI일정생성.html')">
-                    <div class="step-number">3</div>
-                    <span>AI일정생성</span>
-                </div>
-                <div class="progress-step" onclick="navigateToTripStep('06-생성된일정조회.html')">
-                    <div class="step-number">4</div>
-                    <span>일정조회</span>
+            <!-- Navigation Progress -->
+            <div class="nav-progress-wrapper">
+                <div class="container">
+                    <div class="nav-progress-steps">
+                        <div class="nav-step nav-step--current">
+                            <div class="nav-step__circle">1</div>
+                            <span class="nav-step__label">기본설정</span>
+                        </div>
+                        <div class="nav-step" onclick="navigateToTripStep('03-여행일정설정.html')">
+                            <div class="nav-step__circle">2</div>
+                            <span class="nav-step__label">일정설정</span>
+                        </div>
+                        <div class="nav-step" onclick="navigateToTripStep('05-AI일정생성.html')">
+                            <div class="nav-step__circle">3</div>
+                            <span class="nav-step__label">AI일정생성</span>
+                        </div>
+                        <div class="nav-step" onclick="navigateToTripStep('06-생성된일정조회.html')">
+                            <div class="nav-step__circle">4</div>
+                            <span class="nav-step__label">일정조회</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- 페이지 헤더 -->
-            <div class="mb-8">
-                <h1>기본 설정</h1>
-                <p class="text-gray-600">여행명과 함께할 멤버들의 정보를 등록하고 관리해보세요. 각 멤버의 선호도와 건강상태를 고려하여 맞춤형 일정을 생성할 수 있습니다.</p>
+            <div class="page-header">
+                <div>
+                    <h2>기본 설정</h2>
+                    <p>여행명, 이동수단, 멤버를 등록하세요.</p>
+                </div>
             </div>
 
             <!-- 여행명 입력 섹션 -->
-            <div class="form-section" style="background: white; border-radius: 12px; padding: var(--space-6); margin-bottom: var(--space-6); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
-                <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--gray-800); margin-bottom: var(--space-4); padding-bottom: var(--space-3); border-bottom: 2px solid var(--gray-200);">여행명</h3>
+            <div class="trip-settings-section">
+                <h3 class="section-title">여행명</h3>
                 <div class="form-group">
-                    <label for="tripName" style="display: block; font-weight: var(--font-medium); color: var(--gray-700); margin-bottom: var(--space-2); font-size: var(--text-sm);">여행명 <span style="color: var(--error);">*</span></label>
-                    <input type="text" id="tripName" name="tripName" class="input-field" 
+                    <input type="text" id="tripName" name="tripName" class="trip-name-input" 
                            placeholder="예: 유럽가족여행, 독일-오스트리아-이탈리아 15일 여행" required
-                           style="width: 100%; padding: var(--space-3) var(--space-4); border: 2px solid var(--gray-300); border-radius: 8px; font-size: var(--text-base); transition: all 0.2s ease; background-color: white;"
                            oninput="updateTripNamePreview()">
-                    <div class="error-message" id="tripNameError" style="color: var(--error); font-size: var(--text-xs); margin-top: var(--space-1); display: none;">여행명을 입력해주세요.</div>
-                    <div id="tripNamePreview" style="margin-top: var(--space-2); padding: var(--space-2); background: var(--gray-50); border-radius: 6px; font-size: var(--text-sm); color: var(--gray-600); display: none;">
-                        <strong>미리보기:</strong> <span id="previewText">여행 계획</span>
+                    <div class="error-message" id="tripNameError">여행명을 입력해주세요.</div>
+                </div>
+
+                <!-- 선호 이동수단 섹션 -->
+                <div class="transport-section">
+                    <h4 class="section-title">선호 이동수단</h4>
+                    <div class="transport-options">
+                        <div class="transport-option">
+                            <input type="radio" id="transport_public" name="preferredTransport" value="public">
+                            <label for="transport_public">
+                                <div class="transport-icon">🚌</div>
+                                <div class="transport-name">대중교통</div>
+                            </label>
+                        </div>
+                        <div class="transport-option">
+                            <input type="radio" id="transport_car" name="preferredTransport" value="car">
+                            <label for="transport_car">
+                                <div class="transport-icon">🚗</div>
+                                <div class="transport-name">자가용</div>
+                            </label>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+
+            <!-- 멤버 목록 -->
+            <div class="member-header">
+                <div>
+                    <h2>등록된 멤버</h2>
+                </div>
+            </div>
+
+            <!-- 멤버 카드들 -->
+            <div class="grid grid-2" id="memberList">
+                <!-- 어머니 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-title-row">
+                        <h3>어머니</h3>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(1)" data-tooltip="수정">
+                                편집
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(1)" data-tooltip="삭제">
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                    <div class="member-meta">
+                        <span class="member-meta-item">👩 여성</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">78세</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">⚠️ 주의</span>
+                    </div>
+                </div>
+
+                <!-- 나 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-title-row">
+                        <h3>나</h3>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(2)" data-tooltip="수정">
+                                편집
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(2)" data-tooltip="삭제">
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                    <div class="member-meta">
+                        <span class="member-meta-item">👨 남성</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">55세</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">✅ 양호</span>
+                    </div>
+                </div>
+
+                <!-- 부인 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-title-row">
+                        <h3>부인</h3>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(3)" data-tooltip="수정">
+                                편집
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(3)" data-tooltip="삭제">
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                    <div class="member-meta">
+                        <span class="member-meta-item">👩 여성</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">56세</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">✅ 양호</span>
+                    </div>
+                </div>
+
+                <!-- 딸 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-title-row">
+                        <h3>딸</h3>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(4)" data-tooltip="수정">
+                                편집
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(4)" data-tooltip="삭제">
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                    <div class="member-meta">
+                        <span class="member-meta-item">👩 여성</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">24세</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">⭐ 우수</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 멤버 추가 버튼 -->
+            <div class="add-member-button-container">
+                <button class="add-member-btn" onclick="showMemberForm()" title="멤버 추가">
+                    +
+                </button>
             </div>
 
             <!-- 멤버 추가 폼 -->
@@ -647,7 +961,6 @@
                         </div>
                     </div>
 
-
                     <div class="form-section">
                         <h4>활동 선호도</h4>
                         <div class="checkbox-group">
@@ -678,27 +991,6 @@
                         </div>
                     </div>
 
-
-                    <div class="form-section">
-                        <h4>선호 이동수단</h4>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="transportPublic" name="preferredTransport" value="public">
-                                <label for="transportPublic" class="radio-label">
-                                    <strong>🚌 대중교통</strong><br>
-                                    <small>지하철, 버스 등</small>
-                                </label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="transportCar" name="preferredTransport" value="car">
-                                <label for="transportCar" class="radio-label">
-                                    <strong>🚗 자가용</strong><br>
-                                    <small>개인 차량 이용</small>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="flex gap-4 justify-center">
                         <button type="button" class="btn btn-secondary" onclick="cancelMemberForm()">취소</button>
                         <button type="submit" class="btn btn-primary">멤버 추가</button>
@@ -706,146 +998,6 @@
                 </form>
             </div>
 
-            <!-- 멤버 목록 -->
-            <div class="flex justify-between items-center mb-6">
-                <h2>등록된 멤버</h2>
-                <button class="btn btn-primary" onclick="showMemberForm()">
-                    + 멤버 추가
-                </button>
-            </div>
-
-            <!-- 멤버 카드들 -->
-            <div class="grid grid-2" id="memberList">
-                <!-- 어머니 -->
-                <div class="member-card animate-on-scroll">
-                    <div class="member-header">
-                        <div class="member-info">
-                            <h3>어머니(여성, 78세)</h3>
-                        </div>
-                        <div class="member-actions">
-                            <button class="action-btn edit" onclick="editMember(1)" data-tooltip="수정">
-                                ✏️
-                            </button>
-                            <button class="action-btn delete" onclick="deleteMember(1)" data-tooltip="삭제">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                    <div class="preferences">
-                        <div>
-                            <strong>활동선호:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">관광</span>
-                                <span class="preference-tag">문화체험</span>
-                                <span class="preference-tag">휴식</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 나 -->
-                <div class="member-card animate-on-scroll">
-                    <div class="member-header">
-                        <div class="member-info">
-                            <h3>나(남성, 55세)</h3>
-                        </div>
-                        <div class="member-actions">
-                            <button class="action-btn edit" onclick="editMember(2)" data-tooltip="수정">
-                                ✏️
-                            </button>
-                            <button class="action-btn delete" onclick="deleteMember(2)" data-tooltip="삭제">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                    <div class="preferences">
-                        <div>
-                            <strong>활동선호:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">관광</span>
-                                <span class="preference-tag">문화체험</span>
-                                <span class="preference-tag">자연체험</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 부인 -->
-                <div class="member-card animate-on-scroll">
-                    <div class="member-header">
-                        <div class="member-info">
-                            <h3>부인(여성, 56세)</h3>
-                        </div>
-                        <div class="member-actions">
-                            <button class="action-btn edit" onclick="editMember(3)" data-tooltip="수정">
-                                ✏️
-                            </button>
-                            <button class="action-btn delete" onclick="deleteMember(3)" data-tooltip="삭제">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                    <div class="preferences">
-                        <div>
-                            <strong>활동선호:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">관광</span>
-                                <span class="preference-tag">쇼핑</span>
-                                <span class="preference-tag">문화체험</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 딸 -->
-                <div class="member-card animate-on-scroll">
-                    <div class="member-header">
-                        <div class="member-info">
-                            <h3>딸(여성, 24세)</h3>
-                        </div>
-                        <div class="member-actions">
-                            <button class="action-btn edit" onclick="editMember(4)" data-tooltip="수정">
-                                ✏️
-                            </button>
-                            <button class="action-btn delete" onclick="deleteMember(4)" data-tooltip="삭제">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                    <div class="preferences">
-                        <div>
-                            <strong>활동선호:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">관광</span>
-                                <span class="preference-tag">쇼핑</span>
-                                <span class="preference-tag">자연체험</span>
-                                <span class="preference-tag">문화체험</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 이동수단 선택 섹션 -->
-            <div class="form-section transport-selection" style="margin-top: var(--space-8);">
-                <h3>선호 이동수단</h3>
-                <div class="transport-options">
-                    <div class="transport-option">
-                        <input type="radio" id="transport_public" name="preferredTransport" value="public">
-                        <label for="transport_public">
-                            <div class="transport-icon">🚌</div>
-                            <div class="transport-name">대중교통</div>
-                        </label>
-                    </div>
-                    <div class="transport-option">
-                        <input type="radio" id="transport_car" name="preferredTransport" value="car" checked>
-                        <label for="transport_car">
-                            <div class="transport-icon">🚗</div>
-                            <div class="transport-name">자가용</div>
-                        </label>
-                    </div>
-                </div>
-            </div>
 
             <!-- 다음 단계 버튼 -->
             <div class="text-center mt-8">
@@ -907,7 +1059,11 @@
         function showMemberForm() {
             const form = document.getElementById('memberForm');
             form.classList.add('active');
-            form.scrollIntoView({ behavior: 'smooth' });
+            
+            // 폼이 표시된 후 부드럽게 스크롤
+            setTimeout(() => {
+                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
             
             // 폼 초기화
             resetForm();
@@ -1014,12 +1170,12 @@
         // 건강상태 텍스트 매핑
         function getHealthText(health) {
             const healthMap = {
-                excellent: '우수',
-                good: '양호',
-                caution: '주의',
-                limited: '제한'
+                excellent: '⭐ 우수',
+                good: '✅ 양호',
+                caution: '⚠️ 주의',
+                limited: '🚫 제한'
             };
-            return healthMap[health] || '양호';
+            return healthMap[health] || '✅ 양호';
         }
 
         // 건강상태 클래스 매핑
@@ -1042,7 +1198,6 @@
                         <div class="empty-icon">👥</div>
                         <h3 class="empty-title">등록된 멤버가 없습니다</h3>
                         <p class="empty-description">여행에 함께할 멤버를 추가해보세요.</p>
-                        <button class="btn btn-primary" onclick="showMemberForm()">첫 번째 멤버 추가</button>
                     </div>
                 `;
                 return;
@@ -1050,28 +1205,23 @@
 
             memberList.innerHTML = members.map(member => `
                 <div class="member-card animate-on-scroll">
-                    <div class="member-header">
-                        <div class="member-info">
-                            <h3>${member.name}(${member.gender}, ${member.age}세)</h3>
-                        </div>
+                    <div class="member-title-row">
+                        <h3>${member.name}</h3>
                         <div class="member-actions">
                             <button class="action-btn edit" onclick="editMember(${member.id})" data-tooltip="수정">
-                                ✏️
+                                편집
                             </button>
                             <button class="action-btn delete" onclick="deleteMember(${member.id})" data-tooltip="삭제">
-                                🗑️
+                                삭제
                             </button>
                         </div>
                     </div>
-                    <div class="preferences">
-                        ${member.activityPrefs.length > 0 ? `
-                        <div>
-                            <strong>활동선호:</strong>
-                            <div class="preference-tags">
-                                ${member.activityPrefs.map(pref => `<span class="preference-tag">${pref}</span>`).join('')}
-                            </div>
-                        </div>
-                        ` : ''}
+                    <div class="member-meta">
+                        <span class="member-meta-item">${getGenderEmoji(member.gender)} ${member.gender}</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">${member.age}세</span>
+                        <span class="member-meta-separator">•</span>
+                        <span class="member-meta-item">${getHealthText(member.health)}</span>
                     </div>
                 </div>
             `).join('');
@@ -1244,51 +1394,55 @@
         // 현재 여행 기본설정 초기화
         function loadBasicSettings() {
             try {
+                // TripGen 공통 함수로 기본설정 데이터 가져오기 (기본값 포함)
+                const storedSettings = TripGen.getBasicSettingsData();
+                
                 const currentTrip = tripDataManager.getCurrentTrip();
                 
-                // 여행명 설정
-                document.getElementById('tripName').value = currentTrip.name;
+                // 여행명 설정 (기본값이 이미 포함됨)
+                const tripName = storedSettings.tripName || currentTrip.name;
+                document.getElementById('tripName').value = tripName;
                 updateTripNamePreview();
                 
-                // 이동수단 설정 - 자동차 기본 선택
-                // 모든 라디오 버튼 초기화
-                document.querySelectorAll('input[name="preferredTransport"]').forEach(radio => {
-                    radio.checked = false;
-                });
+                // 이동수단 설정 (기본값: 자동차)
+                let transportToSet = 'car';
                 
-                // 자동차를 기본값으로 설정
-                const carRadio = document.querySelector('input[name="preferredTransport"][value="car"]');
-                if (carRadio) {
-                    carRadio.checked = true;
+                if (storedSettings.transportation && storedSettings.transportation.length > 0) {
+                    transportToSet = storedSettings.transportation[0];
+                } else if (currentTrip.transportation && currentTrip.transportation.length > 0) {
+                    transportToSet = currentTrip.transportation[0];
                 }
                 
-                // 현재 여행의 이동수단이 있으면 해당 값으로 설정
-                if (currentTrip.transportation && currentTrip.transportation.length > 0) {
-                    currentTrip.transportation.forEach(transport => {
-                        const radio = document.querySelector(`input[name="preferredTransport"][value="${transport}"]`);
-                        if (radio) {
-                            radio.checked = true;
-                        }
+                // 전체 이동수단 라디오 버튼 설정
+                const targetRadio = document.querySelector(`input[name="preferredTransport"][value="${transportToSet}"]`);
+                
+                if (targetRadio) {
+                    // 모든 라디오 버튼 초기화 후 선택
+                    document.querySelectorAll('input[name="preferredTransport"]').forEach(radio => {
+                        radio.checked = false;
                     });
+                    targetRadio.checked = true;
+                } else {
+                    // 기본값으로 자동차 설정
+                    const carRadio = document.querySelector('input[name="preferredTransport"][value="car"]');
+                    if (carRadio) {
+                        carRadio.checked = true;
+                    }
                 }
                 
                 // 멤버 데이터 설정
-                members = [...currentTrip.members];
-                memberCounter = Math.max(...members.map(m => m.id)) + 1;
+                members = storedSettings?.members || [...currentTrip.members];
                 
                 // 편집 권한 확인 및 UI 업데이트
                 updateEditableState();
                 
-                // 현재 여행 데이터를 localStorage에 저장
-                const tripData = {
-                    tripName: currentTrip.name,
-                    transportation: currentTrip.transportation,
-                    members: currentTrip.members
-                };
-                localStorage.setItem('basicSettingsData', JSON.stringify(tripData));
-                
             } catch (error) {
                 console.error('기본설정 초기화 실패:', error);
+                // 에러 발생 시 기본값으로 설정
+                const carRadio = document.querySelector('input[name="preferredTransport"][value="car"]');
+                if (carRadio) {
+                    carRadio.checked = true;
+                }
             }
         }
         
@@ -1300,14 +1454,14 @@
         
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
-            loadBasicSettings();
-            renderMemberList();
+            console.log('🚀 DOMContentLoaded 이벤트 발생');
             
-            // 자동차 기본 선택 강제 설정
-            const carRadio = document.querySelector('input[name="preferredTransport"][value="car"]');
-            if (carRadio) {
-                carRadio.checked = true;
-            }
+            // DOM이 완전히 준비된 후 잠시 기다려서 실행
+            setTimeout(() => {
+                console.log('🚀 loadBasicSettings 실행 시작');
+                loadBasicSettings();
+                renderMemberList();
+            }, 50);
         });
     </script>
 </body>

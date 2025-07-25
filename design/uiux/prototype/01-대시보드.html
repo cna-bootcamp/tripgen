@@ -350,13 +350,13 @@
                 
                 <ul class="nav-menu">
                     <li><a href="01-대시보드.html" class="nav-link active">홈</a></li>
-                    <li><a href="02-기본설정.html" class="nav-link">새 여행 계획</a></li>
+                    <li><a href="javascript:startNewTrip()" class="nav-link">새 여행 계획</a></li>
                     <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
                     <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
                 </ul>
                 
                 <div class="nav-actions flex items-center gap-4">
-                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
+                    <button class="btn btn-secondary btn-sm" onclick="startNewTrip()">새 여행 시작</button>
                     <div class="user-menu">
                         <div class="user-avatar">
                             김
@@ -375,7 +375,7 @@
         <div class="container">
             <h1>AI와 함께하는 스마트한 여행 계획</h1>
             <p>당신만의 완벽한 여행 일정을 AI가 만들어드립니다</p>
-            <button class="btn btn-lg" onclick="window.location.href='02-기본설정.html'">
+            <button class="btn btn-lg" onclick="startNewTrip()">
                 ✈️ 새 여행 계획하기
             </button>
         </div>
@@ -541,7 +541,7 @@
 
     <!-- 빠른 액션 버튼 -->
     <div class="quick-actions no-print">
-        <button class="quick-action-btn" onclick="window.location.href='02-기본설정.html'" data-tooltip="새 여행 계획하기" data-tooltip-position="left" style="bottom: 80px;">
+        <button class="quick-action-btn" onclick="startNewTrip()" data-tooltip="새 여행 계획하기" data-tooltip-position="left" style="bottom: 80px;">
             ✈️
         </button>
         <button class="quick-action-btn" onclick="window.location.href='09-주변장소검색.html'" data-tooltip="주변 장소 검색" data-tooltip-position="left" style="bottom: 20px;">
@@ -629,9 +629,36 @@
             });
         }
         
-        // 새 여행 시작
+        // 새 여행 시작 - localStorage 삭제 후 이동
         function startNewTrip() {
-            window.location.href = '02-기본설정.html';
+            // 기존 여행 데이터 모두 삭제
+            try {
+                localStorage.removeItem('basicSettingsData');
+                localStorage.removeItem('tripScheduleData');
+                localStorage.removeItem('currentTripId');
+                localStorage.removeItem('tripItineraryData');
+                localStorage.removeItem('generatedItinerary');
+                
+                // 기타 여행 관련 데이터가 있다면 여기에 추가
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('trip_') || key.startsWith('travel_')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                console.log('✅ 새 여행을 위해 기존 데이터를 정리했습니다.');
+                TripGen.showToast('새 여행을 시작합니다!', 'success');
+                
+                // 기본설정 페이지로 이동
+                setTimeout(() => {
+                    window.location.href = '02-기본설정.html';
+                }, 500);
+                
+            } catch (error) {
+                console.error('❌ 데이터 정리 중 오류:', error);
+                TripGen.showToast('데이터 정리 중 오류가 발생했습니다.', 'error');
+            }
         }
         
         // 실시간 데이터 업데이트 시뮬레이션
