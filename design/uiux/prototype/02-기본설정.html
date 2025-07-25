@@ -1162,37 +1162,34 @@
             }
         }
         
-        // 저장된 기본설정 불러오기
+        // 유럽가족여행 기본설정 초기화
         function loadBasicSettings() {
             try {
-                const savedData = localStorage.getItem('basicSettingsData');
-                if (savedData) {
-                    const data = JSON.parse(savedData);
-                    
-                    // 여행명 복원
-                    if (data.tripName) {
-                        document.getElementById('tripName').value = data.tripName;
-                        updateTripNamePreview();
-                    }
-                    
-                    // 이동수단 복원
-                    if (data.transportation && data.transportation.length > 0) {
-                        data.transportation.forEach(transport => {
-                            const radio = document.querySelector(`input[name="preferredTransport"][value="${transport}"]`);
-                            if (radio) {
-                                radio.checked = true;
-                            }
-                        });
-                    }
-                    
-                    // 멤버 데이터 복원
-                    if (data.members && data.members.length > 0) {
-                        members = data.members;
-                        memberCounter = Math.max(...members.map(m => m.id)) + 1;
-                    }
+                // 유럽가족여행 기본값으로 초기화
+                
+                // 여행명 기본값 설정
+                document.getElementById('tripName').value = '유럽가족여행';
+                updateTripNamePreview();
+                
+                // 이동수단 기본값 설정 (자가용)
+                const carRadio = document.querySelector('input[name="preferredTransport"][value="car"]');
+                if (carRadio) {
+                    carRadio.checked = true;
                 }
+                
+                // 멤버 데이터는 이미 JavaScript 배열에 설정되어 있음
+                memberCounter = 5; // 다음 멤버 ID
+                
+                // 유럽가족여행 데이터를 localStorage에 저장
+                const europeData = {
+                    tripName: '유럽가족여행',
+                    transportation: ['car'],
+                    members: members
+                };
+                localStorage.setItem('basicSettingsData', JSON.stringify(europeData));
+                
             } catch (error) {
-                console.error('기본설정 불러오기 실패:', error);
+                console.error('기본설정 초기화 실패:', error);
             }
         }
         
