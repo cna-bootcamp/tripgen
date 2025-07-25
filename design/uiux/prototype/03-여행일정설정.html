@@ -48,6 +48,19 @@
             font-size: var(--text-sm);
         }
 
+        /* 중첩된 form-row 내부의 form-group 스타일 */
+        .form-group .form-row {
+            margin-bottom: 0;
+        }
+
+        .form-group .form-row .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group .form-row .form-group label {
+            display: none; /* 중첩된 레이블 숨기기 */
+        }
+
         .form-group .required {
             color: var(--error);
         }
@@ -189,14 +202,86 @@
             font-weight: var(--font-normal);
         }
 
+        /* 타임라인 컨테이너 */
+        #travelPlansContainer {
+            position: relative;
+            padding-left: 80px; /* 숙박일 + 타임라인 마커 공간 확보 */
+        }
+
+        /* 타임라인 세로선 */
+        #travelPlansContainer::before {
+            content: '';
+            position: absolute;
+            left: 64px; /* 숙박일 오른쪽에 세로선 배치 */
+            top: 32px;
+            bottom: 32px;
+            width: 2px;
+            background: var(--gray-300);
+        }
+
+        /* 여행 계획 래퍼 */
+        .travel-plan-wrapper {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: var(--space-6);
+        }
+
+        /* 숙박일 표시 - 래퍼 내 왼쪽 */
+        .card-nights {
+            flex-shrink: 0;
+            width: 48px;
+            text-align: center;
+            margin-right: var(--space-4);
+            margin-top: 30px;
+        }
+
         /* 여행 계획 카드 스타일 */
         .travel-plan-card {
             background: white;
             border-radius: 12px;
             border: 2px solid var(--gray-200);
-            margin-bottom: var(--space-4);
             transition: all 0.3s ease;
             overflow: hidden;
+            position: relative;
+            flex: 1;
+        }
+
+        .card-nights-num {
+            font-size: var(--text-3xl);
+            font-weight: var(--font-bold);
+            color: var(--gray-800);
+            line-height: 1;
+        }
+
+        .card-nights-text {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+            margin-top: var(--space-1);
+        }
+
+        /* 타임라인 마커 - 세로선 위에 배치 */
+        .timeline-marker {
+            position: absolute;
+            left: -72px; /* 숙박일과 카드 사이에 배치 */
+            top: 24px;
+            width: 16px;
+            height: 16px;
+            background: var(--primary-blue);
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px var(--gray-300);
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+        }
+
+        .timeline-marker::before {
+            content: '📍';
+            font-size: 8px;
         }
 
         .travel-plan-card:hover {
@@ -205,79 +290,101 @@
             transform: translateY(-2px);
         }
 
-        .card-header {
-            background: var(--gray-50);
-            padding: var(--space-4);
-            border-bottom: 1px solid var(--gray-200);
+        /* 카드 바디 - 전체 너비 차지 */
+        .card-body {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* 카드 컨텐츠 */
+        .card-content {
+            padding: var(--space-6);
+            text-align: center;
+            position: relative;
+            min-height: 120px;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            align-items: center;
         }
 
-        .card-title {
-            font-size: var(--text-lg);
-            font-weight: var(--font-semibold);
-            color: var(--gray-800);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-        }
-
-        .card-number {
-            background: var(--primary-blue);
-            color: white;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
+        /* 카드 헤더 - 여행지명 중앙 */
+        .card-header {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: var(--text-sm);
-            font-weight: var(--font-bold);
+            position: relative;
         }
 
+        .card-destination {
+            font-size: var(--text-2xl);
+            font-weight: 600;
+            color: var(--gray-800);
+            text-align: center;
+        }
+
+        /* 카드 액션 버튼들 - 날짜 하단에 배치 */
         .card-actions {
             display: flex;
             gap: var(--space-2);
+            justify-content: center;
+            margin-top: var(--space-3);
         }
 
-        .btn-edit {
+        /* 날짜 범위 - 카드 하단 중앙 */
+        .card-date-range {
+            font-size: var(--text-base);
+            color: var(--gray-600);
+            text-align: center;
+            margin-top: var(--space-6);
+        }
+
+        .card-actions .btn-edit {
+            padding: var(--space-2) var(--space-3);
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card-actions .btn-edit:hover {
             background: var(--primary-blue);
             color: white;
-            border: none;
-            border-radius: 6px;
+            border-color: var(--primary-blue);
+        }
+
+        .card-actions .btn-delete {
             padding: var(--space-2) var(--space-3);
-            cursor: pointer;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
             font-size: var(--text-sm);
             font-weight: var(--font-medium);
-            transition: all 0.2s ease;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .btn-edit:hover {
-            background: var(--primary-blue-dark);
-            transform: translateY(-1px);
-        }
-
-        .btn-delete {
+        .card-actions .btn-delete:hover {
             background: var(--error);
             color: white;
-            border: none;
-            border-radius: 6px;
-            padding: var(--space-2) var(--space-3);
-            cursor: pointer;
-            font-size: var(--text-sm);
-            font-weight: var(--font-medium);
-            transition: all 0.2s ease;
-        }
-
-        .btn-delete:hover {
-            background: #dc2626;
-            transform: translateY(-1px);
+            border-color: var(--error);
         }
 
         .card-summary {
             padding: var(--space-4);
+            display: none; /* 숙박일/숙소 정보 숨김 */
+        }
+
+        .card-footer {
+            padding: var(--space-3) var(--space-4);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-2);
         }
 
         .card-edit-form {
@@ -416,6 +523,50 @@
             margin-top: var(--space-2);
         }
 
+        /* 숙소명/숙박일 컨테이너 스타일 */
+        .accommodation-nights-container {
+            display: flex;
+            gap: var(--space-3);
+            align-items: flex-start;
+        }
+
+        .accommodation-nights-container .accommodation-field {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .accommodation-nights-container .nights-field {
+            flex: 0 0 100px;
+        }
+
+        .nights-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .nights-input-wrapper input {
+            width: 60px;
+        }
+
+        /* 체크인/체크아웃 컨테이너 스타일 */
+        .checkin-checkout-container {
+            display: flex;
+            gap: var(--space-4);
+            align-items: center;
+        }
+
+        .checkin-checkout-container .time-field {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .checkin-checkout-container .time-field input {
+            width: 80px;
+        }
+
         /* 반응형 스타일 */
         @media (max-width: 768px) {
             .trip-schedule-container {
@@ -447,6 +598,42 @@
                 text-align: center;
             }
 
+            /* 모바일에서 숙소명/숙박일 레이아웃 */
+            .accommodation-nights-container {
+                flex-direction: row; /* 모바일에서도 한 줄 유지 */
+                gap: var(--space-2);
+            }
+
+            .accommodation-nights-container .nights-field {
+                flex: 0 0 90px;
+            }
+
+            /* 모바일에서 체크인/체크아웃 레이아웃 */
+            .checkin-checkout-container {
+                gap: var(--space-2);
+            }
+
+            /* 모바일에서 타임라인 조정 */
+            #travelPlansContainer {
+                padding-left: 0;
+            }
+
+            #travelPlansContainer::before {
+                left: 48px;
+            }
+
+            .timeline-marker {
+                left: -56px;
+            }
+
+            .card-nights {
+                width: 40px;
+                margin-right: var(--space-2);
+            }
+
+            .card-nights-num {
+                font-size: var(--text-2xl);
+            }
         }
 
         /* Progress Bar Styles */
@@ -597,7 +784,8 @@
             <nav class="nav">
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
-                    <li><a href="01-대시보드.html" class="nav-link active">대시보드</a></li>
+                    <li><a href="01-대시보드.html" class="nav-link">홈</a></li>
+                    <li><a href="02-기본설정.html" class="nav-link">새 여행 계획</a></li>
                     <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
                     <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
                 </ul>
@@ -651,6 +839,20 @@
             </div>
 
             <form id="tripScheduleForm">
+                <!-- 여행시작일 섹션 추가 -->
+                <div class="form-section">
+                    <h3>여행 시작일</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tripStartDate">여행 시작일 <span class="required">*</span></label>
+                            <input type="date" id="tripStartDate" name="tripStartDate" class="input-field" required>
+                            <div class="info-message" style="color: var(--gray-600); font-size: var(--text-sm); margin-top: var(--space-2);">
+                                ℹ️ 여행시작일은 첫 여행지 도착일로 설정하세요
+                            </div>
+                            <div class="error-message" id="tripStartDateError">여행 시작일을 선택해주세요.</div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- 여행 계획들 -->
                 <div class="form-section">
@@ -664,27 +866,27 @@
                     <!-- 여행 계획 카드들 -->
                     <div id="travelPlansContainer">
                         <!-- 여행 계획 1 -->
-                        <div class="travel-plan-card" data-plan-id="1">
-                            <div class="card-header">
-                                <h4 class="card-title">
-                                    <div class="card-number">1</div>
-                                    <span id="planTitle_1">여행지 미설정</span>
-                                </h4>
-                                <div class="card-actions">
-                                    <button type="button" class="btn-edit" onclick="editTravelPlan(1)">편집</button>
-                                    <button type="button" class="btn-delete" onclick="deleteTravelPlan(1)">삭제</button>
-                                </div>
+                        <div class="travel-plan-wrapper" data-plan-id="1">
+                            <div class="card-nights">
+                                <div class="card-nights-num" id="planNightsNum_1">0</div>
+                                <div class="card-nights-text">박</div>
                             </div>
                             
-                            <!-- 요약 정보 -->
-                            <div class="card-summary" id="planSummary_1">
-                                <div class="summary-item">
-                                    <span class="summary-label">여행 기간</span>
-                                    <span class="summary-value" id="planDates_1">미설정</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">숙소</span>
-                                    <span class="summary-value" id="planAccommodation_1">미설정</span>
+                            <div class="travel-plan-card">
+                                <div class="timeline-marker"></div>
+                                
+                                <div class="card-body">
+                                <div class="card-content">
+                                    <div class="card-header">
+                                        <div class="card-destination" id="planDestination_1">여행지 미설정</div>
+                                    </div>
+                                    <div class="card-date-range" id="planDateRange_1">날짜 미설정</div>
+                                    
+                                    <!-- 액션 버튼을 카드 컨텐츠 내에 절대 위치로 배치 -->
+                                    <div class="card-actions">
+                                        <button type="button" class="btn-edit" onclick="editTravelPlan(1)">편집</button>
+                                        <button type="button" class="btn-delete" onclick="deleteTravelPlan(1)">삭제</button>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -696,48 +898,51 @@
                                         <label for="destination_1">여행지 <span class="required">*</span> <small style="color: var(--gray-500); font-weight: normal;">(해외는 국가명 함께 입력하세요)</small></label>
                                         <div class="location-search">
                                             <input type="text" id="destination_1" name="destination_1" class="input-field" 
-                                                   placeholder="예: 부산광역시, 일본 도쿄" required autocomplete="off">
+                                                   placeholder="예: 독일 뮌헨, 오스트리아 잘츠부르크" required autocomplete="off">
                                             <div class="autocomplete-dropdown" id="destinationDropdown_1"></div>
                                         </div>
                                         <div class="error-message" id="destinationError_1">여행지를 입력해주세요.</div>
                                     </div>
                                 </div>
                                 
-                                <!-- 여행 기간 -->
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="startDate_1">출발일 <span class="required">*</span></label>
-                                        <input type="date" id="startDate_1" name="startDate_1" class="input-field" required>
-                                        <div class="error-message" id="startDateError_1">출발일을 선택해주세요.</div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="endDate_1">도착일 <span class="required">*</span></label>
-                                        <input type="date" id="endDate_1" name="endDate_1" class="input-field" required>
-                                        <div class="error-message" id="endDateError_1">도착일을 선택해주세요.</div>
-                                    </div>
-                                </div>
-                                <div id="durationDisplay_1" class="duration-display" style="display: none;">
-                                    여행 기간: <span id="durationText_1"></span>
-                                </div>
-                                
-                                <!-- 숙소 정보 -->
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="accommodation_1">숙소명 입력</label>
-                                        <div class="accommodation-search">
-                                            <input type="text" id="accommodation_1" name="accommodation_1" class="input-field" 
-                                                   placeholder="예: 롯데호텔 부산" autocomplete="off">
-                                            <div class="search-indicator" id="accommodationSearchIndicator_1"></div>
-                                            <div class="autocomplete-dropdown" id="accommodationDropdown_1"></div>
+                                <!-- 숙소명/숙박일 -->
+                                <div class="form-group">
+                                    <label>숙소명/숙박일 <span class="required">*</span></label>
+                                    <div class="accommodation-nights-container">
+                                        <div class="accommodation-field">
+                                            <div class="accommodation-search">
+                                                <input type="text" id="accommodation_1" name="accommodation_1" class="input-field" 
+                                                       placeholder="예: 뮌헨 호텔 바이에리셔 호프" autocomplete="off">
+                                                <div class="search-indicator" id="accommodationSearchIndicator_1"></div>
+                                                <div class="autocomplete-dropdown" id="accommodationDropdown_1"></div>
+                                            </div>
+                                        </div>
+                                        <div class="nights-field">
+                                            <div class="nights-input-wrapper">
+                                                <input type="number" id="stayNights_1" name="stayNights_1" class="input-field" 
+                                                       min="0" max="99" required>
+                                                <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">박</span>
+                                            </div>
+                                            <div class="error-message" id="stayNightsError_1" style="display: none;">숙박일을 입력해주세요.</div>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="checkTime_1">체크인 -> 체크아웃 <span class="optional">(선택사항)</span></label>
-                                        <input type="text" id="checkTime_1" name="checkTime_1" class="input-field" 
-                                               placeholder="예: 오후 3시 -> 오전 11시">
+                                <!-- 체크인/체크아웃 -->
+                                <div class="form-group">
+                                    <label>체크인/체크아웃 <span class="optional">(선택사항)</span></label>
+                                    <div class="checkin-checkout-container">
+                                        <div class="time-field">
+                                            <input type="number" id="checkInTime_1" name="checkInTime_1" class="input-field" 
+                                                   placeholder="15" min="0" max="23">
+                                            <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">시</span>
+                                        </div>
+                                        <span style="color: var(--gray-500); font-weight: var(--font-medium); font-size: var(--text-lg);">/</span>
+                                        <div class="time-field">
+                                            <input type="number" id="checkOutTime_1" name="checkOutTime_1" class="input-field" 
+                                                   placeholder="11" min="0" max="23">
+                                            <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">시</span>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -750,6 +955,7 @@
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
             </form>
 
@@ -810,32 +1016,29 @@
             }
 
             setupTravelPlanEventListeners(index) {
-                // 날짜 입력 이벤트
-                const startDate = document.getElementById(`startDate_${index}`);
-                const endDate = document.getElementById(`endDate_${index}`);
+                // 숙박일 입력 이벤트
+                const stayNights = document.getElementById(`stayNights_${index}`);
                 
-                if (startDate) {
-                    startDate.addEventListener('change', () => {
-                        this.validateDatesForPlan(index);
-                        this.calculateDurationForPlan(index);
+                if (stayNights) {
+                    stayNights.addEventListener('input', () => {
+                        this.validateStayNightsForPlan(index);
                         this.updatePlanSummary(index);
                         this.validateForm();
                     });
-                    
-                    const today = new Date().toISOString().split('T')[0];
-                    startDate.setAttribute('min', today);
                 }
                 
-                if (endDate) {
-                    endDate.addEventListener('change', () => {
-                        this.validateDatesForPlan(index);
-                        this.calculateDurationForPlan(index);
-                        this.updatePlanSummary(index);
-                        this.validateForm();
-                    });
-                    
-                    const today = new Date().toISOString().split('T')[0];
-                    endDate.setAttribute('min', today);
+                // 여행시작일 이벤트 리스너 (첫 번째 계획인 경우)
+                if (index === 1) {
+                    const tripStartDate = document.getElementById('tripStartDate');
+                    if (tripStartDate) {
+                        tripStartDate.addEventListener('change', () => {
+                            this.updatePlanSummary(index);
+                            this.validateForm();
+                        });
+                        
+                        const today = new Date().toISOString().split('T')[0];
+                        tripStartDate.setAttribute('min', today);
+                    }
                 }
                 
                 // 위치 자동완성 이벤트
@@ -857,22 +1060,22 @@
 
             generateMockLocations() {
                 return [
-                    // 한국 주요 도시
-                    '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시',
-                    '경기도 성남시', '경기도 수원시', '경기도 안양시', '경기도 안산시', '경기도 용인시',
-                    '강원도 춘천시', '강원도 원주시', '강원도 강릉시', '강원도 속초시',
-                    '충청북도 청주시', '충청북도 충주시', '충청남도 천안시', '충청남도 아산시',
-                    '전라북도 전주시', '전라북도 군산시', '전라남도 목포시', '전라남도 여수시',
-                    '경상북도 포항시', '경상북도 구미시', '경상북도 경주시', '경상남도 창원시', '경상남도 진주시',
-                    '제주특별자치도 제주시', '제주특별자치도 서귀포시',
+                    // 유럽 주요 도시
+                    '독일 뮌헨', '독일 베를린', '독일 함부르크', '독일 쾰른', '독일 프랑크푸르트',
+                    '오스트리아 빈', '오스트리아 잘츠부르크', '오스트리아 인스브루크', '오스트리아 그라츠',
+                    '이탈리아 로마', '이탈리아 밀라노', '이탈리아 베니스', '이탈리아 피렌체', '이탈리아 나폴리',
+                    '이탈리아 돌로미티', '이탈리아 볼차노', '이탈리아 코르티나',
+                    '프랑스 파리', '프랑스 니스', '프랑스 리옹', '프랑스 마르세유',
+                    '스위스 취리히', '스위스 제네바', '스위스 베른', '스위스 인터라켄',
+                    '스페인 마드리드', '스페인 바르셀로나', '스페인 세비야',
+                    '영국 런던', '영국 에든버러', '영국 맨체스터',
                     
-                    // 해외 주요 도시
+                    // 기타 주요 도시
                     '일본 도쿄', '일본 오사카', '일본 교토', '일본 나고야', '일본 후쿠오카',
                     '중국 베이징', '중국 상하이', '중국 광저우', '중국 선전',
                     '태국 방콕', '태국 치앙마이', '베트남 하노이', '베트남 호치민',
                     '싱가포르', '말레이시아 쿠알라룸푸르', '인도네시아 자카르타',
-                    '미국 뉴욕', '미국 로스앤젤레스', '미국 라스베이거스', '미국 샌프란시스코',
-                    '영국 런던', '프랑스 파리', '독일 베를린', '이탈리아 로마', '스페인 바르셀로나'
+                    '미국 뉴욕', '미국 로스앤젤레스', '미국 라스베이거스', '미국 샌프란시스코'
                 ];
             }
 
@@ -918,53 +1121,40 @@
                 });
             }
 
-            validateDatesForPlan(index) {
-                const startDate = document.getElementById(`startDate_${index}`).value;
-                const endDate = document.getElementById(`endDate_${index}`).value;
+            validateStayNightsForPlan(index) {
+                const stayNightsEl = document.getElementById(`stayNights_${index}`);
+                const stayNights = stayNightsEl ? stayNightsEl.value : '';
 
                 let isValid = true;
 
-                if (!startDate) {
-                    this.showError(`startDate_${index}`, '출발일을 선택해주세요.');
+                if (!stayNights || stayNights === '') {
+                    this.showError(`stayNights_${index}`, '숙박일을 입력해주세요.');
+                    isValid = false;
+                } else if (parseInt(stayNights) < 0) {
+                    this.showError(`stayNights_${index}`, '숙박일은 0 이상이어야 합니다.');
+                    isValid = false;
+                } else if (parseInt(stayNights) > 99) {
+                    this.showError(`stayNights_${index}`, '숙박일은 99 이하여야 합니다.');
                     isValid = false;
                 } else {
-                    this.hideError(`startDate_${index}`);
-                }
-
-                if (!endDate) {
-                    this.showError(`endDate_${index}`, '도착일을 선택해주세요.');
-                    isValid = false;
-                } else if (startDate && endDate && new Date(endDate) <= new Date(startDate)) {
-                    this.showError(`endDate_${index}`, '도착일은 출발일보다 늦어야 합니다.');
-                    isValid = false;
-                } else {
-                    this.hideError(`endDate_${index}`);
+                    this.hideError(`stayNights_${index}`);
                 }
 
                 return isValid;
             }
 
-            calculateDurationForPlan(index) {
-                const startDate = document.getElementById(`startDate_${index}`).value;
-                const endDate = document.getElementById(`endDate_${index}`).value;
-                const durationDisplay = document.getElementById(`durationDisplay_${index}`);
-                const durationText = document.getElementById(`durationText_${index}`);
+            validateTripStartDate() {
+                const tripStartDate = document.getElementById('tripStartDate').value;
+                let isValid = true;
 
-                if (startDate && endDate) {
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const diffTime = Math.abs(end - start);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays > 0) {
-                        durationText.textContent = `${diffDays}일 ${diffDays - 1}박`;
-                        durationDisplay.style.display = 'block';
-                    } else {
-                        durationDisplay.style.display = 'none';
-                    }
+                if (!tripStartDate) {
+                    this.showError('tripStartDate', '여행 시작일을 선택해주세요.');
+                    isValid = false;
                 } else {
-                    durationDisplay.style.display = 'none';
+                    this.hideError('tripStartDate');
                 }
+
+                return isValid;
             }
 
             updateCategoryTag(tag) {
@@ -979,30 +1169,33 @@
             validateForm() {
                 let isFormValid = true;
 
+                // 여행 시작일 검증
+                if (!this.validateTripStartDate()) {
+                    isFormValid = false;
+                }
+
                 // 모든 여행 계획 검증
-                const travelPlans = document.querySelectorAll('.travel-plan-card');
+                const travelPlans = document.querySelectorAll('.travel-plan-wrapper');
                 for (let plan of travelPlans) {
                     const index = plan.dataset.planId;
-                    const startDateEl = document.getElementById(`startDate_${index}`);
-                    const endDateEl = document.getElementById(`endDate_${index}`);
+                    const stayNightsEl = document.getElementById(`stayNights_${index}`);
                     const destinationEl = document.getElementById(`destination_${index}`);
                     
                     // 요소가 존재하지 않으면 건너뛰기
-                    if (!startDateEl || !endDateEl || !destinationEl) {
+                    if (!stayNightsEl || !destinationEl) {
                         continue;
                     }
                     
-                    const startDate = startDateEl.value;
-                    const endDate = endDateEl.value;
+                    const stayNights = stayNightsEl.value;
                     const destination = destinationEl.value.trim();
                     
                     // 필수 필드 검증
-                    if (!startDate || !endDate || !destination) {
+                    if (!stayNights || !destination) {
                         isFormValid = false;
                     }
                     
-                    // 날짜 검증
-                    if (startDate && endDate && new Date(endDate) <= new Date(startDate)) {
+                    // 숙박일 검증
+                    if (!this.validateStayNightsForPlan(index)) {
                         isFormValid = false;
                     }
                 }
@@ -1114,32 +1307,77 @@
             }
             
             updatePlanSummary(index) {
-                const startDate = document.getElementById(`startDate_${index}`).value;
-                const endDate = document.getElementById(`endDate_${index}`).value;
+                const stayNightsEl = document.getElementById(`stayNights_${index}`);
+                const stayNights = stayNightsEl ? stayNightsEl.value : '';
                 const destination = document.getElementById(`destination_${index}`).value;
                 const accommodation = document.getElementById(`accommodation_${index}`).value;
+                const tripStartDate = document.getElementById('tripStartDate').value;
                 
-                // 카드 제목 업데이트 (여행지로)
-                const titleElement = document.getElementById(`planTitle_${index}`);
-                if (titleElement) {
-                    titleElement.textContent = destination || '여행지 미설정';
+                // 날짜 범위 계산 및 업데이트
+                const dateRangeElement = document.getElementById(`planDateRange_${index}`);
+                const destinationElement = document.getElementById(`planDestination_${index}`);
+                
+                if (tripStartDate && stayNights !== '') {
+                    const startDate = this.calculatePlanStartDate(index);
+                    const endDate = new Date(startDate);
+                    // 숙박일이 3박이면 체크아웃일은 시작일로부터 3일 후
+                    // 예: 8/1 시작 3박 -> 8/1,8/2,8/3 숙박 -> 8/4 체크아웃 -> 종료일은 8/4
+                    endDate.setDate(endDate.getDate() + parseInt(stayNights));
+                    
+                    const startStr = this.formatDate(startDate);
+                    const endStr = this.formatDate(endDate);
+                    dateRangeElement.textContent = `${startStr} ~ ${endStr}`;
+                } else {
+                    dateRangeElement.textContent = '날짜 미설정';
                 }
                 
-                // 날짜 요약 업데이트
-                const datesElement = document.getElementById(`planDates_${index}`);
-                if (startDate && endDate) {
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const diffTime = Math.abs(end - start);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    datesElement.textContent = `${startDate} ~ ${endDate} (${diffDays}일 ${diffDays - 1}박)`;
-                } else {
-                    datesElement.textContent = '미설정';
+                // 여행지 업데이트
+                if (destinationElement) {
+                    destinationElement.textContent = destination || '여행지 미설정';
+                }
+                
+                // 숙박일 숫자 업데이트
+                const nightsNumElement = document.getElementById(`planNightsNum_${index}`);
+                if (nightsNumElement) {
+                    nightsNumElement.textContent = stayNights || '0';
                 }
                 
                 // 숙소 요약 업데이트
                 const accommodationElement = document.getElementById(`planAccommodation_${index}`);
-                accommodationElement.textContent = accommodation || '미설정';
+                if (accommodationElement) {
+                    accommodationElement.textContent = accommodation || '미설정';
+                }
+            }
+            
+            calculatePlanStartDate(planIndex) {
+                const tripStartDate = document.getElementById('tripStartDate').value;
+                if (!tripStartDate) return null;
+                
+                let currentDate = new Date(tripStartDate);
+                
+                // 이전 계획들의 숙박일을 더하여 시작일 계산
+                const plans = document.querySelectorAll('.travel-plan-wrapper');
+                for (let i = 0; i < plans.length; i++) {
+                    const plan = plans[i];
+                    const index = parseInt(plan.dataset.planId);
+                    
+                    if (index >= planIndex) break;
+                    
+                    const stayNightsEl = document.getElementById(`stayNights_${index}`);
+                    if (stayNightsEl && stayNightsEl.value) {
+                        // 숙박일만큼 더하면 다음 여행지 시작일이 됨
+                        // 예: 8/1 시작 3박 -> 8/4가 다음 여행지 시작일
+                        currentDate.setDate(currentDate.getDate() + parseInt(stayNightsEl.value));
+                    }
+                }
+                
+                return currentDate;
+            }
+            
+            formatDate(date) {
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                return `${month}월 ${day}일`;
             }
         }
 
@@ -1199,81 +1437,85 @@
             const container = document.getElementById('travelPlansContainer');
             
             const newCard = document.createElement('div');
-            newCard.className = 'travel-plan-card';
+            newCard.className = 'travel-plan-wrapper';
             newCard.setAttribute('data-plan-id', travelPlanCounter);
             
             newCard.innerHTML = `
-                <div class="card-header">
-                    <h4 class="card-title">
-                        <div class="card-number">${travelPlanCounter}</div>
-                        <span id="planTitle_${travelPlanCounter}">여행지 미설정</span>
-                    </h4>
-                    <div class="card-actions">
-                        <button type="button" class="btn-edit" onclick="editTravelPlan(${travelPlanCounter})">편집</button>
-                        <button type="button" class="btn-delete" onclick="deleteTravelPlan(${travelPlanCounter})">삭제</button>
-                    </div>
+                <div class="card-nights">
+                    <div class="card-nights-num" id="planNightsNum_${travelPlanCounter}">0</div>
+                    <div class="card-nights-text">박</div>
                 </div>
                 
-                <div class="card-summary" id="planSummary_${travelPlanCounter}">
-                    <div class="summary-item">
-                        <span class="summary-label">여행 기간</span>
-                        <span class="summary-value" id="planDates_${travelPlanCounter}">미설정</span>
+                <div class="travel-plan-card">
+                    <div class="timeline-marker"></div>
+                    
+                    <div class="card-body">
+                        <div class="card-content">
+                            <div class="card-header">
+                                <div class="card-destination" id="planDestination_${travelPlanCounter}">여행지 미설정</div>
+                            </div>
+                            <div class="card-date-range" id="planDateRange_${travelPlanCounter}">날짜 미설정</div>
+                            
+                            <div class="card-actions">
+                                <button type="button" class="btn-edit" onclick="editTravelPlan(${travelPlanCounter})">편집</button>
+                                <button type="button" class="btn-delete" onclick="deleteTravelPlan(${travelPlanCounter})">삭제</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="summary-item">
-                        <span class="summary-label">숙소</span>
-                        <span class="summary-value" id="planAccommodation_${travelPlanCounter}">미설정</span>
-                    </div>
-                </div>
-                
-                <div class="card-edit-form" id="planForm_${travelPlanCounter}">
+                    
+                    <!-- 편집 폼 -->
+                    <div class="card-edit-form" id="planForm_${travelPlanCounter}">
                     <!-- 여행지 정보 -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="destination_${travelPlanCounter}">여행지 <span class="required">*</span> <small style="color: var(--gray-500); font-weight: normal;">(해외는 국가명 함께 입력하세요)</small></label>
                             <div class="location-search">
                                 <input type="text" id="destination_${travelPlanCounter}" name="destination_${travelPlanCounter}" class="input-field" 
-                                       placeholder="예: 부산광역시, 일본 도쿄" required autocomplete="off">
+                                       placeholder="예: 독일 뮌헨, 오스트리아 잘츠부르크" required autocomplete="off">
                                 <div class="autocomplete-dropdown" id="destinationDropdown_${travelPlanCounter}"></div>
                             </div>
                             <div class="error-message" id="destinationError_${travelPlanCounter}">여행지를 입력해주세요.</div>
                         </div>
                     </div>
                     
-                    <!-- 여행 기간 -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="startDate_${travelPlanCounter}">출발일 <span class="required">*</span></label>
-                            <input type="date" id="startDate_${travelPlanCounter}" name="startDate_${travelPlanCounter}" class="input-field" required>
-                            <div class="error-message" id="startDateError_${travelPlanCounter}">출발일을 선택해주세요.</div>
-                        </div>
-                        <div class="form-group">
-                            <label for="endDate_${travelPlanCounter}">도착일 <span class="required">*</span></label>
-                            <input type="date" id="endDate_${travelPlanCounter}" name="endDate_${travelPlanCounter}" class="input-field" required>
-                            <div class="error-message" id="endDateError_${travelPlanCounter}">도착일을 선택해주세요.</div>
-                        </div>
-                    </div>
-                    <div id="durationDisplay_${travelPlanCounter}" class="duration-display" style="display: none;">
-                        여행 기간: <span id="durationText_${travelPlanCounter}"></span>
-                    </div>
-                    
-                    <!-- 숙소 정보 -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="accommodation_${travelPlanCounter}">숙소명 입력</label>
-                            <div class="accommodation-search">
-                                <input type="text" id="accommodation_${travelPlanCounter}" name="accommodation_${travelPlanCounter}" class="input-field" 
-                                       placeholder="예: 롯데호텔 부산" autocomplete="off">
-                                <div class="search-indicator" id="accommodationSearchIndicator_${travelPlanCounter}"></div>
-                                <div class="autocomplete-dropdown" id="accommodationDropdown_${travelPlanCounter}"></div>
+                    <!-- 숙소명/숙박일 -->
+                    <div class="form-group">
+                        <label>숙소명/숙박일 <span class="required">*</span></label>
+                        <div class="accommodation-nights-container">
+                            <div class="accommodation-field">
+                                <div class="accommodation-search">
+                                    <input type="text" id="accommodation_${travelPlanCounter}" name="accommodation_${travelPlanCounter}" class="input-field" 
+                                           placeholder="예: 뮌헨 호텔 바이에리셔 호프" autocomplete="off">
+                                    <div class="search-indicator" id="accommodationSearchIndicator_${travelPlanCounter}"></div>
+                                    <div class="autocomplete-dropdown" id="accommodationDropdown_${travelPlanCounter}"></div>
+                                </div>
+                            </div>
+                            <div class="nights-field">
+                                <div class="nights-input-wrapper">
+                                    <input type="number" id="stayNights_${travelPlanCounter}" name="stayNights_${travelPlanCounter}" class="input-field" 
+                                           min="0" max="99" required>
+                                    <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">박</span>
+                                </div>
+                                <div class="error-message" id="stayNightsError_${travelPlanCounter}" style="display: none;">숙박일을 입력해주세요.</div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="checkTime_${travelPlanCounter}">체크인 -> 체크아웃 <span class="optional">(선택사항)</span></label>
-                            <input type="text" id="checkTime_${travelPlanCounter}" name="checkTime_${travelPlanCounter}" class="input-field" 
-                                   placeholder="예: 오후 3시 -> 오전 11시">
+                    <!-- 체크인/체크아웃 -->
+                    <div class="form-group">
+                        <label>체크인/체크아웃 <span class="optional">(선택사항)</span></label>
+                        <div class="checkin-checkout-container">
+                            <div class="time-field">
+                                <input type="number" id="checkInTime_${travelPlanCounter}" name="checkInTime_${travelPlanCounter}" class="input-field" 
+                                       placeholder="15" min="0" max="23">
+                                <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">시</span>
+                            </div>
+                            <span style="color: var(--gray-500); font-weight: var(--font-medium); font-size: var(--text-lg);">/</span>
+                            <div class="time-field">
+                                <input type="number" id="checkOutTime_${travelPlanCounter}" name="checkOutTime_${travelPlanCounter}" class="input-field" 
+                                       placeholder="11" min="0" max="23">
+                                <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">시</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -1302,21 +1544,23 @@
         
         function editTravelPlan(planId) {
             const planForm = document.getElementById(`planForm_${planId}`);
-            const planSummary = document.getElementById(`planSummary_${planId}`);
             
-            if (planForm && planSummary) {
+            if (planForm) {
                 planForm.classList.add('active');
-                planSummary.style.display = 'none';
+                console.log(`편집 폼 활성화: planForm_${planId}`);
+            } else {
+                console.error(`편집 폼을 찾을 수 없습니다: planForm_${planId}`);
             }
         }
         
         function cancelEditTravelPlan(planId) {
             const planForm = document.getElementById(`planForm_${planId}`);
-            const planSummary = document.getElementById(`planSummary_${planId}`);
             
-            if (planForm && planSummary) {
+            if (planForm) {
                 planForm.classList.remove('active');
-                planSummary.style.display = 'block';
+                console.log(`편집 폼 비활성화: planForm_${planId}`);
+            } else {
+                console.error(`편집 폼을 찾을 수 없습니다: planForm_${planId}`);
             }
         }
         
@@ -1324,7 +1568,7 @@
             const manager = window.tripScheduleManager;
             if (manager) {
                 // 유효성 검사
-                const isValid = manager.validateDatesForPlan(planId) && 
+                const isValid = manager.validateStayNightsForPlan(planId) && 
                                document.getElementById(`destination_${planId}`).value.trim();
                 
                 if (isValid) {
@@ -1339,7 +1583,7 @@
         }
         
         function deleteTravelPlan(planId) {
-            const plans = document.querySelectorAll('.travel-plan-card');
+            const plans = document.querySelectorAll('.travel-plan-wrapper');
             if (plans.length <= 1) {
                 TripGen.showToast('최소 하나의 여행 계획은 필요합니다.', 'warning');
                 return;
@@ -1361,7 +1605,7 @@
         }
         
         function updatePlanNumbers() {
-            const plans = document.querySelectorAll('.travel-plan-card');
+            const plans = document.querySelectorAll('.travel-plan-wrapper');
             plans.forEach((plan, index) => {
                 const newNumber = index + 1;
                 const cardNumber = plan.querySelector('.card-number');
@@ -1435,34 +1679,34 @@
             getMockAccommodationResults(query) {
                 const accommodations = [
                     {
-                        name: '롯데호텔 부산',
-                        address: '부산광역시 부산진구 가야대로 772',
+                        name: '뮌헨 호텔 바이에리셔 호프',
+                        address: 'Promenadeplatz 2-6, 80333 뮌헨, 독일',
+                        rating: '⭐ 4.7'
+                    },
+                    {
+                        name: '호텔 비어 잔나이더 뮌헨',
+                        address: 'Tal 7, 80331 뮌헨, 독일',
                         rating: '⭐ 4.5'
                     },
                     {
-                        name: '파라다이스호텔 부산',
-                        address: '부산광역시 해운대구 해운대해변로 296',
-                        rating: '⭐ 4.3'
-                    },
-                    {
-                        name: '그랜드호텔',
-                        address: '부산광역시 중구 중앙대로 151',
-                        rating: '⭐ 4.1'
-                    },
-                    {
-                        name: '서울신라호텔',
-                        address: '서울특별시 중구 동호로 249',
-                        rating: '⭐ 4.8'
-                    },
-                    {
-                        name: '롯데호텔 서울',
-                        address: '서울특별시 중구 을지로 30',
+                        name: '호텔 잘츠부르거 호프',
+                        address: 'Sigmund-Haffner-Gasse 4, 5020 잘츠부르크, 오스트리아',
                         rating: '⭐ 4.6'
                     },
                     {
-                        name: '조선팰리스호텔',
-                        address: '서울특별시 중구 소공로 106',
-                        rating: '⭐ 4.7'
+                        name: '호텔 골든러 힐쉬',
+                        address: 'Getreidegasse 37, 5020 잘츠부르크, 오스트리아',
+                        rating: '⭐ 4.4'
+                    },
+                    {
+                        name: '호텔 코르티나',
+                        address: 'Via del Parco 11, 32043 코르티나 담페초, 이탈리아',
+                        rating: '⭐ 4.3'
+                    },
+                    {
+                        name: '그랜드 호텔 미라몬티',
+                        address: 'Via Pieve 103, 32043 코르티나 담페초, 이탈리아',
+                        rating: '⭐ 4.5'
                     }
                 ];
 
@@ -1531,22 +1775,20 @@
 
         // 기본 데이터 설정 함수
         function setDefaultTravelPlanData() {
-            // 기본 여행 날짜 설정 (내일부터 3박 4일)
+            // 기본 여행 날짜 설정 (내일부터)
             const today = new Date();
             const startDate = new Date(today);
             startDate.setDate(today.getDate() + 1); // 내일부터
-            const endDate = new Date(today);
-            endDate.setDate(today.getDate() + 4); // 4일 후까지 (3박 4일)
             
             const startDateStr = startDate.toISOString().split('T')[0];
-            const endDateStr = endDate.toISOString().split('T')[0];
             
-            // 기본 값들 설정
-            document.getElementById('startDate_1').value = startDateStr;
-            document.getElementById('endDate_1').value = endDateStr;
-            document.getElementById('destination_1').value = '제주특별자치도 제주시';
-            document.getElementById('accommodation_1').value = '롯데호텔 제주';
-            document.getElementById('checkTime_1').value = '오후 3시 -> 오전 11시';
+            // 기본 값들 설정 - 유럽가족여행
+            document.getElementById('tripStartDate').value = startDateStr;
+            document.getElementById('stayNights_1').value = '2';  // 독일 뮌헨 2박
+            document.getElementById('destination_1').value = '독일 뮌헨';
+            document.getElementById('accommodation_1').value = '뮌헨 호텔 바이에리셔 호프';
+            document.getElementById('checkInTime_1').value = '15';
+            document.getElementById('checkOutTime_1').value = '11';
             
             // 숙소 검색 인디케이터 표시
             const searchIndicator = document.getElementById('accommodationSearchIndicator_1');
@@ -1555,11 +1797,10 @@
                 searchIndicator.textContent = '✓';
             }
             
-            // 기간 계산 및 표시
+            // 요약 정보 업데이트
             setTimeout(() => {
                 const manager = window.tripScheduleManager;
                 if (manager) {
-                    manager.calculateDurationForPlan(1);
                     manager.updatePlanSummary(1);
                     manager.validateForm();
                     
@@ -1572,7 +1813,7 @@
             }, 300);
             
             setTimeout(() => {
-                TripGen.showToast('기본 여행 계획이 설정되었습니다. 제주도 3박 4일 여행으로 설정되었습니다!', 'success', 4000);
+                TripGen.showToast('기본 여행 계획이 설정되었습니다. 독일 뮌헨 2박 3일 여행으로 설정되었습니다!', 'success', 4000);
             }, 500);
         }
         
@@ -1607,14 +1848,14 @@
                                     
                                     // 직접 유효성 검사 및 버튼 활성화
                                     const plan1 = {
-                                        startDate: document.getElementById('startDate_1').value,
-                                        endDate: document.getElementById('endDate_1').value,
+                                        tripStartDate: document.getElementById('tripStartDate').value,
+                                        stayNights: document.getElementById('stayNights_1').value,
                                         destination: document.getElementById('destination_1').value
                                     };
                                     
-                                    const isValid = plan1.startDate && plan1.endDate && 
+                                    const isValid = plan1.tripStartDate && plan1.stayNights && 
                                                   plan1.destination &&
-                                                  new Date(plan1.endDate) > new Date(plan1.startDate);
+                                                  parseInt(plan1.stayNights) >= 0;
                                     
                                     nextButton.disabled = !isValid;
                                     

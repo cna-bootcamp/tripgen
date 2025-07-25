@@ -515,7 +515,8 @@
             <nav class="nav">
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
-                    <li><a href="01-대시보드.html" class="nav-link active">대시보드</a></li>
+                    <li><a href="01-대시보드.html" class="nav-link">홈</a></li>
+                    <li><a href="02-기본설정.html" class="nav-link active">새 여행 계획</a></li>
                     <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
                     <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
                 </ul>
@@ -570,7 +571,7 @@
                 <div class="form-group">
                     <label for="tripName" style="display: block; font-weight: var(--font-medium); color: var(--gray-700); margin-bottom: var(--space-2); font-size: var(--text-sm);">여행명 <span style="color: var(--error);">*</span></label>
                     <input type="text" id="tripName" name="tripName" class="input-field" 
-                           placeholder="예: 부산 가족여행, 도쿄 벚꽃 여행" required
+                           placeholder="예: 유럽가족여행, 독일-오스트리아-이탈리아 15일 여행" required
                            style="width: 100%; padding: var(--space-3) var(--space-4); border: 2px solid var(--gray-300); border-radius: 8px; font-size: var(--text-base); transition: all 0.2s ease; background-color: white;"
                            oninput="updateTripNamePreview()">
                     <div class="error-message" id="tripNameError" style="color: var(--error); font-size: var(--text-xs); margin-top: var(--space-1); display: none;">여행명을 입력해주세요.</div>
@@ -715,17 +716,71 @@
 
             <!-- 멤버 카드들 -->
             <div class="grid grid-2" id="memberList">
-                <!-- 샘플 멤버 1 -->
+                <!-- 어머니 -->
                 <div class="member-card animate-on-scroll">
                     <div class="member-header">
                         <div class="member-info">
-                            <h3>김여행(여성, 28세)</h3>
+                            <h3>어머니(여성, 78세)</h3>
                         </div>
                         <div class="member-actions">
                             <button class="action-btn edit" onclick="editMember(1)" data-tooltip="수정">
                                 ✏️
                             </button>
                             <button class="action-btn delete" onclick="deleteMember(1)" data-tooltip="삭제">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preferences">
+                        <div>
+                            <strong>활동선호:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">관광</span>
+                                <span class="preference-tag">문화체험</span>
+                                <span class="preference-tag">휴식</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 나 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-header">
+                        <div class="member-info">
+                            <h3>나(남성, 55세)</h3>
+                        </div>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(2)" data-tooltip="수정">
+                                ✏️
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(2)" data-tooltip="삭제">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preferences">
+                        <div>
+                            <strong>활동선호:</strong>
+                            <div class="preference-tags">
+                                <span class="preference-tag">관광</span>
+                                <span class="preference-tag">문화체험</span>
+                                <span class="preference-tag">자연체험</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 부인 -->
+                <div class="member-card animate-on-scroll">
+                    <div class="member-header">
+                        <div class="member-info">
+                            <h3>부인(여성, 56세)</h3>
+                        </div>
+                        <div class="member-actions">
+                            <button class="action-btn edit" onclick="editMember(3)" data-tooltip="수정">
+                                ✏️
+                            </button>
+                            <button class="action-btn delete" onclick="deleteMember(3)" data-tooltip="삭제">
                                 🗑️
                             </button>
                         </div>
@@ -742,17 +797,17 @@
                     </div>
                 </div>
 
-                <!-- 샘플 멤버 2 -->
+                <!-- 딸 -->
                 <div class="member-card animate-on-scroll">
                     <div class="member-header">
                         <div class="member-info">
-                            <h3>박모험(남성, 32세)</h3>
+                            <h3>딸(여성, 24세)</h3>
                         </div>
                         <div class="member-actions">
-                            <button class="action-btn edit" onclick="editMember(2)" data-tooltip="수정">
+                            <button class="action-btn edit" onclick="editMember(4)" data-tooltip="수정">
                                 ✏️
                             </button>
-                            <button class="action-btn delete" onclick="deleteMember(2)" data-tooltip="삭제">
+                            <button class="action-btn delete" onclick="deleteMember(4)" data-tooltip="삭제">
                                 🗑️
                             </button>
                         </div>
@@ -761,9 +816,10 @@
                         <div>
                             <strong>활동선호:</strong>
                             <div class="preference-tags">
-                                <span class="preference-tag">자연체험</span>
-                                <span class="preference-tag">스포츠</span>
                                 <span class="preference-tag">관광</span>
+                                <span class="preference-tag">쇼핑</span>
+                                <span class="preference-tag">자연체험</span>
+                                <span class="preference-tag">문화체험</span>
                             </div>
                         </div>
                     </div>
@@ -813,19 +869,35 @@
         let members = [
             {
                 id: 1,
-                name: '김여행',
-                age: 28,
+                name: '어머니',
+                age: 78,
                 gender: '여성',
-                health: 'excellent',
-                activityPrefs: ['관광', '쇼핑', '문화체험']
+                health: 'caution',
+                activityPrefs: ['관광', '문화체험', '휴식']
             },
             {
                 id: 2,
-                name: '박모험',
-                age: 32,
+                name: '나',
+                age: 55,
                 gender: '남성',
                 health: 'good',
-                activityPrefs: ['자연체험', '스포츠', '관광']
+                activityPrefs: ['관광', '문화체험', '자연체험']
+            },
+            {
+                id: 3,
+                name: '부인',
+                age: 56,
+                gender: '여성',
+                health: 'good',
+                activityPrefs: ['관광', '쇼핑', '문화체험']
+            },
+            {
+                id: 4,
+                name: '딸',
+                age: 24,
+                gender: '여성',
+                health: 'excellent',
+                activityPrefs: ['관광', '쇼핑', '자연체험', '문화체험']
             }
         ];
 

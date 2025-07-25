@@ -324,29 +324,6 @@
             opacity: 1;
         }
 
-        .place-image {
-            width: 100%;
-            height: 140px;
-            background: linear-gradient(135deg, #e0f2fe 0%, #f3e5f5 50%, #fef3c7 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--gray-600);
-            font-size: var(--text-base);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .place-image::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-            animation: float 6s ease-in-out infinite;
-        }
 
         @keyframes float {
             0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
@@ -585,9 +562,10 @@
             <nav class="nav">
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
-                    <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+                    <li><a href="01-대시보드.html" class="nav-link">홈</a></li>
+                    <li><a href="02-기본설정.html" class="nav-link">새 여행 계획</a></li>
                     <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
-                    <li><a href="09-주변장소검색.html" class="nav-link active">주변장소 검색</a></li>
+                    <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
                 </ul>
                 
                 <div class="nav-actions flex items-center gap-4">
@@ -651,14 +629,14 @@
                     <div class="filter-chip active" data-category="all">
                         전체
                     </div>
-                    <div class="filter-chip" data-category="restaurant">
-                        🍽️ 맛집
-                    </div>
                     <div class="filter-chip" data-category="tourist">
-                        🏛️ 관광지
+                        관광지
+                    </div>
+                    <div class="filter-chip" data-category="restaurant">
+                        맛집
                     </div>
                     <div class="filter-chip" data-category="laundry">
-                        🧺 빨래방
+                        빨래방
                     </div>
                 </div>
 
@@ -683,7 +661,6 @@
                         <div class="results-list" id="resultsList">
                             <!-- 장소 카드들 -->
                             <div class="place-card">
-                                <div class="place-image">📸 이미지 영역</div>
                                 <div class="place-content">
                                     <div class="place-header">
                                         <h3 class="place-name">강남역 맛집거리</h3>
@@ -703,7 +680,6 @@
                             </div>
 
                             <div class="place-card">
-                                <div class="place-image">📸 이미지 영역</div>
                                 <div class="place-content">
                                     <div class="place-header">
                                         <h3 class="place-name">코엑스몰</h3>
@@ -723,7 +699,6 @@
                             </div>
 
                             <div class="place-card">
-                                <div class="place-image">📸 이미지 영역</div>
                                 <div class="place-content">
                                     <div class="place-header">
                                         <h3 class="place-name">봉은사</h3>
@@ -743,7 +718,6 @@
                             </div>
 
                             <div class="place-card">
-                                <div class="place-image">📸 이미지 영역</div>
                                 <div class="place-content">
                                     <div class="place-header">
                                         <h3 class="place-name">선릉</h3>
@@ -1007,7 +981,6 @@
             
             resultsList.innerHTML = displayPlaces.map(place => `
                 <div class="place-card">
-                    <div class="place-image">📸 이미지 영역</div>
                     <div class="place-content">
                         <div class="place-header">
                             <h3 class="place-name">${place.name}</h3>

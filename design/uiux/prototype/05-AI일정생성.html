@@ -366,6 +366,11 @@
       border-top: 1px solid var(--gray-200);
     }
 
+    .nav-center {
+      display: flex;
+      gap: var(--space-3);
+    }
+
     .nav-btn {
       display: inline-flex;
       align-items: center;
@@ -388,6 +393,18 @@
     .nav-btn.disabled {
       opacity: 0.5;
       pointer-events: none;
+    }
+
+    .nav-btn.cancel {
+      background: var(--gray-200);
+      color: var(--gray-600);
+      border: 2px solid var(--gray-300);
+    }
+
+    .nav-btn.cancel:hover {
+      background: var(--error);
+      color: white;
+      border-color: var(--error);
     }
 
     /* Navigation Progress Styles */
@@ -515,6 +532,47 @@
       margin-bottom: var(--space-4);
     }
 
+    /* 시작시간 입력 스타일 */
+    .start-time-section {
+      margin: var(--space-6) 0 var(--space-8) 0;
+      text-align: left;
+      width: 100%;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .time-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      max-width: 300px;
+    }
+
+    .time-input {
+      width: 80px;
+      padding: var(--space-3);
+      border: 2px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: var(--text-base);
+      font-family: inherit;
+      text-align: center;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .time-input:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(46, 134, 171, 0.1);
+    }
+
+    .time-unit {
+      font-size: var(--text-base);
+      color: var(--gray-700);
+      font-weight: var(--font-medium);
+    }
+
     /* 사용자 메뉴 스타일 */
     .user-menu {
         position: relative;
@@ -567,6 +625,17 @@
         gap: var(--space-4);
       }
 
+      .nav-center {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .nav-btn.cancel {
+        width: 100%;
+        max-width: 200px;
+      }
+
       .nav-progress-steps {
         gap: var(--space-4);
         overflow-x: auto;
@@ -595,7 +664,8 @@
     <nav class="nav container">
       <a href="01-대시보드.html" class="nav-brand">TripGen</a>
       <ul class="nav-menu">
-        <li><a href="01-대시보드.html" class="nav-link active">대시보드</a></li>
+        <li><a href="01-대시보드.html" class="nav-link">홈</a></li>
+        <li><a href="02-기본설정.html" class="nav-link">새 여행 계획</a></li>
         <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
         <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
       </ul>
@@ -652,10 +722,25 @@
         
         <div id="initial-state">
           <h2 class="generation-title">Claude AI로 똑똑한 여행 일정 생성</h2>
-          <p class="generation-description">
-            입력한 정보를 바탕으로 최적화된 일정을 생성합니다.
-          </p>
           
+          <!-- 시작시간 입력 -->
+          <div class="start-time-section">
+            <div class="time-input-wrapper">
+              <label for="startTime" class="request-label">
+                여행 시작시간
+              </label>
+              <input 
+                type="number" 
+                id="startTime" 
+                class="time-input"
+                placeholder="09"
+                min="0"
+                max="23"
+                value="9">
+              <span class="time-unit">시</span>
+            </div>
+          </div>
+
           <!-- 요청사항 입력 -->
           <div class="request-section">
             <label for="userRequest" class="request-label">
@@ -750,6 +835,13 @@
         <a href="03-여행일정설정.html" class="nav-btn">
           ← 이전: 여행일정 설정
         </a>
+        
+        <div class="nav-center">
+          <button class="nav-btn cancel" onclick="cancelGeneration()">
+            취소
+          </button>
+        </div>
+        
         <a href="06-생성된일정조회.html" class="nav-btn disabled" id="nextBtn">
           다음: 생성된일정조회 →
         </a>
@@ -889,6 +981,7 @@
       initRequestSection() {
         const userRequestTextarea = document.getElementById('userRequest');
         const charCount = document.getElementById('charCount');
+        const startTimeInput = document.getElementById('startTime');
         
         if (userRequestTextarea && charCount) {
           // 글자 수 카운터
@@ -918,22 +1011,56 @@
             localStorage.setItem('userRequest', userRequestTextarea.value);
           });
         }
+
+        // 시작시간 입력 처리
+        if (startTimeInput) {
+          // 저장된 시작시간 불러오기
+          const savedStartTime = localStorage.getItem('startTime');
+          if (savedStartTime) {
+            startTimeInput.value = savedStartTime;
+          }
+          
+          // 입력 시 자동 저장
+          startTimeInput.addEventListener('input', () => {
+            localStorage.setItem('startTime', startTimeInput.value);
+          });
+
+          // 시간 유효성 검사
+          startTimeInput.addEventListener('blur', () => {
+            let value = parseInt(startTimeInput.value);
+            if (isNaN(value) || value < 0) {
+              value = 9;
+            } else if (value > 23) {
+              value = 23;
+            }
+            startTimeInput.value = value;
+            localStorage.setItem('startTime', value.toString());
+          });
+        }
       }
       
       getUserRequest() {
         const userRequestTextarea = document.getElementById('userRequest');
         return userRequestTextarea ? userRequestTextarea.value.trim() : '';
       }
+
+      getStartTime() {
+        const startTimeInput = document.getElementById('startTime');
+        return startTimeInput ? startTimeInput.value : '9';
+      }
       
       async startGeneration() {
         if (this.isGenerating) return;
         
-        // 사용자 요청사항 가져오기
+        // 사용자 요청사항과 시작시간 가져오기
         const userRequest = this.getUserRequest();
+        const startTime = this.getStartTime();
+        
+        console.log('시작시간:', startTime + '시');
         if (userRequest) {
           console.log('사용자 요청사항:', userRequest);
-          // 실제 구현에서는 AI API에 요청사항을 전달
         }
+        // 실제 구현에서는 AI API에 시작시간과 요청사항을 모두 전달
         
         this.isGenerating = true;
         this.currentStep = 0;
@@ -1020,15 +1147,15 @@
       completeGeneration() {
         this.isGenerating = false;
         
-        // 생성 완료 시 요청사항도 저장
+        // 생성 완료 시 요청사항과 시작시간도 저장
         const userRequest = this.getUserRequest();
-        if (userRequest) {
-          const generationData = {
-            userRequest: userRequest,
-            generatedAt: new Date().toISOString()
-          };
-          localStorage.setItem('lastGenerationData', JSON.stringify(generationData));
-        }
+        const startTime = this.getStartTime();
+        const generationData = {
+          userRequest: userRequest,
+          startTime: startTime,
+          generatedAt: new Date().toISOString()
+        };
+        localStorage.setItem('lastGenerationData', JSON.stringify(generationData));
         
         // 전체 generation-card 숨기기 (로봇 아이콘 포함)
         const generationCard = document.querySelector('.generation-card');
@@ -1106,6 +1233,13 @@
     // 스테퍼 네비게이션 함수
     function navigateToStep(url) {
       window.location.href = url;
+    }
+    
+    // 취소 함수
+    function cancelGeneration() {
+      if (confirm('AI 일정 생성을 취소하시겠습니까?\n이전 단계로 돌아갑니다.')) {
+        window.location.href = '03-여행일정설정.html';
+      }
     }
     
     // 페이지 로드 시 초기화

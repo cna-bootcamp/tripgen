@@ -436,9 +436,10 @@
             <nav class="nav">
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
-                    <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
+                    <li><a href="01-대시보드.html" class="nav-link">홈</a></li>
+                    <li><a href="02-기본설정.html" class="nav-link">새 여행 계획</a></li>
                     <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
-                    <li><a href="09-주변장소검색.html" class="nav-link active">주변장소 검색</a></li>
+                    <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
                 </ul>
                 
                 <div class="nav-actions flex items-center gap-4">
@@ -477,7 +478,7 @@
                             <div style="font-size: 3rem; margin-bottom: 1rem;">🗺️</div>
                             <div>경로 지도가 여기에 표시됩니다</div>
                             <div style="font-size: var(--text-sm); opacity: 0.8; margin-top: 0.5rem;">
-                                홍대입구역 → 이태원역
+                                호텔 → 마리엔플라츠 시계탑
                             </div>
                         </div>
                     </div>
@@ -490,11 +491,11 @@
                         <div class="route-locations">
                             <div class="location-item">
                                 <div class="location-icon start">A</div>
-                                <div class="location-text">홍대입구역</div>
+                                <div class="location-text">호텔 바이에리셔 호프</div>
                             </div>
                             <div class="location-item">
                                 <div class="location-icon end">B</div>
-                                <div class="location-text">이태원역</div>
+                                <div class="location-text">마리엔플라츠 시계탑</div>
                             </div>
                         </div>
 
@@ -526,7 +527,7 @@
 
                     <!-- 실시간 교통 정보 -->
                     <div class="traffic-info" id="trafficInfo">
-                        🚧 강남대로 공사로 인한 정체 (약 10분 지연)
+                        🚧 Maximilianstraße 공사로 인한 우회 필요 (약 5분 지연)
                     </div>
 
                     <!-- 경로 목록 -->
@@ -567,100 +568,99 @@
             transit: [
                 {
                     id: 1,
-                    time: "32분",
-                    distance: "12.3km",
-                    cost: "1,470원",
-                    details: "지하철 6호선 → 4호선 환승",
+                    time: "15분",
+                    distance: "3.2km",
+                    cost: "€3.30",
+                    details: "트램 19번 → 지하철 U6선",
                     selected: true,
                     steps: [
-                        { icon: "🚶", title: "홍대입구역까지 도보", description: "약 2분 소요" },
-                        { icon: "🚇", title: "6호선 탑승", description: "홍대입구역 → 공덕역 (4정거장, 8분)" },
-                        { icon: "🔄", title: "4호선 환승", description: "공덕역에서 환승 (3분)" },
-                        { icon: "🚇", title: "4호선 탑승", description: "공덕역 → 이촌역 (7정거장, 15분)" },
-                        { icon: "🔄", title: "6호선 환승", description: "이촌역에서 환승 (2분)" },
-                        { icon: "🚇", title: "6호선 탑승", description: "이촌역 → 이태원역 (1정거장, 2분)" }
+                        { icon: "🚶", title: "호텔에서 정류장까지 도보", description: "Promenadeplatz 정류장 (2분)" },
+                        { icon: "🚋", title: "트램 19번 탑승", description: "Promenadeplatz → Karlsplatz (3정거장, 6분)" },
+                        { icon: "🔄", title: "U6선 환승", description: "Karlsplatz에서 환승 (2분)" },
+                        { icon: "🚇", title: "U6선 탑승", description: "Karlsplatz → Marienplatz (1정거장, 3분)" },
+                        { icon: "🚶", title: "마리엔플라츠까지 도보", description: "지하철역에서 시계탑까지 (2분)" }
                     ]
                 },
                 {
                     id: 2,
-                    time: "38분",
-                    distance: "11.8km", 
-                    cost: "1,470원",
-                    details: "지하철 2호선 → 6호선 환승",
+                    time: "18분",
+                    distance: "2.8km", 
+                    cost: "€3.30",
+                    details: "트램 16번 직행",
                     selected: false,
                     steps: [
-                        { icon: "🚶", title: "홍대입구역까지 도보", description: "약 2분 소요" },
-                        { icon: "🚇", title: "2호선 탑승", description: "홍대입구역 → 을지로3가역 (12정거장, 24분)" },
-                        { icon: "🔄", title: "3호선 환승", description: "을지로3가역에서 환승 (4분)" },
-                        { icon: "🚇", title: "3호선 탑승", description: "을지로3가역 → 약수역 (4정거장, 6분)" },
-                        { icon: "🔄", title: "6호선 환승", description: "약수역에서 환승 (2분)" },
-                        { icon: "🚇", title: "6호선 탑승", description: "약수역 → 이태원역 (2정거장, 4분)" }
+                        { icon: "🚶", title: "호텔에서 정류장까지 도보", description: "Salvatorstraße 정류장 (4분)" },
+                        { icon: "🚋", title: "트램 16번 탑승", description: "Salvatorstraße → Marienplatz (8정거장, 12분)" },
+                        { icon: "🚶", title: "마리엔플라츠까지 도보", description: "정류장에서 시계탑까지 (2분)" }
                     ]
                 },
                 {
                     id: 3,
-                    time: "41분",
-                    distance: "14.2km",
-                    cost: "2,150원",
-                    details: "버스 271번 → 지하철 6호선",
+                    time: "22분",
+                    distance: "4.1km",
+                    cost: "€3.30",
+                    details: "버스 100번 → 지하철 U3선",
                     selected: false,
                     steps: [
-                        { icon: "🚶", title: "버스정류장까지 도보", description: "홍대입구역.KT&G상상마당 정류장 (3분)" },
-                        { icon: "🚌", title: "271번 버스 탑승", description: "홍대입구역 → 한강진역 (18분, 680원)" },
-                        { icon: "🚶", title: "지하철역으로 도보", description: "한강진역까지 (4분)" },
-                        { icon: "🚇", title: "6호선 탑승", description: "한강진역 → 이태원역 (4정거장, 8분, 1,470원)" }
+                        { icon: "🚶", title: "버스정류장까지 도보", description: "Odeonsplatz 정류장 (5분)" },
+                        { icon: "🚌", title: "100번 버스 탑승", description: "Odeonsplatz → Sendlinger Tor (4정거장, 8분)" },
+                        { icon: "🔄", title: "U3선 환승", description: "Sendlinger Tor에서 환승 (3분)" },
+                        { icon: "🚇", title: "U3선 탑승", description: "Sendlinger Tor → Marienplatz (1정거장, 3분)" },
+                        { icon: "🚶", title: "마리엔플라츠까지 도보", description: "지하철역에서 시계탑까지 (3분)" }
                     ]
                 }
             ],
             driving: [
                 {
                     id: 4,
-                    time: "28분",
-                    distance: "13.1km",
-                    cost: "3,200원",
-                    details: "강변북로 → 한남대교 경유",
+                    time: "8분",
+                    distance: "2.1km",
+                    cost: "주차비 €2.5/시간",
+                    details: "Promenadeplatz → Marienplatz 직행",
                     selected: true,
                     steps: [
-                        { icon: "🚗", title: "홍대입구 출발", description: "홍익대학교 정문 기준" },
-                        { icon: "➡️", title: "와우산로", description: "1.2km, 4분" },
-                        { icon: "➡️", title: "강변북로", description: "8.3km, 15분" },
-                        { icon: "➡️", title: "한남대교", description: "1.8km, 5분" },
-                        { icon: "➡️", title: "이태원로", description: "1.8km, 4분" },
-                        { icon: "🏁", title: "이태원역 도착", description: "목적지 주변 주차장 이용" }
+                        { icon: "🚗", title: "호텔 바이에리셔 호프 출발", description: "Promenadeplatz 2-6 출발" },
+                        { icon: "➡️", title: "Promenadeplatz", description: "0.2km, 1분" },
+                        { icon: "➡️", title: "Residenzstraße", description: "0.4km, 2분" },
+                        { icon: "➡️", title: "Max-Joseph-Platz", description: "0.3km, 1분" },
+                        { icon: "➡️", title: "Dienerstraße", description: "0.6km, 2분" },
+                        { icon: "➡️", title: "Marienplatz", description: "0.6km, 2분" },
+                        { icon: "🏁", title: "마리엔플라츠 시계탑 도착", description: "Parkhaus Marienplatz 이용" }
                     ]
                 },
                 {
                     id: 5,
-                    time: "35분",
-                    distance: "12.7km",
-                    cost: "2,800원",
-                    details: "서강대교 → 반포대교 경유",
+                    time: "12분",
+                    distance: "2.8km",
+                    cost: "주차비 €2.5/시간",
+                    details: "Maximilianstraße 경유 (우회 경로)",
                     selected: false,
                     steps: [
-                        { icon: "🚗", title: "홍대입구 출발", description: "홍익대학교 정문 기준" },
-                        { icon: "➡️", title: "와우산로 → 서강대교", description: "2.1km, 8분" },
-                        { icon: "➡️", title: "강남대로", description: "6.2km, 18분" },
-                        { icon: "➡️", title: "반포대교", description: "2.4km, 6분" },
-                        { icon: "➡️", title: "이태원로", description: "2.0km, 3분" },
-                        { icon: "🏁", title: "이태원역 도착", description: "목적지 주변 주차장 이용" }
+                        { icon: "🚗", title: "호텔 바이에리셔 호프 출발", description: "Promenadeplatz 2-6 출발" },
+                        { icon: "➡️", title: "Kardinal-Faulhaber-Straße", description: "0.3km, 2분" },
+                        { icon: "➡️", title: "Maximilianstraße", description: "1.2km, 5분" },
+                        { icon: "➡️", title: "Platzl", description: "0.4km, 2분" },
+                        { icon: "➡️", title: "Sparkassenstraße", description: "0.3km, 1분" },
+                        { icon: "➡️", title: "Marienplatz", description: "0.6km, 2분" },
+                        { icon: "🏁", title: "마리엔플라츠 시계탑 도착", description: "Parkhaus Marienplatz 이용" }
                     ]
                 }
             ],
             walking: [
                 {
                     id: 6,
-                    time: "2시간 38분",
-                    distance: "12.8km",
-                    cost: "0원",
-                    details: "한강공원 경유 도보길",
+                    time: "25분",
+                    distance: "1.8km",
+                    cost: "무료",
+                    details: "뮌헨 구시가지 도보길",
                     selected: true,
                     steps: [
-                        { icon: "🚶", title: "홍대입구 출발", description: "홍익대학교 정문" },
-                        { icon: "🌳", title: "망원한강공원", description: "2.1km, 25분" },
-                        { icon: "🌊", title: "한강공원 따라 동행", description: "6.8km, 1시간 22분" },
-                        { icon: "🌉", title: "한남대교", description: "1.2km, 15분" },
-                        { icon: "⬆️", title: "이태원 오르막길", description: "2.7km, 36분" },
-                        { icon: "🏁", title: "이태원역 도착", description: "목적지 도착" }
+                        { icon: "🚶", title: "호텔 바이에리셔 호프 출발", description: "Promenadeplatz 2-6" },
+                        { icon: "🏛️", title: "뮌헨 레지덴츠 경유", description: "0.4km, 5분" },
+                        { icon: "🛍️", title: "보행자 쇼핑거리", description: "0.6km, 8분" },
+                        { icon: "⛪", title: "성모교회 옆길", description: "0.3km, 4분" },
+                        { icon: "🏛️", title: "구시청사 앞", description: "0.2km, 3분" },
+                        { icon: "🏁", title: "마리엔플라츠 시계탑 도착", description: "신시청사 정면" }
                     ]
                 }
             ]

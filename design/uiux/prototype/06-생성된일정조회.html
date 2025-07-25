@@ -887,6 +887,44 @@
       color: var(--gray-500);
       margin-top: var(--space-2);
     }
+
+    /* 시작시간 입력 스타일 */
+    .start-time-section {
+      margin: var(--space-6) 0 var(--space-6) 0;
+      text-align: left;
+      width: 100%;
+    }
+
+    .time-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      max-width: 300px;
+    }
+
+    .time-input {
+      width: 80px;
+      padding: var(--space-3);
+      border: 2px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: var(--text-base);
+      font-family: inherit;
+      text-align: center;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .time-input:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(46, 134, 171, 0.1);
+    }
+
+    .time-unit {
+      font-size: var(--text-base);
+      color: var(--gray-700);
+      font-weight: var(--font-medium);
+    }
     
     .modal-footer {
       display: flex;
@@ -970,8 +1008,9 @@
     <nav class="nav container">
       <a href="01-대시보드.html" class="nav-brand">TripGen</a>
       <ul class="nav-menu">
-        <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
-        <li><a href="javascript:showTravelListInfo()" class="nav-link active">여행보기</a></li>
+        <li><a href="01-대시보드.html" class="nav-link">홈</a></li>
+        <li><a href="02-기본설정.html" class="nav-link">새 여행 계획</a></li>
+        <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
         <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
       </ul>
       
@@ -1018,7 +1057,7 @@
     <div class="itinerary-container">
       <!-- 일정 헤더 -->
       <div class="itinerary-header">
-        <div class="trip-summary-text">제주도(2명)</div>
+        <div class="trip-summary-text">유럽가족여행(4명)</div>
       </div>
 
       <!-- 액션 버튼들 -->
@@ -1031,19 +1070,54 @@
       <!-- 날짜별 탭 -->
       <div class="day-tabs">
         <div class="day-tab active" data-day="1">
-          <div class="tab-date">8월 15일 (목)</div>
-          <div class="tab-day">첫째 날</div>
+          <div class="tab-date">9월 1일 (일)</div>
+          <div class="tab-day">1일차 뮌헨</div>
           <button class="regenerate-btn" onclick="regenerateDay(1)">🔄 다시 생성</button>
         </div>
         <div class="day-tab" data-day="2">
-          <div class="tab-date">8월 16일 (금)</div>
-          <div class="tab-day">둘째 날</div>
+          <div class="tab-date">9월 2일 (월)</div>
+          <div class="tab-day">2일차 뮌헨</div>
           <button class="regenerate-btn" onclick="regenerateDay(2)">🔄 다시 생성</button>
         </div>
         <div class="day-tab" data-day="3">
-          <div class="tab-date">8월 17일 (토)</div>
-          <div class="tab-day">셋째 날</div>
+          <div class="tab-date">9월 3일 (화)</div>
+          <div class="tab-day">3일차 잘츠부르크</div>
           <button class="regenerate-btn" onclick="regenerateDay(3)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" data-day="4">
+          <div class="tab-date">9월 4일 (수)</div>
+          <div class="tab-day">4일차 잘츠부르크</div>
+          <button class="regenerate-btn" onclick="regenerateDay(4)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" data-day="5">
+          <div class="tab-date">9월 5일 (목)</div>
+          <div class="tab-day">5일차 잘츠부르크</div>
+          <button class="regenerate-btn" onclick="regenerateDay(5)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" data-day="6">
+          <div class="tab-date">9월 6일 (금)</div>
+          <div class="tab-day">6일차 돌로미티</div>
+          <button class="regenerate-btn" onclick="regenerateDay(6)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" data-day="7">
+          <div class="tab-date">9월 7일 (토)</div>
+          <div class="tab-day">7일차 돌로미티</div>
+          <button class="regenerate-btn" onclick="regenerateDay(7)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" data-day="8">
+          <div class="tab-date">9월 8일 (일)</div>
+          <div class="tab-day">8일차 돌로미티</div>
+          <button class="regenerate-btn" onclick="regenerateDay(8)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" data-day="9">
+          <div class="tab-date">9월 9일 (월)</div>
+          <div class="tab-day">9일차 돌로미티</div>
+          <button class="regenerate-btn" onclick="regenerateDay(9)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" data-day="10">
+          <div class="tab-date">9월 10일 (화)</div>
+          <div class="tab-day">10일차 돌로미티</div>
+          <button class="regenerate-btn" onclick="regenerateDay(10)">🔄 다시 생성</button>
         </div>
       </div>
 
@@ -1062,16 +1136,16 @@
                 <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">1</div>
                   <div class="place-info">
-                    <div class="place-name">센소지 (浅草寺)</div>
-                    <div class="place-address">도쿄도 다이토구 아사쿠사 2-3-1</div>
+                    <div class="place-name">마리엔플라츠 시계탑</div>
+                    <div class="place-address">Marienplatz 1, 80331 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
-                        <span>2시간 30분</span>
+                        <span>2시간</span>
                       </div>
                       <div class="place-detail">
                         <span>🏛️</span>
-                        <span>전통 사원</span>
+                        <span>역사적 광장</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
@@ -1086,23 +1160,23 @@
                 </div>
 
                 <div class="travel-time">
-                  <span class="travel-icon">🚇</span>
-                  지하철로 15분 이동 (긴자선 → 우에노역)
+                  <span class="travel-icon">🚗</span>
+                  차량으로 10분 이동 (마리엔플라츠 → 뮌헨 레지덴츠)
                 </div>
 
                 <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">2</div>
                   <div class="place-info">
-                    <div class="place-name">우에노 공원</div>
-                    <div class="place-address">도쿄도 다이토구 우에노코엔</div>
+                    <div class="place-name">뮌헨 레지덴츠 궁전</div>
+                    <div class="place-address">Residenzstraße 1, 80333 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
-                        <span>1시간</span>
+                        <span>1시간 30분</span>
                       </div>
                       <div class="place-detail">
-                        <span>🌳</span>
-                        <span>공원/산책</span>
+                        <span>🏰</span>
+                        <span>왕궁/박물관</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
@@ -1131,16 +1205,16 @@
                 <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">3</div>
                   <div class="place-info">
-                    <div class="place-name">이치란 라멘 아메요코점</div>
-                    <div class="place-address">도쿄도 다이토구 우에노 4-7-8</div>
+                    <div class="place-name">호프브로이하우스</div>
+                    <div class="place-address">Platzl 9, 80331 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
                         <span>1시간 30분</span>
                       </div>
                       <div class="place-detail">
-                        <span>🍜</span>
-                        <span>라멘</span>
+                        <span>🍺</span>
+                        <span>전통 맥주집</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
@@ -1169,16 +1243,16 @@
                 <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">4</div>
                   <div class="place-info">
-                    <div class="place-name">하라주쿠 & 다케시타 거리</div>
-                    <div class="place-address">도쿄도 시부야구 진구마에 1-19-9</div>
+                    <div class="place-name">님펜부르크 궁전</div>
+                    <div class="place-address">Schloß Nymphenburg 1, 80638 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
                         <span>2시간</span>
                       </div>
                       <div class="place-detail">
-                        <span>🛍️</span>
-                        <span>쇼핑/문화</span>
+                        <span>🏰</span>
+                        <span>바로크 궁전</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
@@ -1193,23 +1267,23 @@
                 </div>
 
                 <div class="travel-time">
-                  <span class="travel-icon">🚇</span>
-                  JR 야마노테선으로 7분 이동 (하라주쿠 → 시부야)
+                  <span class="travel-icon">🚗</span>
+                  차량으로 20분 이동 (님펜부르크 → 잉글리셔 가르텐)
                 </div>
 
                 <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">5</div>
                   <div class="place-info">
-                    <div class="place-name">시부야 스카이</div>
-                    <div class="place-address">도쿄도 시부야구 시부야 2-24-12</div>
+                    <div class="place-name">잉글리셔 가르텐</div>
+                    <div class="place-address">Englischer Garten, 80538 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
                         <span>1시간 30분</span>
                       </div>
                       <div class="place-detail">
-                        <span>🏙️</span>
-                        <span>전망대</span>
+                        <span>🌳</span>
+                        <span>도시공원</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
@@ -1238,16 +1312,16 @@
                 <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">6</div>
                   <div class="place-info">
-                    <div class="place-name">긴자 스시잔마이</div>
-                    <div class="place-address">도쿄도 츄오구 긴자 4-2-15</div>
+                    <div class="place-name">라텐하우스</div>
+                    <div class="place-address">Münzstraße 8, 80331 München, 독일</div>
                     <div class="place-details">
                       <div class="place-detail">
                         <span>⏱️</span>
                         <span>2시간</span>
                       </div>
                       <div class="place-detail">
-                        <span>🍣</span>
-                        <span>스시</span>
+                        <span>🥨</span>
+                        <span>바이에른 전통요리</span>
                       </div>
                       <div class="place-detail">
                         <span class="status-badge verified">검증완료</span>
@@ -1366,6 +1440,24 @@
           해당 날짜 일정을 AI가 새로 생성합니다. 기존 일정은 새로운 일정으로 대체됩니다.
         </p>
         
+        <!-- 시작시간 입력 -->
+        <div class="start-time-section">
+          <div class="time-input-wrapper">
+            <label for="dayStartTime" class="request-label">
+              여행 시작시간
+            </label>
+            <input 
+              type="number" 
+              id="dayStartTime" 
+              class="time-input"
+              placeholder="09"
+              min="0"
+              max="23"
+              value="9">
+            <span class="time-unit">시</span>
+          </div>
+        </div>
+
         <!-- 요청사항 입력 -->
         <div class="request-section">
           <label for="dayRegenerateRequest" class="request-label">
@@ -1545,13 +1637,17 @@
       // 모달 제목 업데이트
       document.getElementById('regenerateModalTitle').textContent = `${dayName} 일정 다시 생성`;
       
-      // 기존 요청사항 불러오기 (있다면)
+      // 기존 요청사항과 시작시간 불러오기 (있다면)
       const savedRequest = localStorage.getItem(`dayRequest_${dayNumber}`) || '';
+      const savedStartTime = localStorage.getItem(`dayStartTime_${dayNumber}`) || '9';
+      
       const textarea = document.getElementById('dayRegenerateRequest');
       const charCount = document.getElementById('dayCharCount');
+      const startTimeInput = document.getElementById('dayStartTime');
       
       textarea.value = savedRequest;
       charCount.textContent = savedRequest.length;
+      startTimeInput.value = savedStartTime;
       
       // 모달 표시
       document.getElementById('regenerateModal').style.display = 'flex';
@@ -1572,13 +1668,17 @@
       if (dayNumber === null) return;
       
       const textarea = document.getElementById('dayRegenerateRequest');
+      const startTimeInput = document.getElementById('dayStartTime');
       const userRequest = textarea.value.trim();
+      const startTime = startTimeInput.value;
       
-      // 요청사항 저장
+      // 요청사항과 시작시간 저장
       if (userRequest) {
         localStorage.setItem(`dayRequest_${dayNumber}`, userRequest);
         console.log(`${dayNumber}일차 요청사항:`, userRequest);
       }
+      localStorage.setItem(`dayStartTime_${dayNumber}`, startTime);
+      console.log(`${dayNumber}일차 시작시간:`, startTime + '시');
       
       // 모달 닫기
       closeRegenerateModal();
@@ -2071,6 +2171,21 @@
           if (window.currentRegenerateDay) {
             localStorage.setItem(`dayRequest_${window.currentRegenerateDay}`, textarea.value);
           }
+        });
+      }
+
+      // 시작시간 입력 처리
+      const startTimeInput = document.getElementById('dayStartTime');
+      if (startTimeInput) {
+        // 시간 유효성 검사
+        startTimeInput.addEventListener('blur', () => {
+          let value = parseInt(startTimeInput.value);
+          if (isNaN(value) || value < 0) {
+            value = 9;
+          } else if (value > 23) {
+            value = 23;
+          }
+          startTimeInput.value = value;
         });
       }
       
