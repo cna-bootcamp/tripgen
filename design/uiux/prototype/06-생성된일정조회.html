@@ -1034,15 +1034,15 @@
     <div class="nav-progress-wrapper">
       <div class="container">
         <div class="nav-progress-steps">
-          <div class="nav-step nav-step--done" onclick="navigateToStep('02-기본설정.html')" style="cursor: pointer;">
+          <div class="nav-step nav-step--done" onclick="navigateToTripStep('02-기본설정.html')" style="cursor: pointer;">
             <div class="nav-step__circle">1</div>
             <span class="nav-step__label">기본설정</span>
           </div>
-          <div class="nav-step nav-step--done" onclick="navigateToStep('03-여행일정설정.html')" style="cursor: pointer;">
+          <div class="nav-step nav-step--done" onclick="navigateToTripStep('03-여행일정설정.html')" style="cursor: pointer;">
             <div class="nav-step__circle">2</div>
             <span class="nav-step__label">일정설정</span>
           </div>
-          <div class="nav-step nav-step--done" onclick="navigateToStep('05-AI일정생성.html')" style="cursor: pointer;">
+          <div class="nav-step nav-step--done" onclick="navigateToTripStep('05-AI일정생성.html')" style="cursor: pointer;">
             <div class="nav-step__circle">3</div>
             <span class="nav-step__label">AI일정생성</span>
           </div>
@@ -2200,6 +2200,13 @@
       }
     }
 
+    // 현재 여행 정보 (여행중 상태만 접근 가능)
+    const currentTrip = {
+        id: 'europe-family-trip',
+        name: '유럽가족여행',
+        status: 'in-progress'  // 항상 여행중 상태
+    };
+
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
       loadTripInfo();
@@ -2248,6 +2255,31 @@
     // 스테퍼 네비게이션 함수
     function navigateToStep(url) {
       window.location.href = url;
+    }
+    
+    // 여행 상태에 따른 네비게이션 함수
+    function navigateToTripStep(url) {
+      // 현재 여행 상태 확인 (여행중: in-progress, 추억중: completed)
+      const tripStatus = getTripStatus();
+      
+      if (tripStatus === 'completed') {
+        // 추억중인 여행은 조회만 가능
+        if (url.includes('06-생성된일정조회.html')) {
+          window.location.href = url;
+        } else {
+          TripGen.showToast('완료된 여행은 조회만 가능합니다.', 'info');
+        }
+      } else {
+        // 여행중이거나 계획중인 여행은 모든 화면 이동 가능
+        window.location.href = url;
+      }
+    }
+    
+    // 여행 상태 확인 함수
+    function getTripStatus() {
+      // 실제로는 여행 데이터에서 상태를 가져와야 하지만, 
+      // 현재는 유럽가족여행이 '여행중' 상태로 설정
+      return 'in-progress'; // 'in-progress', 'completed', 'planning'
     }
   </script>
 </body>

@@ -690,11 +690,11 @@
     <div class="nav-progress-wrapper">
       <div class="container">
         <div class="nav-progress-steps">
-          <div class="nav-step nav-step--done" onclick="navigateToStep('02-기본설정.html')" style="cursor: pointer;">
+          <div class="nav-step nav-step--done" onclick="navigateToTripStep('02-기본설정.html')" style="cursor: pointer;">
             <div class="nav-step__circle">1</div>
             <span class="nav-step__label">기본설정</span>
           </div>
-          <div class="nav-step nav-step--done" onclick="navigateToStep('03-여행일정설정.html')" style="cursor: pointer;">
+          <div class="nav-step nav-step--done" onclick="navigateToTripStep('03-여행일정설정.html')" style="cursor: pointer;">
             <div class="nav-step__circle">2</div>
             <span class="nav-step__label">일정설정</span>
           </div>
@@ -702,7 +702,7 @@
             <div class="nav-step__circle">3</div>
             <span class="nav-step__label">AI일정생성</span>
           </div>
-          <div class="nav-step">
+          <div class="nav-step" onclick="navigateToTripStep('06-생성된일정조회.html')">
             <div class="nav-step__circle">4</div>
             <span class="nav-step__label">일정조회</span>
           </div>
@@ -1235,6 +1235,31 @@
       window.location.href = url;
     }
     
+    // 여행 상태에 따른 네비게이션 함수
+    function navigateToTripStep(url) {
+      // 현재 여행 상태 확인 (여행중: in-progress, 추억중: completed)
+      const tripStatus = getTripStatus();
+      
+      if (tripStatus === 'completed') {
+        // 추억중인 여행은 조회만 가능
+        if (url.includes('06-생성된일정조회.html')) {
+          window.location.href = url;
+        } else {
+          TripGen.showToast('완료된 여행은 조회만 가능합니다.', 'info');
+        }
+      } else {
+        // 여행중이거나 계획중인 여행은 모든 화면 이동 가능
+        window.location.href = url;
+      }
+    }
+    
+    // 여행 상태 확인 함수
+    function getTripStatus() {
+      // 실제로는 여행 데이터에서 상태를 가져와야 하지만, 
+      // 현재는 유럽가족여행이 '여행중' 상태로 설정
+      return 'in-progress'; // 'in-progress', 'completed', 'planning'
+    }
+    
     // 취소 함수
     function cancelGeneration() {
       if (confirm('AI 일정 생성을 취소하시겠습니까?\n이전 단계로 돌아갑니다.')) {
@@ -1242,9 +1267,51 @@
       }
     }
     
+    // 여행 데이터 관리자 - 다른 화면과 동일
+    const tripDataManager = {
+        trips: {
+            'europe-family-trip': {
+                id: 'europe-family-trip',
+                name: '유럽가족여행',
+                status: 'in-progress'
+            },
+            'seoul-healing-trip': {
+                id: 'seoul-healing-trip',
+                name: '서울 힐링여행',
+                status: 'planning'
+            },
+            'busan-ocean-trip': {
+                id: 'busan-ocean-trip',
+                name: '부산 바다 여행',
+                status: 'completed'
+            }
+        },
+        
+        currentTripId: 'europe-family-trip',
+        
+        getCurrentTrip() {
+            return this.trips[this.currentTripId];
+        },
+        
+        isEditable() {
+            const currentTrip = this.getCurrentTrip();
+            return currentTrip && (currentTrip.status === 'in-progress' || currentTrip.status === 'planning');
+        }
+    };
+
+    // 편집 권한 제어 함수 (간소화 - 항상 편집 가능)
+    function updateEditableState() {
+        // 현재 여행은 항상 '여행중' 상태이므로 모든 기능 활성화
+        // 별도 처리 불필요
+    }
+
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
       const generator = new AIItineraryGenerator();
+      const currentTrip = tripDataManager.getCurrentTrip();
+      
+      // 편집 권한 제어
+      updateEditableState();
       
       // 키보드 접근성
       document.addEventListener('keydown', function(e) {

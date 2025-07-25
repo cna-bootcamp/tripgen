@@ -809,7 +809,7 @@
     <div class="progress-container">
         <div class="container">
             <div class="progress-bar">
-                <div class="progress-step completed" onclick="navigateToStep('02-기본설정.html')" style="cursor: pointer;">
+                <div class="progress-step completed" onclick="navigateToTripStep('02-기본설정.html')" style="cursor: pointer;">
                     <div class="step-number">1</div>
                     <span>기본설정</span>
                 </div>
@@ -817,11 +817,11 @@
                     <div class="step-number">2</div>
                     <span>일정설정</span>
                 </div>
-                <div class="progress-step">
+                <div class="progress-step" onclick="navigateToTripStep('05-AI일정생성.html')">
                     <div class="step-number">3</div>
                     <span>AI일정생성</span>
                 </div>
-                <div class="progress-step">
+                <div class="progress-step" onclick="navigateToTripStep('06-생성된일정조회.html')">
                     <div class="step-number">4</div>
                     <span>일정조회</span>
                 </div>
@@ -1386,6 +1386,31 @@
             window.location.href = url;
         }
         
+        // 여행 상태에 따른 네비게이션 함수
+        function navigateToTripStep(url) {
+            // 현재 여행 상태 확인 (여행중: in-progress, 추억중: completed)
+            const tripStatus = getTripStatus();
+            
+            if (tripStatus === 'completed') {
+                // 추억중인 여행은 조회만 가능
+                if (url.includes('06-생성된일정조회.html')) {
+                    window.location.href = url;
+                } else {
+                    TripGen.showToast('완료된 여행은 조회만 가능합니다.', 'info');
+                }
+            } else {
+                // 여행중이거나 계획중인 여행은 모든 화면 이동 가능
+                window.location.href = url;
+            }
+        }
+        
+        // 여행 상태 확인 함수
+        function getTripStatus() {
+            // 실제로는 여행 데이터에서 상태를 가져와야 하지만, 
+            // 현재는 유럽가족여행이 '여행중' 상태로 설정
+            return 'in-progress'; // 'in-progress', 'completed', 'planning'
+        }
+        
         // 다음 단계로 이동 함수
         function goToNextStep() {
             try {
@@ -1773,29 +1798,116 @@
             }
         }
 
+        // 여행 데이터 관리자 - 02-기본설정.html과 동일
+        const tripDataManager = {
+            trips: {
+                'europe-family-trip': {
+                    id: 'europe-family-trip',
+                    name: '유럽가족여행',
+                    status: 'in-progress',
+                    schedule: {
+                        startDate: new Date().toISOString().split('T')[0],
+                        plans: [
+                            {
+                                destination: '독일 뮌헨',
+                                stayNights: 2,
+                                accommodation: '뮌헨 호텔 바이에리셔 호프',
+                                checkInTime: 15,
+                                checkOutTime: 11
+                            },
+                            {
+                                destination: '오스트리아 잘츠부르크',
+                                stayNights: 3,
+                                accommodation: '호텔 잘츠부르거 호프',
+                                checkInTime: 15,
+                                checkOutTime: 11
+                            },
+                            {
+                                destination: '이탈리아 돌로미티',
+                                stayNights: 10,
+                                accommodation: '호텔 코르티나',
+                                checkInTime: 15,
+                                checkOutTime: 11
+                            }
+                        ]
+                    }
+                },
+                'seoul-healing-trip': {
+                    id: 'seoul-healing-trip',
+                    name: '서울 힐링여행',
+                    status: 'planning',
+                    schedule: {
+                        startDate: '2024-08-15',
+                        plans: [
+                            {
+                                destination: '서울 강남',
+                                stayNights: 3,
+                                accommodation: '호텔 인터컨티넨탈',
+                                checkInTime: 15,
+                                checkOutTime: 11
+                            }
+                        ]
+                    }
+                },
+                'busan-ocean-trip': {
+                    id: 'busan-ocean-trip',
+                    name: '부산 바다 여행',
+                    status: 'completed',
+                    schedule: {
+                        startDate: '2024-07-10',
+                        plans: [
+                            {
+                                destination: '부산 해운대',
+                                stayNights: 2,
+                                accommodation: '파라다이스 호텔',
+                                checkInTime: 15,
+                                checkOutTime: 11
+                            }
+                        ]
+                    }
+                }
+            },
+            
+            // 현재 여행 ID (대시보드에서 선택된 여행)
+            currentTripId: 'europe-family-trip',
+            
+            getCurrentTrip() {
+                return this.trips[this.currentTripId];
+            },
+            
+            isEditable() {
+                const currentTrip = this.getCurrentTrip();
+                return currentTrip && (currentTrip.status === 'in-progress' || currentTrip.status === 'planning');
+            }
+        };
+
         // 기본 데이터 설정 함수
         function setDefaultTravelPlanData() {
-            // 기본 여행 날짜 설정 (내일부터)
-            const today = new Date();
-            const startDate = new Date(today);
-            startDate.setDate(today.getDate() + 1); // 내일부터
+            const currentTrip = tripDataManager.getCurrentTrip();
+            if (!currentTrip) return;
+
+            // 여행 시작일 설정
+            document.getElementById('tripStartDate').value = currentTrip.schedule.startDate;
             
-            const startDateStr = startDate.toISOString().split('T')[0];
-            
-            // 기본 값들 설정 - 유럽가족여행
-            document.getElementById('tripStartDate').value = startDateStr;
-            document.getElementById('stayNights_1').value = '2';  // 독일 뮌헨 2박
-            document.getElementById('destination_1').value = '독일 뮌헨';
-            document.getElementById('accommodation_1').value = '뮌헨 호텔 바이에리셔 호프';
-            document.getElementById('checkInTime_1').value = '15';
-            document.getElementById('checkOutTime_1').value = '11';
-            
-            // 숙소 검색 인디케이터 표시
-            const searchIndicator = document.getElementById('accommodationSearchIndicator_1');
-            if (searchIndicator) {
-                searchIndicator.className = 'search-indicator found';
-                searchIndicator.textContent = '✓';
+            // 첫 번째 계획 데이터 설정
+            if (currentTrip.schedule.plans && currentTrip.schedule.plans.length > 0) {
+                const firstPlan = currentTrip.schedule.plans[0];
+                document.getElementById('stayNights_1').value = firstPlan.stayNights;
+                document.getElementById('destination_1').value = firstPlan.destination;
+                document.getElementById('accommodation_1').value = firstPlan.accommodation;
+                document.getElementById('checkInTime_1').value = firstPlan.checkInTime;
+                document.getElementById('checkOutTime_1').value = firstPlan.checkOutTime;
+                
+                // 숙소 검색 인디케이터 표시
+                const searchIndicator = document.getElementById('accommodationSearchIndicator_1');
+                if (searchIndicator) {
+                    searchIndicator.className = 'search-indicator found';
+                    searchIndicator.textContent = '✓';
+                }
             }
+            
+            // 편집 권한 제어
+            updateEditableState();
             
             // 요약 정보 업데이트
             setTimeout(() => {
@@ -1804,17 +1916,27 @@
                     manager.updatePlanSummary(1);
                     manager.validateForm();
                     
-                    // 다음 버튼 강제 활성화
+                    // 다음 버튼 강제 활성화 (편집 가능한 경우만)
                     const nextButton = document.getElementById('nextButton');
-                    if (nextButton) {
+                    if (nextButton && tripDataManager.isEditable()) {
                         nextButton.disabled = false;
                     }
                 }
             }, 300);
             
             setTimeout(() => {
-                TripGen.showToast('기본 여행 계획이 설정되었습니다. 독일 뮌헨 2박 3일 여행으로 설정되었습니다!', 'success', 4000);
+                if (currentTrip.status === 'completed') {
+                    TripGen.showToast(`${currentTrip.name} 추억을 다시 보고 계십니다. 편집은 불가능합니다.`, 'info', 4000);
+                } else {
+                    TripGen.showToast(`${currentTrip.name} 일정 설정을 진행해주세요.`, 'success', 4000);
+                }
             }, 500);
+        }
+
+        // 편집 권한 제어 함수 (간소화 - 항상 편집 가능)
+        function updateEditableState() {
+            // 현재 여행은 항상 '여행중' 상태이므로 모든 기능 활성화
+            // 별도 처리 불필요
         }
         
         // 페이지 로드 시 초기화
