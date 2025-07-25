@@ -3,76 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>멤버관리 - TripGen</title>
+    <title>기본설정 - TripGen</title>
     <link rel="stylesheet" href="assets/css/common.css">
     <style>
-        /* 멤버관리 전용 스타일 */
-        .stepper {
-            display: flex;
-            justify-content: center;
-            margin-bottom: var(--space-8);
-            padding: 0 var(--space-4);
+        /* 기본설정 전용 스타일 */
+        
+        /* 이동수단 선택 스타일 */
+        .transport-selection {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
         }
 
-        .stepper-item {
-            display: flex;
-            align-items: center;
-            color: var(--gray-400);
-            font-size: var(--text-sm);
+        .transport-selection h3 {
+            color: var(--gray-800);
+            margin: 0 0 var(--space-3) 0;
+            font-size: var(--text-base);
             font-weight: var(--font-medium);
         }
 
-        .stepper-item.active {
+        .transport-options {
+            display: flex;
+            gap: var(--space-4);
+            align-items: center;
+        }
+
+        .transport-option {
+            position: relative;
+        }
+
+        .transport-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .transport-option label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            padding: var(--space-2) var(--space-3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: var(--text-sm);
+            color: var(--gray-700);
+        }
+
+        .transport-option label:hover {
+            border-color: var(--primary-blue-light);
+            background: var(--gray-50);
+        }
+
+        .transport-option input[type="radio"]:checked + label {
+            border-color: var(--primary-blue);
+            background: rgba(46, 134, 171, 0.1);
             color: var(--primary-blue);
         }
 
-        .stepper-item.completed {
-            color: var(--success);
+        .transport-icon {
+            font-size: 1.2rem;
         }
 
-        .stepper-item.completed a {
-            color: inherit;
-            text-decoration: none;
+        .transport-name {
+            font-weight: var(--font-medium);
+        }
+        /* Progress Bar Styles */
+        .progress-bar {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: center;
+            align-items: center;
+            gap: var(--space-6);
+            max-width: 600px;
+            margin: 0 auto var(--space-8);
+            flex-wrap: nowrap;
+        }
+
+        .progress-step {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center;
+            gap: var(--space-2);
+            position: relative;
+            cursor: default;
+            flex-shrink: 0;
+            min-width: fit-content;
+        }
+
+        .progress-step.completed {
             cursor: pointer;
-            transition: opacity 0.2s ease;
         }
 
-        .stepper-item.completed a:hover {
+        .progress-step.completed:hover {
             opacity: 0.8;
         }
 
-        .stepper-number {
+        .step-number {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: var(--gray-300);
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: var(--space-2);
             font-weight: var(--font-semibold);
-            transition: all 0.3s ease;
-        }
-
-        .stepper-item.active .stepper-number {
-            background: var(--primary-blue);
-        }
-
-        .stepper-item.completed .stepper-number {
-            background: var(--success);
-        }
-
-        .stepper-line {
-            width: 60px;
-            height: 2px;
+            font-size: var(--text-sm);
             background: var(--gray-300);
-            margin: 0 var(--space-4);
-            margin-top: 16px;
+            color: var(--gray-600);
+            transition: all 0.2s ease;
         }
 
-        .stepper-item.completed + .stepper-item .stepper-line {
+        .progress-step.completed .step-number {
             background: var(--success);
+            color: white;
+        }
+
+        .progress-step.active .step-number {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .progress-step span {
+            font-size: var(--text-xs);
+            color: var(--gray-600);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .progress-step.completed span {
+            color: var(--success);
+        }
+
+        .progress-step.active span {
+            color: var(--primary-blue);
+            font-weight: var(--font-semibold);
+        }
+
+        @media (max-width: 768px) {
+            .progress-bar {
+                gap: var(--space-4);
+                flex-wrap: nowrap !important;
+                overflow-x: auto;
+                padding: 0 var(--space-2);
+            }
+            
+            .progress-step span {
+                font-size: 10px;
+            }
+            
+            .step-number {
+                width: 28px;
+                height: 28px;
+            }
         }
 
         /* 멤버 카드 스타일 */
@@ -391,6 +478,34 @@
                 grid-template-columns: repeat(2, 1fr);
             }
         }
+        /* 사용자 메뉴 스타일 */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-medium);
+            cursor: pointer;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: var(--error);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
     </style>
 </head>
 <body>
@@ -400,15 +515,21 @@
             <nav class="nav">
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
-                    <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
-                    <li><a href="02-멤버관리.html" class="nav-link active">멤버관리</a></li>
-                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
-                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
-                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
-                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
-                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                    <li><a href="01-대시보드.html" class="nav-link active">대시보드</a></li>
+                    <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
+                    <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
                 </ul>
-                <button class="mobile-menu-toggle" aria-label="메뉴 열기">☰</button>
+                
+                <div class="nav-actions flex items-center gap-4">
+                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
+                    <div class="user-menu">
+                        <div class="user-avatar">
+                            김
+                            <span class="notification-badge"></span>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-toggle" aria-label="메뉴 열기">☰</button>
+                </div>
             </nav>
         </div>
         <div class="mobile-overlay"></div>
@@ -417,33 +538,46 @@
     <!-- Main Content -->
     <main class="main">
         <div class="container">
-            <!-- 스테퍼 -->
-            <div class="stepper">
-                <div class="stepper-item completed">
-                    <div class="stepper-number">1</div>
-                    <a href="01-대시보드.html"><span>대시보드</span></a>
+            <!-- Progress Bar -->
+            <div class="progress-bar">
+                <div class="progress-step active">
+                    <div class="step-number">1</div>
+                    <span>기본설정</span>
                 </div>
-                <div class="stepper-line"></div>
-                <div class="stepper-item active">
-                    <div class="stepper-number">2</div>
-                    <span>멤버관리</span>
-                </div>
-                <div class="stepper-line"></div>
-                <div class="stepper-item" onclick="navigateToStep('03-여행일정설정.html')" style="cursor: pointer; opacity: 0.7;">
-                    <div class="stepper-number">3</div>
+                <div class="progress-step">
+                    <div class="step-number">2</div>
                     <span>일정설정</span>
                 </div>
-                <div class="stepper-line"></div>
-                <div class="stepper-item" style="cursor: not-allowed; opacity: 0.5;">
-                    <div class="stepper-number">4</div>
-                    <span>이동수단</span>
+                <div class="progress-step">
+                    <div class="step-number">3</div>
+                    <span>AI일정생성</span>
+                </div>
+                <div class="progress-step">
+                    <div class="step-number">4</div>
+                    <span>일정조회</span>
                 </div>
             </div>
 
             <!-- 페이지 헤더 -->
             <div class="mb-8">
-                <h1>여행 멤버 관리</h1>
-                <p class="text-gray-600">여행에 함께할 멤버들의 정보를 등록하고 관리해보세요. 각 멤버의 선호도와 건강상태를 고려하여 맞춤형 일정을 생성할 수 있습니다.</p>
+                <h1>기본 설정</h1>
+                <p class="text-gray-600">여행명과 함께할 멤버들의 정보를 등록하고 관리해보세요. 각 멤버의 선호도와 건강상태를 고려하여 맞춤형 일정을 생성할 수 있습니다.</p>
+            </div>
+
+            <!-- 여행명 입력 섹션 -->
+            <div class="form-section" style="background: white; border-radius: 12px; padding: var(--space-6); margin-bottom: var(--space-6); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--gray-800); margin-bottom: var(--space-4); padding-bottom: var(--space-3); border-bottom: 2px solid var(--gray-200);">여행명</h3>
+                <div class="form-group">
+                    <label for="tripName" style="display: block; font-weight: var(--font-medium); color: var(--gray-700); margin-bottom: var(--space-2); font-size: var(--text-sm);">여행명 <span style="color: var(--error);">*</span></label>
+                    <input type="text" id="tripName" name="tripName" class="input-field" 
+                           placeholder="예: 부산 가족여행, 도쿄 벚꽃 여행" required
+                           style="width: 100%; padding: var(--space-3) var(--space-4); border: 2px solid var(--gray-300); border-radius: 8px; font-size: var(--text-base); transition: all 0.2s ease; background-color: white;"
+                           oninput="updateTripNamePreview()">
+                    <div class="error-message" id="tripNameError" style="color: var(--error); font-size: var(--text-xs); margin-top: var(--space-1); display: none;">여행명을 입력해주세요.</div>
+                    <div id="tripNamePreview" style="margin-top: var(--space-2); padding: var(--space-2); background: var(--gray-50); border-radius: 6px; font-size: var(--text-sm); color: var(--gray-600); display: none;">
+                        <strong>미리보기:</strong> <span id="previewText">여행 계획</span>
+                    </div>
+                </div>
             </div>
 
             <!-- 멤버 추가 폼 -->
@@ -512,35 +646,6 @@
                         </div>
                     </div>
 
-                    <div class="form-section">
-                        <h4>음식 선호도</h4>
-                        <div class="checkbox-group">
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="foodKorean" name="foodPrefs" value="한식">
-                                <label for="foodKorean" class="checkbox-label">한식</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="foodChinese" name="foodPrefs" value="중식">
-                                <label for="foodChinese" class="checkbox-label">중식</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="foodJapanese" name="foodPrefs" value="일식">
-                                <label for="foodJapanese" class="checkbox-label">일식</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="foodWestern" name="foodPrefs" value="양식">
-                                <label for="foodWestern" class="checkbox-label">양식</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="foodStreet" name="foodPrefs" value="길거리음식">
-                                <label for="foodStreet" class="checkbox-label">길거리음식</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="foodVegetarian" name="foodPrefs" value="채식">
-                                <label for="foodVegetarian" class="checkbox-label">채식</label>
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="form-section">
                         <h4>활동 선호도</h4>
@@ -572,32 +677,23 @@
                         </div>
                     </div>
 
+
                     <div class="form-section">
-                        <h4>숙박 선호도</h4>
-                        <div class="checkbox-group">
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="hotelLuxury" name="hotelPrefs" value="고급호텔">
-                                <label for="hotelLuxury" class="checkbox-label">고급호텔</label>
+                        <h4>선호 이동수단</h4>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="transportPublic" name="preferredTransport" value="public">
+                                <label for="transportPublic" class="radio-label">
+                                    <strong>🚌 대중교통</strong><br>
+                                    <small>지하철, 버스 등</small>
+                                </label>
                             </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="hotelBusiness" name="hotelPrefs" value="비즈니스호텔">
-                                <label for="hotelBusiness" class="checkbox-label">비즈니스호텔</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="hotelBoutique" name="hotelPrefs" value="부티크호텔">
-                                <label for="hotelBoutique" class="checkbox-label">부티크호텔</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="hotelGuest" name="hotelPrefs" value="게스트하우스">
-                                <label for="hotelGuest" class="checkbox-label">게스트하우스</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="hotelPension" name="hotelPrefs" value="펜션">
-                                <label for="hotelPension" class="checkbox-label">펜션</label>
-                            </div>
-                            <div class="checkbox-option">
-                                <input type="checkbox" id="hotelAirbnb" name="hotelPrefs" value="에어비앤비">
-                                <label for="hotelAirbnb" class="checkbox-label">에어비앤비</label>
+                            <div class="radio-option">
+                                <input type="radio" id="transportCar" name="preferredTransport" value="car">
+                                <label for="transportCar" class="radio-label">
+                                    <strong>🚗 자가용</strong><br>
+                                    <small>개인 차량 이용</small>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -623,12 +719,7 @@
                 <div class="member-card animate-on-scroll">
                     <div class="member-header">
                         <div class="member-info">
-                            <h3>김여행</h3>
-                            <div class="member-meta">
-                                <span>👤 여성</span>
-                                <span>🎂 28세</span>
-                                <span class="health-status health-excellent">우수</span>
-                            </div>
+                            <h3>김여행(여성, 28세)</h3>
                         </div>
                         <div class="member-actions">
                             <button class="action-btn edit" onclick="editMember(1)" data-tooltip="수정">
@@ -641,26 +732,11 @@
                     </div>
                     <div class="preferences">
                         <div>
-                            <strong>음식:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">한식</span>
-                                <span class="preference-tag">양식</span>
-                                <span class="preference-tag">길거리음식</span>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <strong>활동:</strong>
+                            <strong>활동선호:</strong>
                             <div class="preference-tags">
                                 <span class="preference-tag">관광</span>
                                 <span class="preference-tag">쇼핑</span>
                                 <span class="preference-tag">문화체험</span>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <strong>숙박:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">부티크호텔</span>
-                                <span class="preference-tag">게스트하우스</span>
                             </div>
                         </div>
                     </div>
@@ -670,12 +746,7 @@
                 <div class="member-card animate-on-scroll">
                     <div class="member-header">
                         <div class="member-info">
-                            <h3>박모험</h3>
-                            <div class="member-meta">
-                                <span>👤 남성</span>
-                                <span>🎂 32세</span>
-                                <span class="health-status health-good">양호</span>
-                            </div>
+                            <h3>박모험(남성, 32세)</h3>
                         </div>
                         <div class="member-actions">
                             <button class="action-btn edit" onclick="editMember(2)" data-tooltip="수정">
@@ -688,28 +759,34 @@
                     </div>
                     <div class="preferences">
                         <div>
-                            <strong>음식:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">일식</span>
-                                <span class="preference-tag">중식</span>
-                                <span class="preference-tag">길거리음식</span>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <strong>활동:</strong>
+                            <strong>활동선호:</strong>
                             <div class="preference-tags">
                                 <span class="preference-tag">자연체험</span>
                                 <span class="preference-tag">스포츠</span>
                                 <span class="preference-tag">관광</span>
                             </div>
                         </div>
-                        <div class="mt-3">
-                            <strong>숙박:</strong>
-                            <div class="preference-tags">
-                                <span class="preference-tag">펜션</span>
-                                <span class="preference-tag">에어비앤비</span>
-                            </div>
-                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 이동수단 선택 섹션 -->
+            <div class="form-section transport-selection" style="margin-top: var(--space-8);">
+                <h3>선호 이동수단</h3>
+                <div class="transport-options">
+                    <div class="transport-option">
+                        <input type="radio" id="transport_public" name="preferredTransport" value="public" checked>
+                        <label for="transport_public">
+                            <div class="transport-icon">🚌</div>
+                            <div class="transport-name">대중교통</div>
+                        </label>
+                    </div>
+                    <div class="transport-option">
+                        <input type="radio" id="transport_car" name="preferredTransport" value="car">
+                        <label for="transport_car">
+                            <div class="transport-icon">🚗</div>
+                            <div class="transport-name">자가용</div>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -740,9 +817,7 @@
                 age: 28,
                 gender: '여성',
                 health: 'excellent',
-                foodPrefs: ['한식', '양식', '길거리음식'],
-                activityPrefs: ['관광', '쇼핑', '문화체험'],
-                hotelPrefs: ['부티크호텔', '게스트하우스']
+                activityPrefs: ['관광', '쇼핑', '문화체험']
             },
             {
                 id: 2,
@@ -750,9 +825,7 @@
                 age: 32,
                 gender: '남성',
                 health: 'good',
-                foodPrefs: ['일식', '중식', '길거리음식'],
-                activityPrefs: ['자연체험', '스포츠', '관광'],
-                hotelPrefs: ['펜션', '에어비앤비']
+                activityPrefs: ['자연체험', '스포츠', '관광']
             }
         ];
 
@@ -800,9 +873,7 @@
                 age: parseInt(formData.get('memberAge')) || 0,
                 gender: formData.get('gender') || '미선택',
                 health: formData.get('health') || 'good',
-                foodPrefs: formData.getAll('foodPrefs'),
-                activityPrefs: formData.getAll('activityPrefs'),
-                hotelPrefs: formData.getAll('hotelPrefs')
+                activityPrefs: formData.getAll('activityPrefs')
             };
 
             if (editingMemberId) {
@@ -845,11 +916,6 @@
             const healthRadio = document.getElementById(`health${member.health.charAt(0).toUpperCase() + member.health.slice(1)}`);
             if (healthRadio) healthRadio.checked = true;
             
-            // 음식 선호도
-            member.foodPrefs.forEach(pref => {
-                const checkbox = document.querySelector(`input[name="foodPrefs"][value="${pref}"]`);
-                if (checkbox) checkbox.checked = true;
-            });
             
             // 활동 선호도
             member.activityPrefs.forEach(pref => {
@@ -857,11 +923,6 @@
                 if (checkbox) checkbox.checked = true;
             });
             
-            // 숙박 선호도
-            member.hotelPrefs.forEach(pref => {
-                const checkbox = document.querySelector(`input[name="hotelPrefs"][value="${pref}"]`);
-                if (checkbox) checkbox.checked = true;
-            });
 
             showMemberForm();
         }
@@ -919,12 +980,7 @@
                 <div class="member-card animate-on-scroll">
                     <div class="member-header">
                         <div class="member-info">
-                            <h3>${member.name}</h3>
-                            <div class="member-meta">
-                                <span>${getGenderEmoji(member.gender)} ${member.gender}</span>
-                                ${member.age > 0 ? `<span>🎂 ${member.age}세</span>` : ''}
-                                <span class="health-status ${getHealthClass(member.health)}">${getHealthText(member.health)}</span>
-                            </div>
+                            <h3>${member.name}(${member.gender}, ${member.age}세)</h3>
                         </div>
                         <div class="member-actions">
                             <button class="action-btn edit" onclick="editMember(${member.id})" data-tooltip="수정">
@@ -936,27 +992,11 @@
                         </div>
                     </div>
                     <div class="preferences">
-                        ${member.foodPrefs.length > 0 ? `
-                        <div>
-                            <strong>음식:</strong>
-                            <div class="preference-tags">
-                                ${member.foodPrefs.map(pref => `<span class="preference-tag">${pref}</span>`).join('')}
-                            </div>
-                        </div>
-                        ` : ''}
                         ${member.activityPrefs.length > 0 ? `
-                        <div class="mt-3">
-                            <strong>활동:</strong>
+                        <div>
+                            <strong>활동선호:</strong>
                             <div class="preference-tags">
                                 ${member.activityPrefs.map(pref => `<span class="preference-tag">${pref}</span>`).join('')}
-                            </div>
-                        </div>
-                        ` : ''}
-                        ${member.hotelPrefs.length > 0 ? `
-                        <div class="mt-3">
-                            <strong>숙박:</strong>
-                            <div class="preference-tags">
-                                ${member.hotelPrefs.map(pref => `<span class="preference-tag">${pref}</span>`).join('')}
                             </div>
                         </div>
                         ` : ''}
@@ -965,6 +1005,51 @@
             `).join('');
         }
 
+        // 기본설정 데이터 저장
+        function saveBasicSettings() {
+            const tripNameInput = document.getElementById('tripName');
+            const transportationInputs = document.querySelectorAll('input[name="preferredTransport"]:checked');
+            
+            // 여행명 검증
+            if (!tripNameInput.value.trim()) {
+                TripGen.showToast('여행명을 입력해주세요.', 'error');
+                tripNameInput.focus();
+                return false;
+            }
+            
+            // 이동수단 검증
+            console.log('선택된 이동수단:', transportationInputs.length, '개');
+            if (transportationInputs.length === 0) {
+                TripGen.showToast('선호하는 이동수단을 선택해주세요.', 'error');
+                // 이동수단 선택 영역으로 스크롤 이동
+                const transportSection = document.querySelector('.transport-selection');
+                if (transportSection) {
+                    transportSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    transportSection.style.border = '2px solid var(--error)';
+                    setTimeout(() => {
+                        transportSection.style.border = '1px solid var(--gray-200)';
+                    }, 3000);
+                }
+                return false;
+            }
+            
+            const basicSettingsData = {
+                tripName: tripNameInput.value.trim(),
+                transportation: Array.from(transportationInputs).map(input => input.value),
+                members: members,
+                savedAt: new Date().toISOString()
+            };
+            
+            try {
+                localStorage.setItem('basicSettingsData', JSON.stringify(basicSettingsData));
+                return true;
+            } catch (error) {
+                console.error('기본설정 저장 실패:', error);
+                TripGen.showToast('설정 저장에 실패했습니다.', 'error');
+                return false;
+            }
+        }
+        
         // 다음 단계로 이동
         function goToNextStep() {
             if (members.length === 0) {
@@ -972,8 +1057,12 @@
                 return;
             }
             
-            // 실제로는 다음 페이지로 이동
-            TripGen.showToast('여행 일정 설정 페이지로 이동합니다.', 'success');
+            // 기본설정 저장
+            if (!saveBasicSettings()) {
+                return;
+            }
+            
+            TripGen.showToast('기본설정이 저장되었습니다. 여행 일정 설정 페이지로 이동합니다.', 'success');
             setTimeout(() => {
                 window.location.href = '03-여행일정설정.html';
             }, 1000);
@@ -984,8 +1073,60 @@
             window.location.href = url;
         }
 
+        // 여행름 미리보기 업데이트
+        function updateTripNamePreview() {
+            const tripNameInput = document.getElementById('tripName');
+            const preview = document.getElementById('tripNamePreview');
+            const previewText = document.getElementById('previewText');
+            
+            const tripName = tripNameInput.value.trim();
+            
+            if (tripName) {
+                previewText.textContent = tripName;
+                preview.style.display = 'block';
+            } else {
+                previewText.textContent = '여행 계획';
+                preview.style.display = 'none';
+            }
+        }
+        
+        // 저장된 기본설정 불러오기
+        function loadBasicSettings() {
+            try {
+                const savedData = localStorage.getItem('basicSettingsData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    
+                    // 여행명 복원
+                    if (data.tripName) {
+                        document.getElementById('tripName').value = data.tripName;
+                        updateTripNamePreview();
+                    }
+                    
+                    // 이동수단 복원
+                    if (data.transportation && data.transportation.length > 0) {
+                        data.transportation.forEach(transport => {
+                            const radio = document.querySelector(`input[name="preferredTransport"][value="${transport}"]`);
+                            if (radio) {
+                                radio.checked = true;
+                            }
+                        });
+                    }
+                    
+                    // 멤버 데이터 복원
+                    if (data.members && data.members.length > 0) {
+                        members = data.members;
+                        memberCounter = Math.max(...members.map(m => m.id)) + 1;
+                    }
+                }
+            } catch (error) {
+                console.error('기본설정 불러오기 실패:', error);
+            }
+        }
+        
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
+            loadBasicSettings();
             renderMemberList();
         });
     </script>

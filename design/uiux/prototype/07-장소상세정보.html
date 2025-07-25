@@ -118,53 +118,9 @@
             transform: scale(1.1);
         }
 
-        .action-btn.bookmarked {
-            color: var(--secondary-orange);
-        }
 
-        .place-tabs {
-            display: flex;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: var(--space-6);
-            overflow: hidden;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: var(--space-4) var(--space-6);
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-weight: var(--font-medium);
-            color: var(--gray-600);
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .tab-btn.active {
-            color: var(--primary-blue);
-            background: var(--gray-50);
-        }
-
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--primary-blue);
-        }
-
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .tab-content.active {
-            display: block;
+        .info-section {
+            margin-bottom: var(--space-8);
         }
 
         .info-grid {
@@ -231,157 +187,8 @@
             color: var(--error);
         }
 
-        .photo-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--space-4);
-            margin-bottom: var(--space-6);
-        }
 
-        .photo-item {
-            position: relative;
-            border-radius: 8px;
-            overflow: hidden;
-            aspect-ratio: 4/3;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
 
-        .photo-item:hover {
-            transform: scale(1.02);
-        }
-
-        .photo-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .map-container {
-            position: relative;
-            height: 400px;
-            border-radius: 12px;
-            overflow: hidden;
-            background: var(--gray-200);
-            margin-bottom: var(--space-6);
-        }
-
-        .map-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--gray-500);
-            font-size: var(--text-lg);
-        }
-
-        .nearby-places {
-            margin-top: var(--space-8);
-        }
-
-        .nearby-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: var(--space-4);
-        }
-
-        .nearby-card {
-            display: flex;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease;
-            cursor: pointer;
-        }
-
-        .nearby-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .nearby-image {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-
-        .nearby-content {
-            padding: var(--space-4);
-            flex: 1;
-        }
-
-        .nearby-title {
-            font-weight: var(--font-semibold);
-            margin-bottom: var(--space-1);
-            color: var(--gray-800);
-        }
-
-        .nearby-distance {
-            font-size: var(--text-sm);
-            color: var(--gray-500);
-            margin-bottom: var(--space-2);
-        }
-
-        .bookmark-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .bookmark-modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: var(--space-8);
-            border-radius: 16px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--space-6);
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: var(--text-2xl);
-            cursor: pointer;
-            color: var(--gray-400);
-        }
-
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            margin-bottom: var(--space-6);
-            font-size: var(--text-sm);
-            color: var(--gray-500);
-        }
-
-        .breadcrumb a {
-            color: var(--primary-blue);
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
 
         /* 반응형 스타일 */
         @media (max-width: 768px) {
@@ -397,25 +204,38 @@
                 font-size: var(--text-2xl);
             }
 
-            .place-tabs {
-                flex-wrap: wrap;
-            }
-
-            .tab-btn {
-                min-width: 120px;
-            }
-
             .info-grid {
                 grid-template-columns: 1fr;
             }
+        }
 
-            .map-container {
-                height: 300px;
-            }
-
-            .nearby-grid {
-                grid-template-columns: 1fr;
-            }
+        /* 사용자 메뉴 스타일 */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-medium);
+            cursor: pointer;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: var(--error);
+            border-radius: 50%;
+            border: 2px solid white;
         }
     </style>
 </head>
@@ -427,28 +247,36 @@
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
                     <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
-                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
-                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
-                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
-                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
-                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
-                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                    <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
+                    <li><a href="09-주변장소검색.html" class="nav-link active">주변장소 검색</a></li>
                 </ul>
-                <button class="mobile-menu-toggle">☰</button>
+                
+                <div class="nav-actions flex items-center gap-4">
+                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
+                    <div class="user-menu">
+                        <div class="user-avatar">
+                            김
+                            <span class="notification-badge"></span>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-toggle">☰</button>
+                </div>
             </nav>
         </div>
+        <div class="mobile-overlay"></div>
     </header>
 
     <!-- 메인 콘텐츠 -->
     <main class="main">
         <div class="container">
-            <!-- 브레드크럼 -->
-            <div class="breadcrumb">
-                <a href="01-대시보드.html">홈</a>
-                <span>></span>
-                <a href="06-생성된일정조회.html">도쿄 여행 일정</a>
-                <span>></span>
-                <span>센소지 절</span>
+            <div class="mb-6">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
+                    <h1 style="margin: 0;">장소 상세 정보</h1>
+                    <button onclick="history.back()" class="btn btn-secondary" style="padding: var(--space-2) var(--space-3); font-size: var(--text-sm);">
+                        ← 이전
+                    </button>
+                </div>
+                <p class="text-gray-600">선택한 장소의 자세한 정보를 확인해보세요.</p>
             </div>
 
             <div class="place-detail">
@@ -458,9 +286,6 @@
                          alt="센소지 절" class="place-hero-image">
                     
                     <div class="place-actions">
-                        <button class="action-btn" id="bookmarkBtn" data-tooltip="북마크">
-                            ⭐
-                        </button>
                         <button class="action-btn" data-tooltip="공유하기">
                             📤
                         </button>
@@ -488,16 +313,9 @@
                     </div>
                 </div>
 
-                <!-- 탭 네비게이션 -->
-                <div class="place-tabs">
-                    <button class="tab-btn active" data-tab="info">기본 정보</button>
-                    <button class="tab-btn" data-tab="reviews">리뷰</button>
-                    <button class="tab-btn" data-tab="photos">사진</button>
-                    <button class="tab-btn" data-tab="map">지도</button>
-                </div>
 
-                <!-- 기본 정보 탭 -->
-                <div class="tab-content active" id="info">
+                <!-- 기본 정보 -->
+                <div class="info-section">
                     <div class="info-grid">
                         <!-- 기본 정보 카드 -->
                         <div class="info-card">
@@ -507,16 +325,12 @@
                                 <span class="info-value">도쿄도 다이토구 아사쿠사 2-3-1</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">GPS 좌표</span>
-                                <span class="info-value">35.7148, 139.7967</span>
-                            </div>
-                            <div class="info-item">
                                 <span class="info-label">맵 검색어</span>
                                 <span class="info-value">Sensoji Temple, Asakusa</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">가까운 역</span>
-                                <span class="info-value">아사쿠사역 (도보 5분)</span>
+                                <span class="info-label">주차장 찾기</span>
+                                <span class="info-value">아사쿠사 공영주차장</span>
                             </div>
                         </div>
 
@@ -537,49 +351,8 @@
                                 <span class="info-label">연중무휴</span>
                                 <span class="info-value">연중 개방</span>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">입장료</span>
-                                <span class="info-value">무료</span>
-                            </div>
                         </div>
 
-                        <!-- 연락처 및 편의 정보 -->
-                        <div class="info-card">
-                            <h3>📞 연락처 정보</h3>
-                            <div class="info-item">
-                                <span class="info-label">전화번호</span>
-                                <span class="info-value">+81 3-3842-0181</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">웹사이트</span>
-                                <span class="info-value">senso-ji.jp</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">언어 지원</span>
-                                <span class="info-value">일본어, 영어</span>
-                            </div>
-                        </div>
-
-                        <!-- 편의 시설 -->
-                        <div class="info-card">
-                            <h3>🏪 편의 시설</h3>
-                            <div class="info-item">
-                                <span class="info-label">주차장</span>
-                                <span class="info-value">❌ 불가능</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">휠체어 접근</span>
-                                <span class="info-value">⚠️ 부분 가능</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">화장실</span>
-                                <span class="info-value">✅ 이용 가능</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">기념품샵</span>
-                                <span class="info-value">✅ 다수 운영</span>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- AI 추천 이유 -->
@@ -597,10 +370,8 @@
                <strong>베스트 포토 스팟:</strong> 카미나리몬 앞, 본당 계단</p>
                         </div>
                     </div>
-                </div>
-
-                <!-- 리뷰 탭 -->
-                <div class="tab-content" id="reviews">
+                    
+                    <!-- 리뷰 섹션 -->
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">⭐ 리뷰 및 평점</h3>
@@ -661,253 +432,17 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 사진 탭 -->
-                <div class="tab-content" id="photos">
-                    <div class="photo-gallery">
-                        <div class="photo-item" onclick="openPhotoModal(0)">
-                            <img src="https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&h=300&fit=crop" alt="센소지 절 전경">
-                        </div>
-                        <div class="photo-item" onclick="openPhotoModal(1)">
-                            <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop" alt="카미나리몬">
-                        </div>
-                        <div class="photo-item" onclick="openPhotoModal(2)">
-                            <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=300&fit=crop" alt="나카미세도리">
-                        </div>
-                        <div class="photo-item" onclick="openPhotoModal(3)">
-                            <img src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=400&h=300&fit=crop" alt="본당 내부">
-                        </div>
-                        <div class="photo-item" onclick="openPhotoModal(4)">
-                            <img src="https://images.unsplash.com/photo-1590736969955-71cc94901144?w=400&h=300&fit=crop" alt="오층탑">
-                        </div>
-                        <div class="photo-item" onclick="openPhotoModal(5)">
-                            <img src="https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=400&h=300&fit=crop" alt="야경">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 지도 탭 -->
-                <div class="tab-content" id="map">
-                    <div class="map-container">
-                        <div class="map-placeholder">
-                            🗺️ 지도 로딩 중... (실제 구현 시 Google Maps/Kakao Map API 연동)
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">🚇 교통 정보</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="info-item">
-                                <span class="info-label">가장 가까운 역</span>
-                                <span class="info-value">아사쿠사역 (도쿄 메트로 긴자선, 도에이 아사쿠사선, 도부 스카이트리라인)</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">도보 시간</span>
-                                <span class="info-value">약 5분</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">버스 정류장</span>
-                                <span class="info-value">아사쿠사 정류장 (도보 2분)</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 주변 장소 추천 -->
-                <div class="nearby-places">
-                    <h2>🎯 주변 추천 장소</h2>
-                    <div class="nearby-grid">
-                        <div class="nearby-card" onclick="goToPlace('tokyo-skytree')">
-                            <img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop" 
-                                 alt="도쿄 스카이트리" class="nearby-image">
-                            <div class="nearby-content">
-                                <div class="nearby-title">도쿄 스카이트리</div>
-                                <div class="nearby-distance">도보 15분 (1.2km)</div>
-                                <div class="place-rating">
-                                    <div class="stars">
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star empty">☆</span>
-                                    </div>
-                                    <span class="rating-score">4.1</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="nearby-card" onclick="goToPlace('sumida-river')">
-                            <img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop" 
-                                 alt="스미다강" class="nearby-image">
-                            <div class="nearby-content">
-                                <div class="nearby-title">스미다강 크루즈</div>
-                                <div class="nearby-distance">도보 8분 (600m)</div>
-                                <div class="place-rating">
-                                    <div class="stars">
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                    </div>
-                                    <span class="rating-score">4.5</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="nearby-card" onclick="goToPlace('asakusa-hanayashiki')">
-                            <img src="https://images.unsplash.com/photo-1594736797933-d0409ba957ce?w=100&h=100&fit=crop" 
-                                 alt="하나야시키" class="nearby-image">
-                            <div class="nearby-content">
-                                <div class="nearby-title">아사쿠사 하나야시키</div>
-                                <div class="nearby-distance">도보 3분 (200m)</div>
-                                <div class="place-rating">
-                                    <div class="stars">
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star empty">☆</span>
-                                    </div>
-                                    <span class="rating-score">3.8</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="nearby-card" onclick="goToPlace('kappabashi-street')">
-                            <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop" 
-                                 alt="카파바시" class="nearby-image">
-                            <div class="nearby-content">
-                                <div class="nearby-title">카파바시 도구거리</div>
-                                <div class="nearby-distance">도보 10분 (800m)</div>
-                                <div class="place-rating">
-                                    <div class="stars">
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star empty">☆</span>
-                                    </div>
-                                    <span class="rating-score">4.0</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
 
-    <!-- 북마크 모달 -->
-    <div class="bookmark-modal" id="bookmarkModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>북마크에 추가</h3>
-                <button class="modal-close" onclick="closeBookmarkModal()">&times;</button>
-            </div>
-            <form>
-                <div class="form-group">
-                    <label class="form-label">메모 (선택사항)</label>
-                    <textarea class="form-input" rows="3" placeholder="이 장소에 대한 메모를 남겨보세요..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">카테고리</label>
-                    <select class="form-input">
-                        <option>관광지</option>
-                        <option>음식점</option>
-                        <option>쇼핑</option>
-                        <option>기타</option>
-                    </select>
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" class="btn btn-secondary flex-1" onclick="closeBookmarkModal()">취소</button>
-                    <button type="submit" class="btn btn-primary flex-1">저장</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- 모바일 오버레이 -->
-    <div class="mobile-overlay"></div>
-
-    <!-- 하단 네비게이션 (모바일) -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-2 md:hidden">
-        <button class="btn btn-secondary flex-1" onclick="history.back()">이전</button>
-        <button class="btn btn-primary flex-1" onclick="addToItinerary()">일정에 추가</button>
-    </div>
 
     <script src="assets/js/common.js"></script>
     <script>
-        // 탭 전환 기능
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tabId = this.dataset.tab;
-                
-                // 모든 탭 버튼과 콘텐츠 비활성화
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                // 선택된 탭 활성화
-                this.classList.add('active');
-                document.getElementById(tabId).classList.add('active');
-            });
-        });
 
-        // 북마크 기능
-        let isBookmarked = false;
-        document.getElementById('bookmarkBtn').addEventListener('click', function() {
-            if (isBookmarked) {
-                this.textContent = '⭐';
-                this.classList.remove('bookmarked');
-                TripGen.showToast('북마크에서 제거되었습니다.', 'info');
-                isBookmarked = false;
-            } else {
-                document.getElementById('bookmarkModal').classList.add('active');
-            }
-        });
 
-        // 북마크 모달 닫기
-        function closeBookmarkModal() {
-            document.getElementById('bookmarkModal').classList.remove('active');
-        }
 
-        // 북마크 저장
-        document.querySelector('#bookmarkModal form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const bookmarkBtn = document.getElementById('bookmarkBtn');
-            bookmarkBtn.textContent = '⭐';
-            bookmarkBtn.classList.add('bookmarked');
-            
-            closeBookmarkModal();
-            TripGen.showToast('북마크에 저장되었습니다!', 'success');
-            isBookmarked = true;
-        });
-
-        // 모달 외부 클릭 시 닫기
-        document.getElementById('bookmarkModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeBookmarkModal();
-            }
-        });
-
-        // 사진 모달 (간단 구현)
-        function openPhotoModal(index) {
-            TripGen.showToast('사진 갤러리 기능 (실제 구현 시 확대 보기)', 'info');
-        }
-
-        // 주변 장소 이동
-        function goToPlace(placeId) {
-            TripGen.showToast(`${placeId} 상세 정보로 이동`, 'info');
-            // 실제로는 해당 장소의 상세 페이지로 이동
-        }
-
-        // 일정에 추가
-        function addToItinerary() {
-            TripGen.showToast('센소지 절이 일정에 추가되었습니다!', 'success');
-        }
 
         // 공유 기능
         document.querySelector('[data-tooltip="공유하기"]').addEventListener('click', function() {

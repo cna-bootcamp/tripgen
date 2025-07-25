@@ -15,43 +15,18 @@
 
     /* 일정 헤더 */
     .itinerary-header {
-      background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
-      border-radius: 16px;
-      padding: var(--space-8);
-      color: white;
-      margin-bottom: var(--space-8);
-    }
-
-    .itinerary-title {
-      font-size: var(--text-3xl);
-      font-weight: var(--font-bold);
-      margin-bottom: var(--space-4);
-      color: white;
-    }
-
-    .trip-overview {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--space-4);
-      margin-top: var(--space-6);
-    }
-
-    .overview-item {
-      background: rgba(255, 255, 255, 0.2);
-      padding: var(--space-4);
-      border-radius: 12px;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: var(--space-3);
+      margin-bottom: var(--space-6);
       text-align: center;
     }
 
-    .overview-label {
-      font-size: var(--text-sm);
-      opacity: 0.9;
-      margin-bottom: var(--space-2);
-    }
-
-    .overview-value {
+    .trip-summary-text {
       font-size: var(--text-lg);
       font-weight: var(--font-semibold);
+      color: var(--gray-800);
     }
 
     /* 액션 버튼들 */
@@ -59,12 +34,12 @@
       display: flex;
       gap: var(--space-4);
       margin-bottom: var(--space-8);
-      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .itinerary-actions .btn {
-      flex: 1;
       min-width: 120px;
+      padding: var(--space-2) var(--space-4);
     }
 
     /* 날짜별 탭 네비게이션 */
@@ -108,6 +83,39 @@
     .day-tab .tab-day {
       font-size: var(--text-lg);
       font-weight: var(--font-semibold);
+    }
+
+    .day-tab .regenerate-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      padding: var(--space-1) var(--space-2);
+      font-size: var(--text-xs);
+      color: white;
+      cursor: pointer;
+      margin-top: var(--space-2);
+      transition: all 0.2s ease;
+      display: none;
+    }
+
+    .day-tab.active .regenerate-btn {
+      display: block;
+    }
+
+    .day-tab .regenerate-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .day-tab:not(.active) .regenerate-btn {
+      background: var(--gray-100);
+      border-color: var(--gray-300);
+      color: var(--gray-600);
+    }
+
+    .day-tab:not(.active) .regenerate-btn:hover {
+      background: var(--gray-200);
+      border-color: var(--gray-400);
     }
 
     /* 일정 컨텐츠 */
@@ -205,11 +213,14 @@
       border: 1px solid var(--gray-200);
       border-radius: 8px;
       transition: all 0.2s ease;
+      cursor: pointer;
     }
 
     .place-card:hover {
       background: var(--gray-50);
       border-color: var(--primary-blue);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
     .place-number {
@@ -326,6 +337,218 @@
       opacity: 0.5;
     }
 
+    /* 재생성 관련 스타일 */
+    .regeneration-loading {
+      text-align: center;
+      padding: var(--space-12);
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-radius: 16px;
+      border: 2px dashed var(--primary-blue-light);
+    }
+
+    .regeneration-loading h3 {
+      color: var(--primary-blue);
+      margin-bottom: var(--space-4);
+      font-size: var(--text-xl);
+    }
+
+    .regeneration-loading p {
+      color: var(--gray-600);
+      margin-bottom: var(--space-6);
+    }
+
+    .loading-progress {
+      margin: var(--space-6) 0;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: var(--gray-200);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: var(--space-3);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-light));
+      border-radius: 6px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      font-weight: var(--font-medium);
+    }
+
+    .new-generated {
+      border: 2px solid var(--success);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.1));
+    }
+
+    .new-indicator {
+      background: var(--success);
+      color: white;
+      padding: var(--space-1) var(--space-2);
+      border-radius: 12px;
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      margin-top: var(--space-3);
+      display: inline-block;
+    }
+
+    /* 커스텀 다이얼로그 스타일 */
+    .custom-dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .custom-dialog-overlay.show {
+      opacity: 1;
+    }
+
+    .custom-dialog {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 480px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: hidden;
+      transform: scale(0.8) translateY(20px);
+      transition: transform 0.3s ease;
+    }
+
+    .custom-dialog-overlay.show .custom-dialog {
+      transform: scale(1) translateY(0);
+    }
+
+    .dialog-header {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
+      color: white;
+      padding: var(--space-6);
+      text-align: center;
+    }
+
+    .dialog-title {
+      margin: 0;
+      font-size: var(--text-xl);
+      font-weight: var(--font-semibold);
+    }
+
+    .dialog-body {
+      padding: var(--space-8);
+      text-align: center;
+    }
+
+    .dialog-message {
+      color: var(--gray-700);
+      font-size: var(--text-base);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .dialog-footer {
+      padding: var(--space-6);
+      display: flex;
+      gap: var(--space-4);
+      justify-content: center;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    .dialog-footer .btn {
+      min-width: 100px;
+      padding: var(--space-3) var(--space-6);
+    }
+
+    /* 커스텀 토스트 스타일 */
+    .custom-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--gray-200);
+      padding: var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 320px;
+      max-width: 480px;
+      z-index: 10001;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .custom-toast.show {
+      transform: translateX(0);
+    }
+
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .toast-icon {
+      font-size: var(--text-lg);
+      flex-shrink: 0;
+    }
+
+    .toast-message {
+      color: var(--gray-800);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--gray-500);
+      font-size: var(--text-lg);
+      cursor: pointer;
+      padding: var(--space-1);
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .toast-close:hover {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    /* 토스트 유형별 스타일 */
+    .toast-success {
+      border-left: 4px solid var(--success);
+    }
+
+    .toast-error {
+      border-left: 4px solid var(--error);
+    }
+
+    .toast-warning {
+      border-left: 4px solid var(--warning);
+    }
+
+    .toast-info {
+      border-left: 4px solid var(--info);
+    }
+
     /* 반응형 */
     @media (max-width: 767px) {
       .itinerary-container {
@@ -333,19 +556,17 @@
       }
 
       .itinerary-header {
-        padding: var(--space-6);
-      }
-
-      .itinerary-title {
-        font-size: var(--text-2xl);
+        padding: var(--space-3);
       }
 
       .itinerary-actions {
         flex-direction: column;
+        align-items: center;
       }
 
       .itinerary-actions .btn {
-        flex: none;
+        width: 100%;
+        max-width: 300px;
       }
 
       .day-tabs {
@@ -368,6 +589,39 @@
 
       .places-grid {
         padding: var(--space-4);
+      }
+
+      /* 모바일에서 토스트 위치 조정 */
+      .custom-toast {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+      }
+
+      /* 모바일에서 다이얼로그 조정 */
+      .custom-dialog {
+        margin: var(--space-4);
+        max-width: none;
+        width: calc(100% - var(--space-8));
+      }
+
+      .dialog-header {
+        padding: var(--space-4);
+      }
+
+      .dialog-body {
+        padding: var(--space-6);
+      }
+
+      .dialog-footer {
+        padding: var(--space-4);
+        flex-direction: column;
+      }
+
+      .dialog-footer .btn {
+        width: 100%;
       }
     }
 
@@ -452,59 +706,311 @@
       background: rgba(245, 158, 11, 0.1);
       color: var(--warning);
     }
+
+    /* Navigation Progress Styles */
+    .nav-progress-wrapper {
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 16px 0;
+    }
+
+    .nav-progress-steps {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      max-width: 600px;
+      margin: 0 auto;
+      flex-wrap: nowrap;
+    }
+
+    .nav-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      min-width: fit-content;
+    }
+
+    .nav-step--done {
+      cursor: pointer;
+    }
+
+    .nav-step--done:hover {
+      opacity: 0.8;
+    }
+
+    .nav-step__circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      background: #d1d5db;
+      color: #6b7280;
+      transition: all 0.2s ease;
+    }
+
+    .nav-step--done .nav-step__circle {
+      background: #10b981;
+      color: white;
+    }
+
+    .nav-step--current .nav-step__circle {
+      background: #2e86ab;
+      color: white;
+    }
+
+    .nav-step__label {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .nav-step--done .nav-step__label {
+      color: #10b981;
+    }
+
+    .nav-step--current .nav-step__label {
+      color: #2e86ab;
+      font-weight: 600;
+    }
+
+    /* 다시 생성 모달 스타일 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    .regenerate-modal {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-6);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+      font-size: var(--text-xl);
+      font-weight: var(--font-semibold);
+      color: var(--gray-800);
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--gray-500);
+      cursor: pointer;
+      padding: var(--space-2);
+      line-height: 1;
+    }
+    
+    .modal-close:hover {
+      color: var(--gray-700);
+    }
+    
+    .modal-body {
+      padding: var(--space-6);
+    }
+    
+    .modal-description {
+      color: var(--gray-600);
+      margin-bottom: var(--space-6);
+      line-height: 1.6;
+    }
+    
+    .request-section {
+      text-align: left;
+    }
+    
+    .request-label {
+      display: block;
+      font-size: var(--text-base);
+      font-weight: var(--font-medium);
+      color: var(--gray-800);
+      margin-bottom: var(--space-3);
+    }
+    
+    .request-textarea {
+      width: 100%;
+      padding: var(--space-4);
+      border: 2px solid var(--gray-300);
+      border-radius: 12px;
+      font-size: var(--text-base);
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+      transition: all 0.3s ease;
+      background: white;
+      line-height: 1.5;
+    }
+    
+    .request-textarea:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(46, 134, 171, 0.1);
+    }
+    
+    .request-textarea::placeholder {
+      color: var(--gray-500);
+      font-style: italic;
+    }
+    
+    .char-count {
+      text-align: right;
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      margin-top: var(--space-2);
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3);
+      padding: var(--space-6);
+      border-top: 1px solid var(--gray-200);
+    }
+    
+    @media (max-width: 768px) {
+      .nav-progress-steps {
+        gap: 16px;
+        overflow-x: auto;
+        padding: 0 8px;
+      }
+      
+      .nav-step__label {
+        font-size: 10px;
+      }
+      
+      .nav-step__circle {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+      }
+      
+      .regenerate-modal {
+        width: 95%;
+        margin: var(--space-4);
+      }
+      
+      .modal-header, .modal-body, .modal-footer {
+        padding: var(--space-4);
+      }
+    }
+    
+    /* 사용자 요청사항 표시 스타일 */
+    .user-request-info {
+      background: rgba(46, 134, 171, 0.1);
+      border-left: 4px solid var(--primary-blue);
+      padding: var(--space-3);
+      margin: var(--space-4) 0;
+      border-radius: 4px;
+      font-size: var(--text-sm);
+      color: var(--gray-700);
+      font-style: italic;
+    }
+
+    /* 사용자 메뉴 스타일 */
+    .user-menu {
+        position: relative;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-blue);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: var(--font-medium);
+        cursor: pointer;
+    }
+    
+    .notification-badge {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 12px;
+        height: 12px;
+        background: var(--error);
+        border-radius: 50%;
+        border: 2px solid white;
+    }
   </style>
 </head>
 <body>
   <header class="header">
     <nav class="nav container">
-      <a href="#" class="nav-brand">TripGen</a>
+      <a href="01-대시보드.html" class="nav-brand">TripGen</a>
       <ul class="nav-menu">
         <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
-        <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
-        <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
-        <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
-        <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
-        <li><a href="06-생성된일정조회.html" class="nav-link active">일정조회</a></li>
-        <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+        <li><a href="javascript:showTravelListInfo()" class="nav-link active">여행보기</a></li>
+        <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
       </ul>
-      <button class="mobile-menu-toggle">☰</button>
+      
+      <div class="nav-actions flex items-center gap-4">
+        <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
+        <div class="user-menu">
+          <div class="user-avatar">
+            김
+            <span class="notification-badge"></span>
+          </div>
+        </div>
+        <button class="mobile-menu-toggle">☰</button>
+      </div>
     </nav>
   </header>
 
   <div class="mobile-overlay"></div>
 
   <main class="main">
-    <!-- 스테퍼 -->
-    <div class="container" style="margin-bottom: 2rem;">
-      <div style="display: flex; justify-content: center; align-items: center; gap: 1rem;">
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('01-대시보드.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">1</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">대시보드</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--success);"></div>
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('02-멤버관리.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">2</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">멤버관리</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--success);"></div>
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('03-여행일정설정.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">3</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">일정설정</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--success);"></div>
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('04-이동수단설정.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">4</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">이동수단</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--success);"></div>
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('05-AI일정생성.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">5</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">AI일정생성</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--primary-blue);"></div>
-        <div style="display: flex; align-items: center; color: var(--primary-blue);">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">6</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">일정조회</span>
+    <!-- Navigation Progress -->
+    <div class="nav-progress-wrapper">
+      <div class="container">
+        <div class="nav-progress-steps">
+          <div class="nav-step nav-step--done" onclick="navigateToStep('02-기본설정.html')" style="cursor: pointer;">
+            <div class="nav-step__circle">1</div>
+            <span class="nav-step__label">기본설정</span>
+          </div>
+          <div class="nav-step nav-step--done" onclick="navigateToStep('03-여행일정설정.html')" style="cursor: pointer;">
+            <div class="nav-step__circle">2</div>
+            <span class="nav-step__label">일정설정</span>
+          </div>
+          <div class="nav-step nav-step--done" onclick="navigateToStep('05-AI일정생성.html')" style="cursor: pointer;">
+            <div class="nav-step__circle">3</div>
+            <span class="nav-step__label">AI일정생성</span>
+          </div>
+          <div class="nav-step nav-step--current">
+            <div class="nav-step__circle">4</div>
+            <span class="nav-step__label">일정조회</span>
+          </div>
         </div>
       </div>
     </div>
@@ -512,42 +1018,13 @@
     <div class="itinerary-container">
       <!-- 일정 헤더 -->
       <div class="itinerary-header">
-        <h1 class="itinerary-title">도쿄 3일 2박 여행</h1>
-        <p>AI가 생성한 맞춤형 여행 일정입니다</p>
-        
-        <div class="trip-overview">
-          <div class="overview-item">
-            <div class="overview-label">여행 기간</div>
-            <div class="overview-value">2025.08.15 - 08.17</div>
-          </div>
-          <div class="overview-item">
-            <div class="overview-label">여행 멤버</div>
-            <div class="overview-value">2명 (성인)</div>
-          </div>
-          <div class="overview-item">
-            <div class="overview-label">주요 이동수단</div>
-            <div class="overview-value">대중교통</div>
-          </div>
-          <div class="overview-item">
-            <div class="overview-label">총 방문지</div>
-            <div class="overview-value">12곳</div>
-          </div>
-        </div>
+        <div class="trip-summary-text">제주도(2명)</div>
       </div>
 
       <!-- 액션 버튼들 -->
       <div class="itinerary-actions">
         <button class="btn btn-primary" onclick="regenerateItinerary()">
           🔄 일정 재생성
-        </button>
-        <button class="btn btn-secondary" onclick="editItinerary()">
-          ✏️ 일정 수정
-        </button>
-        <button class="btn btn-secondary" onclick="saveItinerary()">
-          💾 일정 저장
-        </button>
-        <button class="btn btn-secondary" onclick="shareItinerary()">
-          📤 공유하기
         </button>
       </div>
 
@@ -556,14 +1033,17 @@
         <div class="day-tab active" data-day="1">
           <div class="tab-date">8월 15일 (목)</div>
           <div class="tab-day">첫째 날</div>
+          <button class="regenerate-btn" onclick="regenerateDay(1)">🔄 다시 생성</button>
         </div>
         <div class="day-tab" data-day="2">
           <div class="tab-date">8월 16일 (금)</div>
           <div class="tab-day">둘째 날</div>
+          <button class="regenerate-btn" onclick="regenerateDay(2)">🔄 다시 생성</button>
         </div>
         <div class="day-tab" data-day="3">
           <div class="tab-date">8월 17일 (토)</div>
           <div class="tab-day">셋째 날</div>
+          <button class="regenerate-btn" onclick="regenerateDay(3)">🔄 다시 생성</button>
         </div>
       </div>
 
@@ -579,7 +1059,7 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">1</div>
                   <div class="place-info">
                     <div class="place-name">센소지 (浅草寺)</div>
@@ -599,16 +1079,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(1)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(1)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(1)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(1)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(1)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -619,7 +1090,7 @@
                   지하철로 15분 이동 (긴자선 → 우에노역)
                 </div>
 
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">2</div>
                   <div class="place-info">
                     <div class="place-name">우에노 공원</div>
@@ -639,16 +1110,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(2)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(2)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(2)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(2)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(2)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -666,7 +1128,7 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">3</div>
                   <div class="place-info">
                     <div class="place-name">이치란 라멘 아메요코점</div>
@@ -686,16 +1148,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(3)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(3)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(3)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(3)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(3)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -713,7 +1166,7 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">4</div>
                   <div class="place-info">
                     <div class="place-name">하라주쿠 & 다케시타 거리</div>
@@ -733,16 +1186,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(4)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(4)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(4)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(4)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(4)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -753,7 +1197,7 @@
                   JR 야마노테선으로 7분 이동 (하라주쿠 → 시부야)
                 </div>
 
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">5</div>
                   <div class="place-info">
                     <div class="place-name">시부야 스카이</div>
@@ -773,16 +1217,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(5)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(5)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(5)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(5)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(5)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -800,7 +1235,7 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">6</div>
                   <div class="place-info">
                     <div class="place-name">긴자 스시잔마이</div>
@@ -820,16 +1255,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(6)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(6)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(6)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(6)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(6)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -851,7 +1277,7 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">1</div>
                   <div class="place-info">
                     <div class="place-name">츠키지 시장</div>
@@ -871,16 +1297,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(7)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(7)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(7)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(7)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(7)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -902,7 +1319,7 @@
               </div>
               
               <div class="places-grid">
-                <div class="place-card">
+                <div class="place-card" onclick="window.location.href='07-장소상세정보.html'">
                   <div class="place-number">1</div>
                   <div class="place-info">
                     <div class="place-name">도쿄역 & 쇼핑</div>
@@ -922,16 +1339,7 @@
                     </div>
                   </div>
                   <div class="place-actions">
-                    <button class="action-btn map-btn" onclick="showMap(8)" data-tooltip="지도에서 보기">
-                      🗺️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(8)" data-tooltip="상세 정보">
-                      ℹ️
-                    </button>
-                    <button class="action-btn edit-btn" onclick="editPlace(8)" data-tooltip="수정">
-                      ✏️
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deletePlace(8)" data-tooltip="삭제">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(8)" data-tooltip="삭제">
                       🗑️
                     </button>
                   </div>
@@ -944,6 +1352,44 @@
 
     </div>
   </main>
+
+  <!-- 다시 생성 요청사항 모달 -->
+  <div id="regenerateModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content regenerate-modal">
+      <div class="modal-header">
+        <h3 id="regenerateModalTitle">일정 다시 생성</h3>
+        <button class="modal-close" onclick="closeRegenerateModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <p class="modal-description">
+          해당 날짜 일정을 AI가 새로 생성합니다. 기존 일정은 새로운 일정으로 대체됩니다.
+        </p>
+        
+        <!-- 요청사항 입력 -->
+        <div class="request-section">
+          <label for="dayRegenerateRequest" class="request-label">
+            특별한 요청사항이 있나요? (선택사항)
+          </label>
+          <textarea 
+            id="dayRegenerateRequest" 
+            class="request-textarea"
+            placeholder="예: 맛집 위주로 구성해주세요. 대중교통으로 쉽게 이동할 수 있는 곳들로 부탁드립니다."
+            maxlength="300"
+            rows="3">
+          </textarea>
+          <div class="char-count">
+            <span id="dayCharCount">0</span>/300자
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeRegenerateModal()">취소</button>
+        <button class="btn btn-primary" onclick="confirmRegenerate()">다시 생성</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 장소 상세 정보 모달 -->
   <div class="modal" id="placeDetailModal">
@@ -1004,10 +1450,8 @@
 
     // 일정 관련 기능들
     function regenerateItinerary() {
-      TripGen.confirmDialog('일정을 다시 생성하시겠습니까? 현재 수정사항이 모두 사라집니다.', () => {
-        // AI일정생성 페이지로 이동
-        window.location.href = '05-AI일정생성.html';
-      });
+      // 바로 AI일정생성 페이지로 이동
+      window.location.href = '05-AI일정생성.html';
     }
 
     function editItinerary() {
@@ -1085,9 +1529,567 @@
       });
     }
 
+    // 날짜별 일정 다시 생성 기능
+    function regenerateDay(dayNumber) {
+      // 이벤트 버블링 방지
+      event.stopPropagation();
+      
+      const dayNames = {
+        1: '첫째 날',
+        2: '둘째 날', 
+        3: '셋째 날'
+      };
+      
+      const dayName = dayNames[dayNumber] || `${dayNumber}번째 날`;
+      
+      // 모달 제목 업데이트
+      document.getElementById('regenerateModalTitle').textContent = `${dayName} 일정 다시 생성`;
+      
+      // 기존 요청사항 불러오기 (있다면)
+      const savedRequest = localStorage.getItem(`dayRequest_${dayNumber}`) || '';
+      const textarea = document.getElementById('dayRegenerateRequest');
+      const charCount = document.getElementById('dayCharCount');
+      
+      textarea.value = savedRequest;
+      charCount.textContent = savedRequest.length;
+      
+      // 모달 표시
+      document.getElementById('regenerateModal').style.display = 'flex';
+      
+      // 현재 날짜 저장
+      window.currentRegenerateDay = dayNumber;
+    }
+
+    // 모달 닫기
+    function closeRegenerateModal() {
+      document.getElementById('regenerateModal').style.display = 'none';
+      window.currentRegenerateDay = null;
+    }
+    
+    // 다시 생성 확정
+    function confirmRegenerate() {
+      const dayNumber = window.currentRegenerateDay;
+      if (dayNumber === null) return;
+      
+      const textarea = document.getElementById('dayRegenerateRequest');
+      const userRequest = textarea.value.trim();
+      
+      // 요청사항 저장
+      if (userRequest) {
+        localStorage.setItem(`dayRequest_${dayNumber}`, userRequest);
+        console.log(`${dayNumber}일차 요청사항:`, userRequest);
+      }
+      
+      // 모달 닫기
+      closeRegenerateModal();
+      
+      // 실제 재생성 실행
+      regenerateDayItinerary(dayNumber, userRequest);
+    }
+    
+    function regenerateDayItinerary(dayNumber, userRequest = '') {
+      const dayContent = document.getElementById(`day-${dayNumber}`);
+      const originalContent = dayContent.innerHTML;
+      
+      try {
+        // 사용자 요청사항 표시
+        const requestInfo = userRequest ? `<p class="user-request-info">특별 요청: ${userRequest}</p>` : '';
+        
+        // 로딩 상태로 변경
+        dayContent.innerHTML = `
+          <div class="regeneration-loading">
+            <div class="loading-spinner"></div>
+            <h3>AI가 ${dayNumber}일차 일정을 새로 생성하고 있습니다...</h3>
+            <p>기존 여행 정보를 바탕으로 더 나은 일정을 만들어드릴게요.</p>
+            ${requestInfo}
+            <div class="loading-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="regenerateProgress"></div>
+              </div>
+              <div class="progress-text" id="progressText">장소 분석 중...</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="cancelRegeneration(${dayNumber}, \`${originalContent.replace(/`/g, '\\`')}\`)">
+              취소
+            </button>
+          </div>
+        `;
+
+        // 진행률 시뮬레이션
+        simulateRegenerationProgress(dayNumber, originalContent);
+        
+      } catch (error) {
+        console.error('일정 재생성 중 오류:', error);
+        showCustomToast('일정 재생성 중 오류가 발생했습니다.', 'error');
+        dayContent.innerHTML = originalContent;
+      }
+    }
+
+    function simulateRegenerationProgress(dayNumber, originalContent) {
+      const progressFill = document.getElementById('regenerateProgress');
+      const progressText = document.getElementById('progressText');
+      
+      if (!progressFill || !progressText) return;
+      
+      const steps = [
+        { progress: 20, text: '기존 일정 분석 중...' },
+        { progress: 40, text: '새로운 장소 검색 중...' },
+        { progress: 60, text: '이동 경로 최적화 중...' },
+        { progress: 80, text: '일정 조정 중...' },
+        { progress: 100, text: '새로운 일정 생성 완료!' }
+      ];
+      
+      let currentStep = 0;
+      
+      const progressInterval = setInterval(() => {
+        if (currentStep < steps.length) {
+          const step = steps[currentStep];
+          progressFill.style.width = step.progress + '%';
+          progressText.textContent = step.text;
+          currentStep++;
+        } else {
+          clearInterval(progressInterval);
+          // 재생성 완료
+          setTimeout(() => {
+            completeRegeneration(dayNumber);
+          }, 1000);
+        }
+      }, 800);
+    }
+
+    function completeRegeneration(dayNumber) {
+      const dayContent = document.getElementById(`day-${dayNumber}`);
+      
+      // 새로운 일정 데이터 (시뮬레이션)
+      const newItineraries = {
+        1: generateNewDayItinerary('첫째 날', [
+          { time: '09:00', name: '우에노 공원', type: '관광', duration: '2시간', move: '15분' },
+          { time: '11:30', name: '도쿄국립박물관', type: '문화', duration: '2시간', move: '10분' },
+          { time: '14:00', name: '아메요코 시장', type: '쇼핑', duration: '1.5시간', move: '20분' },
+          { time: '16:30', name: '센소지 절', type: '관광', duration: '1.5시간', move: '25분' },
+          { time: '19:00', name: '스카이트리 타운', type: '관광', duration: '2시간', move: '0분' }
+        ]),
+        2: generateNewDayItinerary('둘째 날', [
+          { time: '10:00', name: '메이지 신궁', type: '문화', duration: '1.5시간', move: '10분' },
+          { time: '12:00', name: '하라주쿠 거리', type: '쇼핑', duration: '2시간', move: '15분' },
+          { time: '15:00', name: '시부야 스카이', type: '관광', duration: '1시간', move: '5분' },
+          { time: '17:00', name: '시부야 크로싱', type: '관광', duration: '1시간', move: '10분' },
+          { time: '19:00', name: '롯폰기 힐즈', type: '관광', duration: '2시간', move: '0분' }
+        ]),
+        3: generateNewDayItinerary('셋째 날', [
+          { time: '09:30', name: '츠키지 장외시장', type: '음식', duration: '2시간', move: '20분' },
+          { time: '12:30', name: '황궁 동쪽 정원', type: '관광', duration: '1.5시간', move: '15분' },
+          { time: '15:00', name: '긴자 거리', type: '쇼핑', duration: '2시간', move: '10분' },
+          { time: '18:00', name: '도쿄역 주변', type: '음식', duration: '1.5시간', move: '0분' }
+        ])
+      };
+      
+      dayContent.innerHTML = newItineraries[dayNumber] || originalContent;
+      
+      showCustomToast(`${dayNumber}일차 일정이 새롭게 생성되었습니다!`, 'success', 4000);
+    }
+
+    function generateNewDayItinerary(dayName, places) {
+      // 시간대별로 그룹 나누기
+      const morningPlaces = places.slice(0, Math.ceil(places.length / 2));
+      const afternoonPlaces = places.slice(Math.ceil(places.length / 2));
+      
+      let html = '<div class="timeline">';
+      
+      // 오전 일정
+      if (morningPlaces.length > 0) {
+        html += `
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">09:00 - 12:00</div>
+                <div class="time-period">오전</div>
+              </div>
+              
+              <div class="places-grid">
+                ${morningPlaces.map((place, index) => `
+                  <div class="place-card new-generated" onclick="window.location.href='07-장소상세정보.html'">
+                    <div class="place-number">${index + 1}</div>
+                    <div class="place-info">
+                      <div class="place-name">${place.name}</div>
+                      <div class="place-address">${getPlaceAddress(place.name)}</div>
+                      <div class="place-details">
+                        <div class="place-detail">
+                          <span>⏱️</span>
+                          <span>${place.duration}</span>
+                        </div>
+                        <div class="place-detail">
+                          <span>${getTypeIcon(place.type)}</span>
+                          <span>${getCategoryName(place.type)}</span>
+                        </div>
+                        <div class="place-detail">
+                          <span class="status-badge verified">검증완료</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="place-actions">
+                      <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(${index + 1})" data-tooltip="삭제">
+                        🗑️
+                      </button>
+                    </div>
+                    <div class="new-indicator">🆕 새로 생성된 일정</div>
+                  </div>
+                  
+                  ${index < morningPlaces.length - 1 ? `
+                    <div class="travel-time">
+                      <span class="travel-icon">🚇</span>
+                      ${getMoveMethod(place.type)}로 ${place.move} 이동 (${getRandomDistance()})
+                    </div>
+                  ` : ''}
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 오후 일정
+      if (afternoonPlaces.length > 0) {
+        html += `
+          <div class="timeline-item">
+            <div class="time-slot">
+              <div class="time-header">
+                <div class="time-label">13:00 - 18:00</div>
+                <div class="time-period">오후</div>
+              </div>
+              
+              <div class="places-grid">
+                ${afternoonPlaces.map((place, index) => `
+                  <div class="place-card new-generated" onclick="window.location.href='07-장소상세정보.html'">
+                    <div class="place-number">${morningPlaces.length + index + 1}</div>
+                    <div class="place-info">
+                      <div class="place-name">${place.name}</div>
+                      <div class="place-address">${getPlaceAddress(place.name)}</div>
+                      <div class="place-details">
+                        <div class="place-detail">
+                          <span>⏱️</span>
+                          <span>${place.duration}</span>
+                        </div>
+                        <div class="place-detail">
+                          <span>${getTypeIcon(place.type)}</span>
+                          <span>${getCategoryName(place.type)}</span>
+                        </div>
+                        <div class="place-detail">
+                          <span class="status-badge verified">검증완료</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="place-actions">
+                      <button class="action-btn delete-btn" onclick="event.stopPropagation(); deletePlace(${morningPlaces.length + index + 1})" data-tooltip="삭제">
+                        🗑️
+                      </button>
+                    </div>
+                    <div class="new-indicator">🆕 새로 생성된 일정</div>
+                  </div>
+                  
+                  ${index < afternoonPlaces.length - 1 ? `
+                    <div class="travel-time">
+                      <span class="travel-icon">🚇</span>
+                      ${getMoveMethod(place.type)}로 ${place.move} 이동 (${getRandomDistance()})
+                    </div>
+                  ` : ''}
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      html += '</div>';
+      return html;
+    }
+
+    function getTypeIcon(type) {
+      const icons = {
+        '관광': '🏛️',
+        '문화': '🎭', 
+        '쇼핑': '🛍️',
+        '음식': '🍽️'
+      };
+      return icons[type] || '📍';
+    }
+
+    function getTypeName(type) {
+      const names = {
+        '관광': '관광지',
+        '문화': '문화체험',
+        '쇼핑': '쇼핑',
+        '음식': '맛집'
+      };
+      return names[type] || '장소';
+    }
+
+    function cancelRegeneration(dayNumber, originalContent) {
+      const dayContent = document.getElementById(`day-${dayNumber}`);
+      dayContent.innerHTML = originalContent;
+      showCustomToast('일정 재생성이 취소되었습니다.', 'info');
+    }
+
+    // 장소 정보를 위한 헬퍼 함수들
+    function getPlaceAddress(placeName) {
+      const addresses = {
+        '우에노 공원': '도쿄도 다이토구 우에노코엔',
+        '도쿄국립박물관': '도쿄도 다이토구 우에노코엔 13-9',
+        '아메요코 시장': '도쿄도 다이토구 우에노 4-10-10',
+        '센소지 절': '도쿄도 다이토구 아사쿠사 2-3-1',
+        '스카이트리 타운': '도쿄도 스미다구 오시아게 1-1-2',
+        '메이지 신궁': '도쿄도 시부야구 시부야 1-1',
+        '하라주쿠 거리': '도쿄도 시부야구 진구마에 1-19-9',
+        '시부야 스카이': '도쿄도 시부야구 시부야 2-24-12',
+        '시부야 크로싱': '도쿄도 시부야구 도겐자카 1-1',
+        '롯폰기 힐즈': '도쿄도 미나토구 롯폰기 6-10-1',
+        '츠키지 장외시장': '도쿄도 츄오구 츠키지 4-16-2',
+        '황궁 동쪽 정원': '도쿄도 치요다구 코쿄가이엔 1-1',
+        '긴자 거리': '도쿄도 츄오구 긴자 4-6-16',
+        '도쿄역 주변': '도쿄도 치요다구 마루노우치 1-9-1'
+      };
+      return addresses[placeName] || '도쿄도 내 위치';
+    }
+
+    function getCategoryClass(type) {
+      const classes = {
+        '관광': 'tourism',
+        '문화': 'culture',
+        '쇼핑': 'shopping',
+        '음식': 'restaurant'
+      };
+      return classes[type] || 'tourism';
+    }
+
+    function getCategoryName(type) {
+      const names = {
+        '관광': '관광지',
+        '문화': '문화체험',
+        '쇼핑': '쇼핑',
+        '음식': '맛집'
+      };
+      return names[type] || '장소';
+    }
+
+    function getRandomRating() {
+      const ratings = ['4.2', '4.3', '4.4', '4.5', '4.6', '4.7', '4.8'];
+      return ratings[Math.floor(Math.random() * ratings.length)];
+    }
+
+    function getMoveIcon(type) {
+      return '🚇'; // 지하철 아이콘 통일
+    }
+
+    function getMoveMethod(type) {
+      return '지하철'; // 이동수단 통일
+    }
+
+    function getRandomDistance() {
+      const distances = ['0.8km', '1.2km', '1.5km', '2.1km', '2.8km'];
+      return distances[Math.floor(Math.random() * distances.length)];
+    }
+
+    // 커스텀 확인 다이얼로그 함수
+    function showCustomConfirmDialog(title, message, onConfirm) {
+      // 기존 다이얼로그가 있으면 제거
+      const existingDialog = document.getElementById('customConfirmDialog');
+      if (existingDialog) {
+        existingDialog.remove();
+      }
+
+      // 다이얼로그 HTML 생성
+      const dialogHTML = `
+        <div id="customConfirmDialog" class="custom-dialog-overlay">
+          <div class="custom-dialog">
+            <div class="dialog-header">
+              <h3 class="dialog-title">${title}</h3>
+            </div>
+            <div class="dialog-body">
+              <p class="dialog-message">${message.replace(/\n/g, '<br>')}</p>
+            </div>
+            <div class="dialog-footer">
+              <button class="btn btn-secondary" onclick="closeCustomDialog()">취소</button>
+              <button class="btn btn-primary" onclick="confirmCustomDialog()">확인</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // 다이얼로그를 body에 추가
+      document.body.insertAdjacentHTML('beforeend', dialogHTML);
+      
+      // 확인 콜백 저장
+      window.customDialogCallback = onConfirm;
+      
+      // 애니메이션 효과
+      setTimeout(() => {
+        document.getElementById('customConfirmDialog').classList.add('show');
+      }, 10);
+    }
+
+    function closeCustomDialog() {
+      const dialog = document.getElementById('customConfirmDialog');
+      if (dialog) {
+        dialog.classList.remove('show');
+        setTimeout(() => {
+          dialog.remove();
+        }, 300);
+      }
+      window.customDialogCallback = null;
+    }
+
+    function confirmCustomDialog() {
+      if (window.customDialogCallback) {
+        window.customDialogCallback();
+      }
+      closeCustomDialog();
+    }
+
+    // 커스텀 토스트 함수
+    function showCustomToast(message, type = 'info', duration = 3000) {
+      // 기존 토스트 제거
+      const existingToast = document.getElementById('customToast');
+      if (existingToast) {
+        existingToast.remove();
+      }
+
+      const icons = {
+        success: '✅',
+        error: '❌', 
+        warning: '⚠️',
+        info: 'ℹ️'
+      };
+
+      const toastHTML = `
+        <div id="customToast" class="custom-toast toast-${type}">
+          <div class="toast-content">
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <span class="toast-message">${message}</span>
+          </div>
+          <button class="toast-close" onclick="closeCustomToast()">×</button>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', toastHTML);
+      
+      // 애니메이션 효과
+      setTimeout(() => {
+        document.getElementById('customToast').classList.add('show');
+      }, 10);
+
+      // 자동 제거
+      setTimeout(() => {
+        closeCustomToast();
+      }, duration);
+    }
+
+    function closeCustomToast() {
+      const toast = document.getElementById('customToast');
+      if (toast) {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }
+    }
+
+    // 여행 정보 로드 함수
+    function loadTripInfo() {
+      // 기본설정에서 저장된 정보 가져오기
+      let tripName = '여행 계획';
+      let dateRange = '';
+      
+      try {
+        // 기본설정 데이터 읽기
+        const basicSettingsData = localStorage.getItem('basicSettingsData');
+        if (basicSettingsData) {
+          const data = JSON.parse(basicSettingsData);
+          if (data.tripName && data.tripName.trim()) {
+            tripName = data.tripName.trim();
+            console.log('여행명 로드됨:', tripName);
+          } else {
+            console.warn('기본설정에서 여행명을 찾을 수 없습니다.');
+          }
+        } else {
+          console.warn('기본설정 데이터가 없습니다.');
+        }
+        
+        // 여행일정 데이터 읽기
+        const tripScheduleData = localStorage.getItem('tripScheduleData');
+        if (tripScheduleData) {
+          const scheduleData = JSON.parse(tripScheduleData);
+          // 첫 번째 여행 계획의 날짜 사용
+          if (scheduleData.startDate_1 && scheduleData.endDate_1) {
+            const startDate = new Date(scheduleData.startDate_1);
+            const endDate = new Date(scheduleData.endDate_1);
+            
+            const startDateStr = startDate.toLocaleDateString('ko-KR', {
+              month: 'long',
+              day: 'numeric'
+            });
+            const endDateStr = endDate.toLocaleDateString('ko-KR', {
+              month: 'long', 
+              day: 'numeric'
+            });
+            
+            dateRange = `(${startDateStr} ~ ${endDateStr})`;
+          }
+        }
+      } catch (error) {
+        console.warn('여행 데이터 로드 실패:', error);
+      }
+      
+      // 여행명(시작일 ~ 종료일) 형식으로 업데이트
+      const summaryText = document.querySelector('.trip-summary-text');
+      if (summaryText) {
+        summaryText.textContent = `${tripName}${dateRange}`;
+      }
+    }
+    
+    // 다시 생성 모달 초기화
+    function initRegenerateModal() {
+      const textarea = document.getElementById('dayRegenerateRequest');
+      const charCount = document.getElementById('dayCharCount');
+      
+      if (textarea && charCount) {
+        // 글자 수 카운터
+        textarea.addEventListener('input', () => {
+          const count = textarea.value.length;
+          charCount.textContent = count;
+          
+          // 250자 이상이면 경고 색상
+          if (count >= 250) {
+            charCount.style.color = 'var(--error)';
+          } else if (count >= 200) {
+            charCount.style.color = 'var(--warning)';
+          } else {
+            charCount.style.color = 'var(--gray-500)';
+          }
+        });
+        
+        // 입력 시 자동 저장
+        textarea.addEventListener('input', () => {
+          if (window.currentRegenerateDay) {
+            localStorage.setItem(`dayRequest_${window.currentRegenerateDay}`, textarea.value);
+          }
+        });
+      }
+      
+      // 모달 외부 클릭 시 닫기
+      const modal = document.getElementById('regenerateModal');
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeRegenerateModal();
+          }
+        });
+      }
+    }
+
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
+      loadTripInfo();
       initDayTabs();
+      initRegenerateModal();
       
       // 페이지 로드 애니메이션
       setTimeout(() => {

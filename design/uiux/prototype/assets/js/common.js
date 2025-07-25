@@ -377,6 +377,32 @@ function openModal(modalId) {
 }
 
 /**
+ * 여행 목록 정보 팝업 표시
+ */
+function showTravelListInfo() {
+  TripGen.showModal(
+    '여행보기 화면 (개발 예정)',
+    `
+    <div style="text-align: left; line-height: 1.6;">
+        <h3 style="color: var(--primary-blue); margin-bottom: 16px;">📋 제공될 기능</h3>
+        <ul style="margin: 0; padding-left: 20px;">
+            <li><strong>전체 여행 목록</strong> - 생성된 모든 여행을 한 눈에 조회</li>
+            <li><strong>여행 상태별 필터링</strong> - 계획 중, 진행 중, 완료된 여행 분류</li>
+            <li><strong>여행 일정별 정렬</strong> - 날짜순, 생성순, 업데이트순 정렬</li>
+            <li><strong>여행 검색 기능</strong> - 여행지명, 기간, 키워드로 검색</li>
+            <li><strong>여행 관리 기능</strong> - 수정, 삭제, 복사, 공유 기능</li>
+            <li><strong>여행 미리보기</strong> - 카드 형태로 여행 요약 정보 표시</li>
+        </ul>
+        <div style="margin-top: 20px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid var(--primary-blue);">
+            <strong>💡 참고:</strong> 현재는 개별 여행 상세보기만 구현되어 있으며, 전체 여행 목록 화면은 향후 업데이트될 예정입니다.
+        </div>
+    </div>
+    `,
+    'info'
+  );
+}
+
+/**
  * 모달 닫기
  */
 function closeModal(modalId) {
@@ -469,6 +495,93 @@ const Utils = {
   }
 };
 
+/**
+ * 모달 표시 (showToast를 활용한 확장된 모달)
+ */
+function showModal(title, content, type = 'info') {
+  const modal = document.createElement('div');
+  modal.className = `modal-overlay modal-${type}`;
+  modal.innerHTML = `
+    <div class="modal-content" style="
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 16px;
+      padding: 0;
+      margin: auto;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    ">
+      <div style="
+        padding: 24px 24px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      ">
+        <h2 style="
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #1f2937;
+        ">${title}</h2>
+        <button class="modal-close" style="
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #6b7280;
+          padding: 4px;
+          border-radius: 4px;
+          transition: all 0.2s;
+        " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">×</button>
+      </div>
+      <div style="padding: 24px;">
+        ${content}
+      </div>
+    </div>
+  `;
+  
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 16px;
+  `;
+  
+  document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
+  
+  // 닫기 이벤트
+  const closeModal = () => {
+    modal.remove();
+    document.body.style.overflow = '';
+  };
+  
+  modal.querySelector('.modal-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  // ESC 키로 닫기
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      document.removeEventListener('keydown', handleEsc);
+    }
+  };
+  document.addEventListener('keydown', handleEsc);
+}
+
 // 전역으로 노출
 window.TripGen = {
   showLoading,
@@ -477,5 +590,6 @@ window.TripGen = {
   openModal,
   closeModal,
   confirmDialog,
+  showModal,
   Utils
 };

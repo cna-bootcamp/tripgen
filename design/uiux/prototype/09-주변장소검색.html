@@ -11,31 +11,76 @@
             display: flex;
             flex-direction: column;
             height: calc(100vh - 160px);
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
 
         /* 검색 헤더 */
         .search-header {
             background: white;
-            padding: var(--space-4);
+            padding: var(--space-6);
             border-bottom: 1px solid var(--gray-200);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            border-radius: 0 0 24px 24px;
+            position: relative;
+        }
+
+        .search-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-orange));
+            border-radius: 0 0 24px 24px;
         }
 
         .current-location {
             display: flex;
             align-items: center;
-            gap: var(--space-2);
-            margin-bottom: var(--space-4);
-            color: var(--gray-600);
-            font-size: var(--text-sm);
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+            padding: var(--space-3) var(--space-4);
+            background: linear-gradient(135deg, #e0f2fe 0%, #f3e5f5 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-location::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
 
         .location-icon {
-            width: 16px;
-            height: 16px;
-            background: var(--primary-blue);
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--primary-blue), #8b5cf6);
             border-radius: 50%;
             display: inline-block;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .location-icon::after {
+            content: '📍';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
         }
 
         .search-input-group {
@@ -44,16 +89,27 @@
 
         .search-input {
             width: 100%;
-            padding: var(--space-3) var(--space-12) var(--space-3) var(--space-4);
-            border: 2px solid var(--gray-300);
-            border-radius: 12px;
+            padding: var(--space-4) var(--space-12) var(--space-4) var(--space-5);
+            border: 2px solid transparent;
+            border-radius: 20px;
             font-size: var(--text-base);
-            background: var(--gray-50);
+            background: linear-gradient(white, white) padding-box, 
+                       linear-gradient(135deg, var(--primary-blue), var(--secondary-orange)) border-box;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
         }
 
         .search-input:focus {
-            border-color: var(--primary-blue);
-            background: white;
+            border-color: transparent;
+            background: linear-gradient(white, white) padding-box, 
+                       linear-gradient(135deg, var(--primary-blue), var(--secondary-orange)) border-box;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .search-input::placeholder {
+            color: var(--gray-400);
+            font-weight: 400;
         }
 
         .search-icon {
@@ -61,63 +117,137 @@
             right: var(--space-4);
             top: 50%;
             transform: translateY(-50%);
-            color: var(--gray-400);
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input-group:hover .search-icon {
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* 이동시간 선택 바 */
+        .time-selector-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: var(--space-4) var(--space-5);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .time-label {
+            font-weight: var(--font-semibold);
+            color: var(--gray-700);
+            font-size: var(--text-sm);
+            white-space: nowrap;
+        }
+
+        .time-buttons {
+            display: flex;
+            gap: var(--space-2);
+            flex-wrap: nowrap;
+        }
+
+        .time-btn {
+            padding: var(--space-2) var(--space-4);
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            font-size: var(--text-sm);
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--gray-700);
+        }
+
+        .time-btn.active {
+            background: linear-gradient(135deg, var(--primary-blue), #8b5cf6);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .time-btn:hover:not(.active) {
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-1px);
         }
 
         /* 필터 바 */
         .filter-bar {
-            background: white;
-            padding: var(--space-4);
-            border-bottom: 1px solid var(--gray-200);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: var(--space-4) var(--space-5);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
             display: flex;
+            align-items: center;
             gap: var(--space-3);
             overflow-x: auto;
+            overflow-y: visible;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            white-space: nowrap;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            min-height: 60px;
+        }
+
+        .filter-bar::-webkit-scrollbar {
+            display: none;
         }
 
         .filter-chip {
             display: flex;
             align-items: center;
             gap: var(--space-2);
-            padding: var(--space-2) var(--space-4);
-            background: var(--gray-100);
-            border: 1px solid var(--gray-200);
+            padding: var(--space-3) var(--space-4);
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 20px;
             font-size: var(--text-sm);
+            font-weight: 500;
             cursor: pointer;
             white-space: nowrap;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             min-width: fit-content;
+            position: relative;
+            overflow: hidden;
+            height: 36px;
+            flex-shrink: 0;
+        }
+
+        .filter-chip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+            transition: left 0.5s;
+        }
+
+        .filter-chip:hover::before {
+            left: 100%;
         }
 
         .filter-chip.active {
-            background: var(--primary-blue);
+            background: linear-gradient(135deg, var(--primary-blue), #8b5cf6);
             color: white;
-            border-color: var(--primary-blue);
+            border-color: transparent;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            transform: translateY(-1px);
         }
 
-        .filter-chip:hover {
-            background: var(--primary-blue-light);
-            border-color: var(--primary-blue-light);
+        .filter-chip:hover:not(.active) {
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .radius-selector {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            padding: var(--space-2) var(--space-4);
-            background: var(--gray-100);
-            border: 1px solid var(--gray-200);
-            border-radius: 20px;
-            font-size: var(--text-sm);
-            min-width: fit-content;
-        }
-
-        .radius-select {
-            border: none;
-            background: transparent;
-            font-size: var(--text-sm);
-            color: var(--gray-700);
-        }
 
         /* 컨텐츠 영역 */
         .content-area {
@@ -127,84 +257,12 @@
             overflow: hidden;
         }
 
-        .view-toggle {
-            display: flex;
-            background: white;
-            border-bottom: 1px solid var(--gray-200);
-        }
-
-        .view-toggle-btn {
-            flex: 1;
-            padding: var(--space-3);
-            background: none;
-            border: none;
-            color: var(--gray-600);
-            font-weight: var(--font-medium);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .view-toggle-btn.active {
-            color: var(--primary-blue);
-            background: var(--gray-50);
-            border-bottom: 2px solid var(--primary-blue);
-        }
-
-        /* 지도 영역 */
-        .map-container {
-            flex: 1;
-            position: relative;
-            background: var(--gray-100);
-            display: none;
-        }
-
-        .map-container.active {
-            display: block;
-        }
-
-        .map-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--primary-blue-light), var(--primary-blue));
-            color: white;
-            font-size: var(--text-lg);
-            position: relative;
-        }
-
-        .map-markers {
-            position: absolute;
-            top: 20%;
-            left: 30%;
-            width: 20px;
-            height: 20px;
-            background: var(--error);
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-        }
-
-        .map-markers::after {
-            content: '';
-            position: absolute;
-            top: 40%;
-            right: 40%;
-            width: 10px;
-            height: 10px;
-            background: var(--error);
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg) translate(20px, -20px);
-        }
 
         /* 결과 목록 */
         .results-container {
             flex: 1;
             overflow-y: auto;
             background: var(--gray-50);
-        }
-
-        .results-container.active {
             display: block;
         }
 
@@ -236,31 +294,67 @@
 
         .place-card {
             background: white;
-            border-radius: 12px;
-            margin-bottom: var(--space-3);
+            border-radius: 20px;
+            margin-bottom: var(--space-4);
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            transition: all 0.2s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        .place-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-orange), #8b5cf6);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .place-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .place-card:hover::before {
+            opacity: 1;
         }
 
         .place-image {
             width: 100%;
-            height: 120px;
-            background: linear-gradient(135deg, var(--gray-300), var(--gray-200));
+            height: 140px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f3e5f5 50%, #fef3c7 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--gray-500);
-            font-size: var(--text-sm);
+            color: var(--gray-600);
+            font-size: var(--text-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .place-image::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            50% { transform: translate(-45%, -45%) rotate(180deg); }
         }
 
         .place-content {
-            padding: var(--space-4);
+            padding: var(--space-6);
         }
 
         .place-header {
@@ -286,13 +380,17 @@
         }
 
         .place-category {
-            display: inline-block;
-            padding: var(--space-1) var(--space-2);
-            background: var(--secondary-orange);
+            display: inline-flex;
+            align-items: center;
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(135deg, var(--secondary-orange), #f59e0b);
             color: white;
             font-size: var(--text-xs);
-            border-radius: 4px;
-            margin-bottom: var(--space-2);
+            font-weight: 600;
+            border-radius: 12px;
+            margin-bottom: var(--space-3);
+            box-shadow: 0 2px 8px rgba(251, 146, 60, 0.3);
+            letter-spacing: 0.5px;
         }
 
         .place-rating {
@@ -324,18 +422,38 @@
 
         .btn-outline {
             background: transparent;
-            border: 1px solid var(--gray-300);
+            border: 2px solid var(--gray-300);
             color: var(--gray-700);
-            padding: var(--space-2) var(--space-3);
-            border-radius: 6px;
+            padding: var(--space-2) var(--space-4);
+            border-radius: 12px;
             font-size: var(--text-sm);
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-outline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-outline:hover::before {
+            left: 100%;
         }
 
         .btn-outline:hover {
             border-color: var(--primary-blue);
             color: var(--primary-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
 
         /* 카테고리 탭 */
@@ -419,34 +537,43 @@
             margin-bottom: var(--space-4);
         }
 
+        /* 사용자 메뉴 스타일 */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-medium);
+            cursor: pointer;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: var(--error);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
         /* 반응형 */
         @media (min-width: 768px) {
-            .content-area {
-                flex-direction: row;
-            }
-
-            .map-container {
-                flex: 1;
-                display: block;
-            }
-
             .results-container {
-                width: 400px;
-                border-left: 1px solid var(--gray-200);
-            }
-
-            .view-toggle {
-                display: none;
+                width: 100%;
             }
 
             .place-card {
                 margin-bottom: var(--space-4);
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .results-container {
-                width: 480px;
             }
         }
     </style>
@@ -459,100 +586,86 @@
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
                     <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
-                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
-                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
-                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
-                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
-                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
-                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                    <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
+                    <li><a href="09-주변장소검색.html" class="nav-link active">주변장소 검색</a></li>
                 </ul>
-                <button class="mobile-menu-toggle">☰</button>
+                
+                <div class="nav-actions flex items-center gap-4">
+                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
+                    <div class="user-menu">
+                        <div class="user-avatar">
+                            김
+                            <span class="notification-badge"></span>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-toggle">☰</button>
+                </div>
             </nav>
         </div>
+        <div class="mobile-overlay"></div>
     </header>
-
-    <!-- 모바일 오버레이 -->
-    <div class="mobile-overlay"></div>
 
     <!-- 메인 컨텐츠 -->
     <main class="main">
         <div class="container">
             <!-- 페이지 제목 -->
-            <div class="page-header mb-6">
-                <h1>주변장소검색</h1>
-                <p class="text-gray-600">현재 위치 주변의 관심 장소를 검색하고 탐색해보세요.</p>
+            <div class="page-header mb-6" style="margin-top: -20px; padding-top: var(--space-1);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
+                    <h1 style="margin: 0;">주변장소검색</h1>
+                    <button onclick="history.back()" class="btn btn-secondary" style="padding: var(--space-2) var(--space-3); font-size: var(--text-sm);">
+                        ← 이전
+                    </button>
+                </div>
+                <p class="text-gray-600" style="margin-bottom: var(--space-6);">현재 위치 주변의 관심 장소를 검색하고 탐색해보세요.</p>
             </div>
 
             <!-- 주변장소검색 컨테이너 -->
             <div class="location-search-container">
                 <!-- 검색 헤더 -->
                 <div class="search-header">
+                    <div class="search-input-group">
+                        <input type="text" class="search-input" id="searchInput" placeholder="✨ 주변 어떤 장소를 찾고 싶은가요?">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    
+                    <!-- 현재 위치 정보 -->
                     <div class="current-location">
                         <span class="location-icon"></span>
                         <span id="currentLocationText">서울특별시 강남구 역삼동</span>
-                        <button class="btn-outline btn-sm" onclick="detectLocation()">위치 재설정</button>
                     </div>
-                    
-                    <div class="search-input-group">
-                        <input type="text" class="search-input" id="searchInput" placeholder="장소명이나 키워드를 입력하세요">
-                        <span class="search-icon">🔍</span>
+                </div>
+
+                <!-- 이동시간 선택 -->
+                <div class="time-selector-bar">
+                    <span class="time-label">이동시간</span>
+                    <div class="time-buttons">
+                        <button class="time-btn active" data-time="5">5분</button>
+                        <button class="time-btn" data-time="10">10분</button>
+                        <button class="time-btn" data-time="30">30분</button>
+                        <button class="time-btn" data-time="60">60분</button>
                     </div>
                 </div>
 
                 <!-- 필터 바 -->
                 <div class="filter-bar">
-                    <div class="radius-selector">
-                        <span>반경</span>
-                        <select class="radius-select" id="radiusSelect">
-                            <option value="500">500m</option>
-                            <option value="1000" selected>1km</option>
-                            <option value="2000">2km</option>
-                            <option value="5000">5km</option>
-                            <option value="10000">10km</option>
-                        </select>
-                    </div>
-                    
                     <div class="filter-chip active" data-category="all">
                         전체
                     </div>
                     <div class="filter-chip" data-category="restaurant">
-                        🍽️ 음식점
+                        🍽️ 맛집
                     </div>
                     <div class="filter-chip" data-category="tourist">
                         🏛️ 관광지
                     </div>
-                    <div class="filter-chip" data-category="shopping">
-                        🛍️ 쇼핑
-                    </div>
-                    <div class="filter-chip" data-category="accommodation">
-                        🏨 숙박
-                    </div>
-                    <div class="filter-chip" data-category="culture">
-                        🎭 문화시설
+                    <div class="filter-chip" data-category="laundry">
+                        🧺 빨래방
                     </div>
                 </div>
 
                 <!-- 컨텐츠 영역 -->
                 <div class="content-area">
-                    <!-- 뷰 토글 (모바일) -->
-                    <div class="view-toggle">
-                        <button class="view-toggle-btn active" onclick="switchView('list')">목록</button>
-                        <button class="view-toggle-btn" onclick="switchView('map')">지도</button>
-                    </div>
-
-                    <!-- 지도 컨테이너 -->
-                    <div class="map-container" id="mapContainer">
-                        <div class="map-placeholder">
-                            <div>
-                                <div class="map-markers"></div>
-                                <p>지도 연동 화면</p>
-                                <p style="font-size: var(--text-sm); opacity: 0.8;">카카오맵/구글맵 API 연동 영역</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- 결과 컨테이너 -->
-                    <div class="results-container active" id="resultsContainer">
+                    <div class="results-container" id="resultsContainer">
                         <!-- 결과 헤더 -->
                         <div class="results-header">
                             <div class="results-count">
@@ -576,7 +689,7 @@
                                         <h3 class="place-name">강남역 맛집거리</h3>
                                         <span class="place-distance">250m</span>
                                     </div>
-                                    <span class="place-category">음식점</span>
+                                    <span class="place-category">맛집</span>
                                     <div class="place-rating">
                                         <span class="stars">★★★★☆</span>
                                         <span class="rating-text">4.2 (128개 리뷰)</span>
@@ -585,7 +698,6 @@
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(1)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(1)">길찾기</button>
-                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(1)">일정추가</button>
                                     </div>
                                 </div>
                             </div>
@@ -606,7 +718,6 @@
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(2)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(2)">길찾기</button>
-                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(2)">일정추가</button>
                                     </div>
                                 </div>
                             </div>
@@ -627,7 +738,6 @@
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(3)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(3)">길찾기</button>
-                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(3)">일정추가</button>
                                     </div>
                                 </div>
                             </div>
@@ -648,7 +758,6 @@
                                     <div class="place-actions">
                                         <button class="btn-outline" onclick="showPlaceDetails(4)">상세정보</button>
                                         <button class="btn-outline" onclick="showRoute(4)">길찾기</button>
-                                        <button class="btn btn-primary btn-sm" onclick="addToItinerary(4)">일정추가</button>
                                     </div>
                                 </div>
                             </div>
@@ -659,21 +768,13 @@
         </div>
     </main>
 
-    <!-- 네비게이션 -->
-    <div style="position: fixed; bottom: var(--space-4); right: var(--space-4); z-index: 100;">
-        <div style="display: flex; gap: var(--space-2);">
-            <a href="08-장소검증결과.html" class="btn btn-secondary">← 장소검증결과</a>
-            <a href="10-이동경로확인.html" class="btn btn-primary">이동경로확인 →</a>
-        </div>
-    </div>
 
     <!-- JavaScript -->
     <script src="assets/js/common.js"></script>
     <script>
-        // 현재 선택된 카테고리와 뷰
+        // 현재 선택된 카테고리
         let currentCategory = 'all';
-        let currentView = 'list';
-        let currentRadius = 1000;
+        let currentTime = 5; // 분 단위
 
         // 더미 데이터
         const places = [
@@ -750,7 +851,7 @@
         function initLocationSearch() {
             // 위치 감지 시뮬레이션
             setTimeout(() => {
-                document.getElementById('currentLocationText').textContent = '서울특별시 강남구 역삼동 (위치 감지 완료)';
+                document.getElementById('currentLocationText').textContent = '서울특별시 강남구 역삼동';
                 TripGen.showToast('현재 위치가 감지되었습니다.', 'success');
             }, 1000);
         }
@@ -761,9 +862,11 @@
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', TripGen.Utils.debounce(handleSearch, 300));
 
-            // 반경 선택
-            const radiusSelect = document.getElementById('radiusSelect');
-            radiusSelect.addEventListener('change', handleRadiusChange);
+            // 이동시간 선택
+            const timeButtons = document.querySelectorAll('.time-btn');
+            timeButtons.forEach(btn => {
+                btn.addEventListener('click', () => handleTimeChange(btn));
+            });
 
             // 카테고리 필터
             const filterChips = document.querySelectorAll('.filter-chip');
@@ -776,32 +879,6 @@
             sortSelect.addEventListener('change', handleSortChange);
         }
 
-        // 위치 감지
-        function detectLocation() {
-            if (navigator.geolocation) {
-                TripGen.showToast('위치를 감지하고 있습니다...', 'info');
-                
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        
-                        // 실제로는 역지오코딩 API를 호출
-                        setTimeout(() => {
-                            document.getElementById('currentLocationText').textContent = 
-                                `현재 위치 (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-                            TripGen.showToast('위치가 업데이트되었습니다.', 'success');
-                            searchNearbyPlaces();
-                        }, 1000);
-                    },
-                    function(error) {
-                        TripGen.showToast('위치 감지에 실패했습니다.', 'error');
-                    }
-                );
-            } else {
-                TripGen.showToast('이 브라우저는 위치 서비스를 지원하지 않습니다.', 'error');
-            }
-        }
 
         // 검색 처리
         function handleSearch(event) {
@@ -831,9 +908,15 @@
             }, 800);
         }
 
-        // 반경 변경
-        function handleRadiusChange(event) {
-            currentRadius = parseInt(event.target.value);
+        // 이동시간 변경
+        function handleTimeChange(btn) {
+            // 기존 활성 버튼 해제
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            
+            // 새 버튼 활성화
+            btn.classList.add('active');
+            currentTime = parseInt(btn.dataset.time);
+            
             searchNearbyPlaces();
         }
 
@@ -843,8 +926,11 @@
             
             // 실제로는 위치 기반 API 호출
             setTimeout(() => {
+                // 이동시간을 거리로 변환 (대략 도보 속도 4km/h 기준)
+                const maxDistance = currentTime * 67; // 5분 = 약 330m, 10분 = 670m 등
+                
                 const filteredPlaces = places.filter(place => 
-                    place.distance <= currentRadius &&
+                    place.distance <= maxDistance &&
                     (currentCategory === 'all' || place.category === currentCategory)
                 );
                 
@@ -892,8 +978,9 @@
 
         // 현재 표시된 장소들 가져오기
         function getCurrentPlaces() {
+            const maxDistance = currentTime * 67; // 이동시간을 거리로 변환
             return places.filter(place => 
-                place.distance <= currentRadius &&
+                place.distance <= maxDistance &&
                 (currentCategory === 'all' || place.category === currentCategory)
             );
         }
@@ -935,7 +1022,6 @@
                         <div class="place-actions">
                             <button class="btn-outline" onclick="showPlaceDetails(${place.id})">상세정보</button>
                             <button class="btn-outline" onclick="showRoute(${place.id})">길찾기</button>
-                            <button class="btn btn-primary btn-sm" onclick="addToItinerary(${place.id})">일정추가</button>
                         </div>
                     </div>
                 </div>
@@ -945,11 +1031,9 @@
         // 카테고리 이름 변환
         function getCategoryName(category) {
             const categoryMap = {
-                'restaurant': '음식점',
+                'restaurant': '맛집',
                 'tourist': '관광지',
-                'shopping': '쇼핑',
-                'accommodation': '숙박',
-                'culture': '문화시설'
+                'laundry': '빨래방'
             };
             return categoryMap[category] || '기타';
         }
@@ -965,25 +1049,6 @@
                    '☆'.repeat(emptyStars);
         }
 
-        // 뷰 전환 (모바일)
-        function switchView(view) {
-            const listView = document.getElementById('resultsContainer');
-            const mapView = document.getElementById('mapContainer');
-            const toggleBtns = document.querySelectorAll('.view-toggle-btn');
-            
-            toggleBtns.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            if (view === 'list') {
-                listView.classList.add('active');
-                mapView.classList.remove('active');
-            } else {
-                listView.classList.remove('active');
-                mapView.classList.add('active');
-            }
-            
-            currentView = view;
-        }
 
         // 장소 상세정보
         function showPlaceDetails(placeId) {
@@ -1004,22 +1069,10 @@
                 TripGen.showToast(`${place.name}까지의 경로를 확인합니다.`, 'info');
                 setTimeout(() => {
                     window.location.href = '10-이동경로확인.html';
-                }, 1000);
+                }, 500);
             }
         }
 
-        // 일정에 추가
-        function addToItinerary(placeId) {
-            const place = places.find(p => p.id === placeId);
-            if (place) {
-                TripGen.confirmDialog(
-                    `'${place.name}'을(를) 일정에 추가하시겠습니까?`,
-                    () => {
-                        TripGen.showToast(`${place.name}이(가) 일정에 추가되었습니다.`, 'success');
-                    }
-                );
-            }
-        }
 
         // 로딩 표시
         function showLoading() {

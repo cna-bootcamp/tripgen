@@ -14,43 +14,18 @@
     }
 
     .generation-summary {
-      background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
-      border-radius: 16px;
-      padding: var(--space-8);
-      color: white;
-      margin-bottom: var(--space-8);
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: var(--space-3);
+      margin-bottom: var(--space-6);
       text-align: center;
     }
 
-    .generation-summary h1 {
-      font-size: var(--text-3xl);
-      margin-bottom: var(--space-4);
-      color: white;
-    }
-
-    .trip-info {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--space-4);
-      margin-top: var(--space-6);
-    }
-
-    .info-item {
-      background: rgba(255, 255, 255, 0.2);
-      padding: var(--space-4);
-      border-radius: 12px;
-      text-align: center;
-    }
-
-    .info-label {
-      font-size: var(--text-sm);
-      opacity: 0.9;
-      margin-bottom: var(--space-2);
-    }
-
-    .info-value {
+    .trip-summary-text {
       font-size: var(--text-lg);
       font-weight: var(--font-semibold);
+      color: var(--gray-800);
     }
 
     .generation-card {
@@ -415,6 +390,160 @@
       pointer-events: none;
     }
 
+    /* Navigation Progress Styles */
+    .nav-progress-wrapper {
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+      padding: var(--space-4) 0;
+    }
+
+    .nav-progress-steps {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-6);
+      max-width: 600px;
+      margin: 0 auto;
+      flex-wrap: nowrap;
+    }
+
+    .nav-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      flex-shrink: 0;
+      min-width: fit-content;
+    }
+
+    .nav-step--done {
+      cursor: pointer;
+    }
+
+    .nav-step--done:hover {
+      opacity: 0.8;
+    }
+
+    .nav-step__circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      background: #d1d5db;
+      color: #6b7280;
+      transition: all 0.2s ease;
+    }
+
+    .nav-step--done .nav-step__circle {
+      background: #10b981;
+      color: white;
+    }
+
+    .nav-step--current .nav-step__circle {
+      background: #2e86ab;
+      color: white;
+    }
+
+    .nav-step__label {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .nav-step--done .nav-step__label {
+      color: #10b981;
+    }
+
+    .nav-step--current .nav-step__label {
+      color: #2e86ab;
+      font-weight: 600;
+    }
+
+    /* 요청사항 입력 스타일 */
+    .request-section {
+      margin: var(--space-8) 0;
+      text-align: left;
+      width: 100%;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .request-label {
+      display: block;
+      font-size: var(--text-base);
+      font-weight: var(--font-medium);
+      color: var(--gray-800);
+      margin-bottom: var(--space-3);
+    }
+    
+    .request-textarea {
+      width: 100%;
+      padding: var(--space-4);
+      border: 2px solid var(--gray-300);
+      border-radius: 12px;
+      font-size: var(--text-base);
+      font-family: inherit;
+      resize: vertical;
+      min-height: 120px;
+      transition: all 0.3s ease;
+      background: white;
+      line-height: 1.5;
+    }
+    
+    .request-textarea:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(46, 134, 171, 0.1);
+    }
+    
+    .request-textarea::placeholder {
+      color: var(--gray-500);
+      font-style: italic;
+    }
+    
+    .char-count {
+      text-align: right;
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      margin-top: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    /* 사용자 메뉴 스타일 */
+    .user-menu {
+        position: relative;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-blue);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: var(--font-medium);
+        cursor: pointer;
+    }
+    
+    .notification-badge {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 12px;
+        height: 12px;
+        background: var(--error);
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+
     /* 반응형 */
     @media (max-width: 768px) {
       .generation-container {
@@ -437,6 +566,26 @@
         flex-direction: column;
         gap: var(--space-4);
       }
+
+      .nav-progress-steps {
+        gap: var(--space-4);
+        overflow-x: auto;
+        padding: 0 var(--space-2);
+      }
+      
+      .nav-step__label {
+        font-size: 10px;
+      }
+      
+      .nav-step__circle {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+      }
+      
+      .request-section {
+        margin: var(--space-6) 0;
+      }
     }
   </style>
 </head>
@@ -446,47 +595,47 @@
     <nav class="nav container">
       <a href="01-대시보드.html" class="nav-brand">TripGen</a>
       <ul class="nav-menu">
-        <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
-        <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
-        <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
-        <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
-        <li><a href="05-AI일정생성.html" class="nav-link active">AI일정생성</a></li>
-        <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
-        <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+        <li><a href="01-대시보드.html" class="nav-link active">대시보드</a></li>
+        <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
+        <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
       </ul>
-      <button class="mobile-menu-toggle">☰</button>
+      
+      <div class="nav-actions flex items-center gap-4">
+        <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
+        <div class="user-menu">
+          <div class="user-avatar">
+            김
+            <span class="notification-badge"></span>
+          </div>
+        </div>
+        <button class="mobile-menu-toggle">☰</button>
+      </div>
     </nav>
     <div class="mobile-overlay"></div>
   </header>
 
   <!-- 메인 콘텐츠 -->
   <main class="main">
-    <!-- 스테퍼 -->
-    <div class="container" style="margin-bottom: 2rem;">
-      <div style="display: flex; justify-content: center; align-items: center; gap: 1rem;">
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('01-대시보드.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">1</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">대시보드</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--success);"></div>
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('02-멤버관리.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">2</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">멤버관리</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--success);"></div>
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('03-여행일정설정.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">3</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">일정설정</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--success);"></div>
-        <div style="display: flex; align-items: center; color: var(--success); cursor: pointer; opacity: 1;" onclick="navigateToStep('04-이동수단설정.html')">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">4</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">이동수단</span>
-        </div>
-        <div style="width: 60px; height: 2px; background: var(--primary-blue);"></div>
-        <div style="display: flex; align-items: center; color: var(--primary-blue);">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-weight: 600;">5</div>
-          <span style="font-size: 0.875rem; font-weight: 500;">AI일정생성</span>
+    <!-- Navigation Progress -->
+    <div class="nav-progress-wrapper">
+      <div class="container">
+        <div class="nav-progress-steps">
+          <div class="nav-step nav-step--done" onclick="navigateToStep('02-기본설정.html')" style="cursor: pointer;">
+            <div class="nav-step__circle">1</div>
+            <span class="nav-step__label">기본설정</span>
+          </div>
+          <div class="nav-step nav-step--done" onclick="navigateToStep('03-여행일정설정.html')" style="cursor: pointer;">
+            <div class="nav-step__circle">2</div>
+            <span class="nav-step__label">일정설정</span>
+          </div>
+          <div class="nav-step nav-step--current">
+            <div class="nav-step__circle">3</div>
+            <span class="nav-step__label">AI일정생성</span>
+          </div>
+          <div class="nav-step">
+            <div class="nav-step__circle">4</div>
+            <span class="nav-step__label">일정조회</span>
+          </div>
         </div>
       </div>
     </div>
@@ -494,27 +643,7 @@
     <div class="generation-container">
       <!-- 여행 정보 요약 -->
       <div class="generation-summary">
-        <h1>🌟 맞춤형 여행 일정 생성</h1>
-        <p>Claude AI가 여러분의 취향과 조건에 맞는 완벽한 여행 일정을 만들어드립니다.</p>
-        
-        <div class="trip-info">
-          <div class="info-item">
-            <div class="info-label">여행 기간</div>
-            <div class="info-value" id="trip-duration">3박 4일</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">여행지</div>
-            <div class="info-value" id="trip-destination">제주도</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">여행 멤버</div>
-            <div class="info-value" id="trip-members">2명</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">이동수단</div>
-            <div class="info-value" id="trip-transport">렌터카</div>
-          </div>
-        </div>
+        <div class="trip-summary-text">제주도(2명)</div>
       </div>
 
       <!-- AI 일정 생성 카드 -->
@@ -524,9 +653,25 @@
         <div id="initial-state">
           <h2 class="generation-title">Claude AI로 똑똑한 여행 일정 생성</h2>
           <p class="generation-description">
-            입력하신 정보를 바탕으로 최적화된 일정을 생성합니다.<br>
-            맛집, 관광지, 숙소까지 모든 것을 고려한 완벽한 계획을 만나보세요.
+            입력한 정보를 바탕으로 최적화된 일정을 생성합니다.
           </p>
+          
+          <!-- 요청사항 입력 -->
+          <div class="request-section">
+            <label for="userRequest" class="request-label">
+              특별한 요청사항이 있나요? (선택사항)
+            </label>
+            <textarea 
+              id="userRequest" 
+              class="request-textarea"
+              placeholder="예: 해변과 가까운 맛집을 위주로 포함해주세요. 어린이와 함께 즐길 수 있는 체험 활동도 추천해주세요."
+              maxlength="500"
+              rows="4">
+            </textarea>
+            <div class="char-count">
+              <span id="charCount">0</span>/500자
+            </div>
+          </div>
           
           <button class="generate-btn" id="generateBtn">
             ✨ AI 일정 생성하기
@@ -602,8 +747,8 @@
     <!-- 네비게이션 -->
     <div class="container">
       <div class="page-navigation">
-        <a href="04-이동수단설정.html" class="nav-btn">
-          ← 이전: 이동수단설정
+        <a href="03-여행일정설정.html" class="nav-btn">
+          ← 이전: 여행일정 설정
         </a>
         <a href="06-생성된일정조회.html" class="nav-btn disabled" id="nextBtn">
           다음: 생성된일정조회 →
@@ -659,6 +804,7 @@
         this.initializeElements();
         this.attachEventListeners();
         this.loadTripInfo();
+        this.initRequestSection();
       }
       
       initializeElements() {
@@ -689,22 +835,105 @@
       }
       
       loadTripInfo() {
-        // 실제로는 이전 단계에서 입력된 정보를 가져와야 함
-        const tripInfo = {
-          duration: '3박 4일',
-          destination: '제주도',
-          members: '2명',
-          transport: '렌터카'
-        };
+        // 기본설정에서 저장된 정보 가져오기
+        let tripName = '여행 계획';
+        let dateRange = '';
         
-        document.getElementById('trip-duration').textContent = tripInfo.duration;
-        document.getElementById('trip-destination').textContent = tripInfo.destination;
-        document.getElementById('trip-members').textContent = tripInfo.members;
-        document.getElementById('trip-transport').textContent = tripInfo.transport;
+        try {
+          // 기본설정 데이터 읽기
+          const basicSettingsData = localStorage.getItem('basicSettingsData');
+          if (basicSettingsData) {
+            const data = JSON.parse(basicSettingsData);
+            if (data.tripName && data.tripName.trim()) {
+              tripName = data.tripName.trim();
+              console.log('여행명 로드됨:', tripName);
+            } else {
+              console.warn('기본설정에서 여행명을 찾을 수 없습니다.');
+            }
+          } else {
+            console.warn('기본설정 데이터가 없습니다.');
+          }
+          
+          // 여행일정 데이터 읽기
+          const tripScheduleData = localStorage.getItem('tripScheduleData');
+          if (tripScheduleData) {
+            const scheduleData = JSON.parse(tripScheduleData);
+            // 첫 번째 여행 계획의 날짜 사용
+            if (scheduleData.startDate_1 && scheduleData.endDate_1) {
+              const startDate = new Date(scheduleData.startDate_1);
+              const endDate = new Date(scheduleData.endDate_1);
+              
+              const startDateStr = startDate.toLocaleDateString('ko-KR', {
+                month: 'long',
+                day: 'numeric'
+              });
+              const endDateStr = endDate.toLocaleDateString('ko-KR', {
+                month: 'long', 
+                day: 'numeric'
+              });
+              
+              dateRange = `(${startDateStr} ~ ${endDateStr})`;
+            }
+          }
+        } catch (error) {
+          console.warn('여행 데이터 로드 실패:', error);
+        }
+        
+        // 여행명(시작일 ~ 종료일) 형식으로 업데이트
+        const summaryText = document.querySelector('.trip-summary-text');
+        if (summaryText) {
+          summaryText.textContent = `${tripName}${dateRange}`;
+        }
+      }
+      
+      initRequestSection() {
+        const userRequestTextarea = document.getElementById('userRequest');
+        const charCount = document.getElementById('charCount');
+        
+        if (userRequestTextarea && charCount) {
+          // 글자 수 카운터
+          userRequestTextarea.addEventListener('input', () => {
+            const count = userRequestTextarea.value.length;
+            charCount.textContent = count;
+            
+            // 450자 이상이면 경고 색상
+            if (count >= 450) {
+              charCount.style.color = 'var(--error)';
+            } else if (count >= 400) {
+              charCount.style.color = 'var(--warning)';
+            } else {
+              charCount.style.color = 'var(--gray-500)';
+            }
+          });
+          
+          // 저장된 요청사항 불러오기
+          const savedRequest = localStorage.getItem('userRequest');
+          if (savedRequest) {
+            userRequestTextarea.value = savedRequest;
+            charCount.textContent = savedRequest.length;
+          }
+          
+          // 입력 시 자동 저장
+          userRequestTextarea.addEventListener('input', () => {
+            localStorage.setItem('userRequest', userRequestTextarea.value);
+          });
+        }
+      }
+      
+      getUserRequest() {
+        const userRequestTextarea = document.getElementById('userRequest');
+        return userRequestTextarea ? userRequestTextarea.value.trim() : '';
       }
       
       async startGeneration() {
         if (this.isGenerating) return;
+        
+        // 사용자 요청사항 가져오기
+        const userRequest = this.getUserRequest();
+        if (userRequest) {
+          console.log('사용자 요청사항:', userRequest);
+          // 실제 구현에서는 AI API에 요청사항을 전달
+        }
         
         this.isGenerating = true;
         this.currentStep = 0;
@@ -712,8 +941,8 @@
         // UI 상태 변경
         this.initialState.style.display = 'none';
         this.progressSection.classList.add('active');
-        this.generationSteps.style.display = 'grid';
-        this.controls.style.display = 'flex';
+        this.generationSteps.style.display = 'none';
+        this.controls.style.display = 'none';
         this.completionCard.classList.remove('show');
         
         // 단계별 실행
@@ -791,24 +1020,32 @@
       completeGeneration() {
         this.isGenerating = false;
         
-        // 100% 완료 표시
-        this.progressBar.style.width = '100%';
-        this.progressPercentage.textContent = '100%';
-        this.currentStepEl.textContent = '완료';
-        this.statusText.textContent = '여행 일정이 성공적으로 생성되었습니다!';
-        this.estimatedTime.textContent = '';
+        // 생성 완료 시 요청사항도 저장
+        const userRequest = this.getUserRequest();
+        if (userRequest) {
+          const generationData = {
+            userRequest: userRequest,
+            generatedAt: new Date().toISOString()
+          };
+          localStorage.setItem('lastGenerationData', JSON.stringify(generationData));
+        }
         
-        // 완료 카드 표시
+        // 전체 generation-card 숨기기 (로봇 아이콘 포함)
+        const generationCard = document.querySelector('.generation-card');
+        if (generationCard) {
+          generationCard.style.display = 'none';
+        }
+        
+        // 완료 카드만 표시
         setTimeout(() => {
           this.completionCard.classList.add('show');
-          this.controls.style.display = 'none';
           this.nextBtn.classList.remove('disabled');
           
           // 성공 토스트 메시지
           if (window.TripGen) {
             window.TripGen.showToast('AI 일정 생성이 완료되었습니다!', 'success', 4000);
           }
-        }, 1000);
+        }, 500);
       }
       
       cancelGeneration() {
@@ -829,8 +1066,15 @@
       }
       
       resetUI() {
+        // generation-card 다시 보이기
+        const generationCard = document.querySelector('.generation-card');
+        if (generationCard) {
+          generationCard.style.display = 'block';
+        }
+        
         this.initialState.style.display = 'block';
         this.progressSection.classList.remove('active');
+        this.progressSection.style.display = 'block';
         this.generationSteps.style.display = 'none';
         this.controls.style.display = 'none';
         this.completionCard.classList.remove('show');

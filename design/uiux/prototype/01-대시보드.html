@@ -350,16 +350,12 @@
                 
                 <ul class="nav-menu">
                     <li><a href="01-대시보드.html" class="nav-link active">대시보드</a></li>
-                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
-                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
-                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
-                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
-                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
-                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                    <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
+                    <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
                 </ul>
                 
                 <div class="nav-actions flex items-center gap-4">
-                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-멤버관리.html'">새 여행 시작</button>
+                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
                     <div class="user-menu">
                         <div class="user-avatar">
                             김
@@ -378,55 +374,107 @@
         <div class="container">
             <h1>AI와 함께하는 스마트한 여행 계획</h1>
             <p>당신만의 완벽한 여행 일정을 AI가 만들어드립니다</p>
-            <button class="btn btn-lg" onclick="window.location.href='02-멤버관리.html'">
+            <button class="btn btn-lg" onclick="window.location.href='02-기본설정.html'">
                 ✈️ 새 여행 계획하기
             </button>
         </div>
     </section>
 
-    <!-- 통계 카드 -->
-    <section class="container">
-        <div class="stats">
-            <div class="grid grid-4">
-                <div class="stat-item">
-                    <span class="stat-number">12</span>
-                    <span class="stat-label">완료된 여행</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">3</span>
-                    <span class="stat-label">진행 중인 계획</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">45</span>
-                    <span class="stat-label">방문한 도시</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">128</span>
-                    <span class="stat-label">저장된 장소</span>
+    <!-- 핵심 기능 카드 - 주변장소검색 -->
+    <section class="container" style="margin-top: var(--space-8); margin-bottom: var(--space-12);">
+        <div class="feature-highlight-card" onclick="window.location.href='09-주변장소검색.html'" style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: var(--space-8);
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 15px 40px rgba(102, 126, 234, 0.4)'" 
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 30px rgba(102, 126, 234, 0.3)'">
+            
+            <!-- 배경 장식 -->
+            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.3;"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+            
+            <div style="position: relative; z-index: 1;">
+                <div style="font-size: 4rem; margin-bottom: var(--space-4);">📍</div>
+                <h2 style="font-size: var(--text-3xl); font-weight: var(--font-bold); margin-bottom: var(--space-3); color: white;">주변 장소 검색</h2>
+                <p style="font-size: var(--text-lg); margin-bottom: var(--space-6); opacity: 0.9;">주변의 맛집, 관광지, 빨래방을 찾아 보세요.</p>
+                <div style="margin-top: var(--space-6);">
+                    <span style="
+                        background: rgba(255,255,255,0.2);
+                        border: 2px solid rgba(255,255,255,0.3);
+                        padding: var(--space-3) var(--space-6);
+                        border-radius: 30px;
+                        font-weight: var(--font-semibold);
+                        font-size: var(--text-base);
+                        display: inline-flex;
+                        align-items: center;
+                        gap: var(--space-2);
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.3)'" 
+                       onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                        지금 검색하기 <span style="font-size: var(--text-lg);">→</span>
+                    </span>
                 </div>
             </div>
         </div>
     </section>
 
+
     <!-- 메인 콘텐츠 -->
     <main class="main">
         <div class="container">
-            <!-- 진행 중인 프로젝트 -->
-            <section class="mb-12">
+            <!-- 여행중 -->
+            <section class="mb-3">
                 <div class="section-header">
-                    <h2 class="section-title">진행 중인 여행 계획</h2>
-                    <a href="06-생성된일정조회.html" class="view-all-link">
-                        전체 보기 <span>→</span>
-                    </a>
+                    <h2 class="section-title">여행중</h2>
+                </div>
+                
+                <div class="grid grid-3" id="current-trips-grid">
+                    <!-- 도쿄 여행 카드 -->
+                    <div class="project-card animate-on-scroll" onclick="window.location.href='06-생성된일정조회.html'">
+                        <div class="project-thumbnail">
+                            <img src="https://images.unsplash.com/photo-1513407030348-c983a97b98d8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="도쿄 스카이트리" style="width: 100%; height: 100%; object-fit: cover;">
+                            <div class="progress-overlay">
+                                진행률 90%
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 90%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-info">
+                            <h3 class="project-title">도쿄 3일 2박 여행</h3>
+                            <div class="project-meta">
+                                <div class="project-dates">
+                                    📅 2024.08.15 - 08.17
+                                </div>
+                                <span class="project-status status-completed">여행중</span>
+                            </div>
+                            <div class="project-actions">
+                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='06-생성된일정조회.html'">보기</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); shareProject('tokyo-trip')">공유</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 계획중 -->
+            <section class="mb-3" style="margin-top: var(--space-12);">
+                <div class="section-header">
+                    <h2 class="section-title">계획중</h2>
                 </div>
                 
                 <div class="grid grid-3" id="projects-grid">
                     <!-- 프로젝트 카드 1 -->
                     <div class="project-card animate-on-scroll" onclick="window.location.href='05-AI일정생성.html'">
                         <div class="project-thumbnail">
-                            <div style="background: linear-gradient(45deg, #2E86AB, #F18F01); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
-                                🏙️
-                            </div>
+                            <img src="https://images.unsplash.com/photo-1549693578-d683be217e58?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="서울 야경" style="width: 100%; height: 100%; object-fit: cover;">
                             <div class="progress-overlay">
                                 진행률 75%
                                 <div class="progress-bar">
@@ -449,16 +497,25 @@
                         </div>
                     </div>
 
-                    <!-- 프로젝트 카드 2 -->
-                    <div class="project-card animate-on-scroll" onclick="window.location.href='03-여행일정설정.html'">
+                </div>
+            </section>
+
+            <!-- 갔다옴 -->
+            <section class="mb-3" style="margin-top: var(--space-12);">
+                <div class="section-header">
+                    <h2 class="section-title">갔다옴</h2>
+                    <a href="#" class="view-all-link" onclick="TripGen.showToast('전체목록 페이지로 이동합니다.', 'info')">전체목록 <span>→</span></a>
+                </div>
+                
+                <div class="grid grid-3" id="completed-trips-grid">
+                    <!-- 부산 바다 여행 카드 -->
+                    <div class="project-card animate-on-scroll" onclick="window.location.href='06-생성된일정조회.html'">
                         <div class="project-thumbnail">
-                            <div style="background: linear-gradient(45deg, #A23B72, #C73E1D); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
-                                🌊
-                            </div>
+                            <img src="https://images.unsplash.com/photo-1540979388789-6cee28a1cdc9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="부산 해운대 해변" style="width: 100%; height: 100%; object-fit: cover;">
                             <div class="progress-overlay">
-                                진행률 45%
+                                완료됨
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 45%"></div>
+                                    <div class="progress-fill" style="width: 100%"></div>
                                 </div>
                             </div>
                         </div>
@@ -466,130 +523,28 @@
                             <h3 class="project-title">부산 바다 여행</h3>
                             <div class="project-meta">
                                 <div class="project-dates">
-                                    📅 2024.09.01 - 09.03
+                                    📅 2024.07.10 - 07.12
                                 </div>
-                                <span class="project-status status-planning">계획 준비</span>
+                                <span class="project-status status-completed">완료</span>
                             </div>
                             <div class="project-actions">
-                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='03-여행일정설정.html'">수정</button>
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); shareProject('busan-trip')">공유</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 프로젝트 카드 3 -->
-                    <div class="project-card animate-on-scroll" onclick="window.location.href='06-생성된일정조회.html'">
-                        <div class="project-thumbnail">
-                            <div style="background: linear-gradient(45deg, #10B981, #FFD23F); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
-                                🏝️
-                            </div>
-                            <div class="progress-overlay">
-                                진행률 90%
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 90%"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="project-info">
-                            <h3 class="project-title">제주도 자연 만끽 여행</h3>
-                            <div class="project-meta">
-                                <div class="project-dates">
-                                    📅 2024.08.25 - 08.28
-                                </div>
-                                <span class="project-status status-completed">계획 완료</span>
-                            </div>
-                            <div class="project-actions">
-                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='06-생성된일정조회.html'">보기</button>
-                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); shareProject('jeju-trip')">공유</button>
+                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='06-생성된일정조회.html'">다시보기</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); shareProject('busan-completed-trip')">공유</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-
-            <!-- 최근 활동 & 추천 여행지 -->
-            <div class="grid grid-2 gap-8">
-                <!-- 최근 활동 -->
-                <section>
-                    <div class="section-header">
-                        <h2 class="section-title">최근 활동</h2>
-                        <a href="06-생성된일정조회.html" class="view-all-link">전체 보기 <span>→</span></a>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="recent-activities">
-                            <div class="activity-item flex items-center gap-4 mb-4" style="cursor: pointer;" onclick="window.location.href='06-생성된일정조회.html'">
-                                <div class="activity-icon" style="width: 40px; height: 40px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
-                                    ✓
-                                </div>
-                                <div class="activity-content">
-                                    <div class="activity-title font-medium">제주도 여행 계획이 완료되었습니다</div>
-                                    <div class="activity-time text-sm text-gray-600">2시간 전</div>
-                                </div>
-                            </div>
-                            
-                            <div class="activity-item flex items-center gap-4 mb-4" style="cursor: pointer;" onclick="window.location.href='09-주변장소검색.html'">
-                                <div class="activity-icon" style="width: 40px; height: 40px; background: var(--info); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
-                                    📍
-                                </div>
-                                <div class="activity-content">
-                                    <div class="activity-title font-medium">새로운 장소를 저장했습니다</div>
-                                    <div class="activity-time text-sm text-gray-600">1일 전</div>
-                                </div>
-                            </div>
-                            
-                            <div class="activity-item flex items-center gap-4 mb-4" style="cursor: pointer;" onclick="window.location.href='02-멤버관리.html'">
-                                <div class="activity-icon" style="width: 40px; height: 40px; background: var(--warning); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
-                                    🎯
-                                </div>
-                                <div class="activity-content">
-                                    <div class="activity-title font-medium">부산 여행 계획을 시작했습니다</div>
-                                    <div class="activity-time text-sm text-gray-600">3일 전</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 추천 여행지 -->
-                <section>
-                    <div class="section-header">
-                        <h2 class="section-title">추천 여행지</h2>
-                        <a href="09-주변장소검색.html" class="view-all-link">더 보기 <span>→</span></a>
-                    </div>
-                    
-                    <div class="recommendations-grid">
-                        <div class="recommendation-card animate-on-scroll" style="cursor: pointer;" onclick="window.location.href='07-장소상세정보.html'">
-                            <div class="recommendation-image" style="background: linear-gradient(45deg, #2E86AB, #A23B72); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
-                                🏔️
-                            </div>
-                            <div class="recommendation-content">
-                                <h4 class="recommendation-title">강원도 속초</h4>
-                                <p class="recommendation-description">시원한 바닷바람과 설악산의 웅장함을 동시에 느낄 수 있는 완벽한 여행지입니다.</p>
-                                <button class="btn btn-primary btn-sm mt-2" onclick="event.stopPropagation(); window.location.href='07-장소상세정보.html'">자세히 보기</button>
-                            </div>
-                        </div>
-                        
-                        <div class="recommendation-card animate-on-scroll mt-4" style="cursor: pointer;" onclick="window.location.href='07-장소상세정보.html'">
-                            <div class="recommendation-image" style="background: linear-gradient(45deg, #F18F01, #FFD23F); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
-                                🌸
-                            </div>
-                            <div class="recommendation-content">
-                                <h4 class="recommendation-title">경주 불국사</h4>
-                                <p class="recommendation-description">천년의 역사가 살아 숨쉬는 고도에서 한국의 전통 문화를 체험해보세요.</p>
-                                <button class="btn btn-primary btn-sm mt-2" onclick="event.stopPropagation(); window.location.href='07-장소상세정보.html'">자세히 보기</button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
         </div>
     </main>
 
     <!-- 빠른 액션 버튼 -->
     <div class="quick-actions no-print">
-        <button class="quick-action-btn" onclick="window.location.href='02-멤버관리.html'" data-tooltip="새 여행 계획하기" data-tooltip-position="left">
+        <button class="quick-action-btn" onclick="window.location.href='02-기본설정.html'" data-tooltip="새 여행 계획하기" data-tooltip-position="left" style="bottom: 80px;">
             ✈️
+        </button>
+        <button class="quick-action-btn" onclick="window.location.href='09-주변장소검색.html'" data-tooltip="주변 장소 검색" data-tooltip-position="left" style="bottom: 20px;">
+            📍
         </button>
     </div>
 
@@ -620,10 +575,24 @@
         
         // 프로젝트 공유
         function shareProject(projectId) {
+            // 기본설정에서 여행명 가져오기
+            let tripName = '여행 계획';
+            try {
+                const basicSettingsData = localStorage.getItem('basicSettingsData');
+                if (basicSettingsData) {
+                    const data = JSON.parse(basicSettingsData);
+                    if (data.tripName && data.tripName.trim()) {
+                        tripName = data.tripName.trim();
+                    }
+                }
+            } catch (error) {
+                console.warn('여행 데이터 로드 실패:', error);
+            }
+            
             if (navigator.share) {
                 navigator.share({
-                    title: 'TripGen 여행 계획',
-                    text: '제가 만든 여행 계획을 확인해보세요!',
+                    title: `TripGen ${tripName}`,
+                    text: `제가 만든 ${tripName}을 확인해보세요!`,
                     url: window.location.href
                 }).then(() => {
                     TripGen.showToast('공유가 완료되었습니다!', 'success');
@@ -647,7 +616,7 @@
         
         // 새 여행 시작
         function startNewTrip() {
-            window.location.href = '02-멤버관리.html';
+            window.location.href = '02-기본설정.html';
         }
         
         // 실시간 데이터 업데이트 시뮬레이션

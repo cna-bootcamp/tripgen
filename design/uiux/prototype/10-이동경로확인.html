@@ -302,7 +302,7 @@
 
         .action-buttons {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: var(--space-3);
         }
 
@@ -391,6 +391,35 @@
             transform: translateY(-2px);
         }
 
+        /* 사용자 메뉴 스타일 */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-medium);
+            cursor: pointer;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: var(--error);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
         @media (max-width: 767px) {
             .page-nav {
                 bottom: 10px;
@@ -408,26 +437,35 @@
                 <a href="01-대시보드.html" class="nav-brand">TripGen</a>
                 <ul class="nav-menu">
                     <li><a href="01-대시보드.html" class="nav-link">대시보드</a></li>
-                    <li><a href="02-멤버관리.html" class="nav-link">멤버관리</a></li>
-                    <li><a href="03-여행일정설정.html" class="nav-link">일정설정</a></li>
-                    <li><a href="04-이동수단설정.html" class="nav-link">이동수단</a></li>
-                    <li><a href="05-AI일정생성.html" class="nav-link">AI일정생성</a></li>
-                    <li><a href="06-생성된일정조회.html" class="nav-link">일정조회</a></li>
-                    <li><a href="11-지도통합화면.html" class="nav-link">지도</a></li>
+                    <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
+                    <li><a href="09-주변장소검색.html" class="nav-link active">주변장소 검색</a></li>
                 </ul>
-                <button class="mobile-menu-toggle">☰</button>
+                
+                <div class="nav-actions flex items-center gap-4">
+                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
+                    <div class="user-menu">
+                        <div class="user-avatar">
+                            김
+                            <span class="notification-badge"></span>
+                        </div>
+                    </div>
+                    <button class="mobile-menu-toggle">☰</button>
+                </div>
+                <div class="mobile-overlay"></div>
             </nav>
         </div>
     </header>
-
-    <!-- 모바일 오버레이 -->
-    <div class="mobile-overlay"></div>
 
     <!-- 메인 콘텐츠 -->
     <main class="main">
         <div class="container">
             <div class="mb-6">
-                <h1>이동경로 확인</h1>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
+                    <h1 style="margin: 0;">이동경로 확인</h1>
+                    <button onclick="history.back()" class="btn btn-secondary" style="padding: var(--space-2) var(--space-3); font-size: var(--text-sm);">
+                        ← 이전
+                    </button>
+                </div>
                 <p class="text-gray-600">이동수단별 정확한 경로와 시간을 확인해보세요.</p>
             </div>
 
@@ -462,11 +500,11 @@
 
                         <!-- 교통수단 선택 -->
                         <div class="transport-tabs">
-                            <div class="transport-tab active" data-transport="transit">
+                            <div class="transport-tab" data-transport="transit">
                                 <div class="transport-icon">🚌</div>
                                 <div class="transport-label">대중교통</div>
                             </div>
-                            <div class="transport-tab" data-transport="driving">
+                            <div class="transport-tab active" data-transport="driving">
                                 <div class="transport-icon">🚗</div>
                                 <div class="transport-label">자가용</div>
                             </div>
@@ -488,7 +526,7 @@
 
                     <!-- 실시간 교통 정보 -->
                     <div class="traffic-info" id="trafficInfo">
-                        ⚠️ 지하철 6호선 지연 운행 중 (약 5분 지연)
+                        🚧 강남대로 공사로 인한 정체 (약 10분 지연)
                     </div>
 
                     <!-- 경로 목록 -->
@@ -507,9 +545,6 @@
                         <div class="action-buttons">
                             <button class="btn btn-secondary" onclick="refreshRoutes()">
                                 🔄 경로 새로고침
-                            </button>
-                            <button class="btn btn-primary" onclick="selectRoute()">
-                                ✅ 경로 선택
                             </button>
                         </div>
                     </div>
@@ -631,45 +666,45 @@
             ]
         };
 
-        let currentTransport = 'transit';
+        let currentTransport = 'driving';
         let currentOption = 'fastest';
 
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function() {
             updateRoutes();
             showTrafficInfo();
-        });
-
-        // 교통수단 탭 클릭 이벤트
-        document.querySelectorAll('.transport-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                // 활성 탭 변경
-                document.querySelectorAll('.transport-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                
-                // 현재 교통수단 업데이트
-                currentTransport = this.dataset.transport;
-                
-                // 경로 업데이트
-                updateRoutes();
-                
-                // 실시간 교통정보 표시/숨김
-                showTrafficInfo();
+            
+            // 교통수단 탭 클릭 이벤트
+            document.querySelectorAll('.transport-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 활성 탭 변경
+                    document.querySelectorAll('.transport-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 현재 교통수단 업데이트
+                    currentTransport = this.dataset.transport;
+                    
+                    // 경로 업데이트
+                    updateRoutes();
+                    
+                    // 실시간 교통정보 표시/숨김
+                    showTrafficInfo();
+                });
             });
-        });
 
-        // 옵션 탭 클릭 이벤트
-        document.querySelectorAll('.option-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                // 활성 탭 변경
-                document.querySelectorAll('.option-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                
-                // 현재 옵션 업데이트
-                currentOption = this.dataset.option;
-                
-                // 경로 재정렬
-                updateRoutes();
+            // 옵션 탭 클릭 이벤트
+            document.querySelectorAll('.option-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 활성 탭 변경
+                    document.querySelectorAll('.option-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 현재 옵션 업데이트
+                    currentOption = this.dataset.option;
+                    
+                    // 경로 재정렬
+                    updateRoutes();
+                });
             });
         });
 
@@ -677,6 +712,12 @@
         function updateRoutes() {
             const routeList = document.getElementById('routeList');
             const loading = document.getElementById('routeLoading');
+            
+            // 요소 존재 확인
+            if (!routeList || !loading) {
+                console.error('Required elements not found');
+                return;
+            }
             
             // 로딩 표시
             loading.classList.add('show');
@@ -748,7 +789,7 @@
         function showTrafficInfo() {
             const trafficInfo = document.getElementById('trafficInfo');
             
-            if (currentTransport === 'transit') {
+            if (currentTransport === 'driving') {
                 trafficInfo.classList.add('show');
             } else {
                 trafficInfo.classList.remove('show');
