@@ -421,6 +421,49 @@
             font-size: var(--text-xs);
             font-weight: var(--font-bold);
         }
+        
+        /* 로딩 스피너 스타일 */
+        .spinner-border {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            vertical-align: text-bottom;
+            border: 0.25em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border 0.75s linear infinite;
+        }
+        
+        @keyframes spinner-border {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .text-primary {
+            color: var(--primary-blue);
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .py-4 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
 </head>
 <body>
@@ -560,15 +603,22 @@
                                 <span class="info-label">영업 시간</span>
                                 <span class="info-value">24시간 개방</span>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">시계탑 공연</span>
-                                <span class="info-value">11시, 12시, 17시 (3-10월 21시)</span>
-                            </div>
                         </div>
 
                     </div>
+                    
+                    <!-- 유용한 정보/Tip -->
+                    <div class="info-card" style="margin-top: 20px;">
+                        <h3>💡 유용한 정보/Tip</h3>
+                        <div style="color: #4b5563; line-height: 1.8;">
+                            시계탑 공연 시간: 11시, 12시, 17시 (3-10월 21시)<br>
+                            매일 정각에 43개의 종이 울리며 실물 크기의 인형들이 중세 기사 토너먼트와 쿠퍼들의 춤을 재현합니다.
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- AI 추천 이유 -->
+                <!-- AI 추천 이유 -->
+                <div class="info-section" style="margin-top: 30px;">
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">🤖 AI 추천 이유</h3>
@@ -583,15 +633,17 @@
                <strong>베스트 포토 스팟:</strong> 신시청사 정면, 성모 마리아 기둥 앞</p>
                         </div>
                     </div>
-                    
-                    <!-- 리뷰 섹션 -->
+                </div>
+                
+                <!-- 리뷰 섹션 -->
+                <div class="info-section" style="margin-top: 30px;">
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">⭐ 리뷰 및 평점</h3>
                         </div>
                         <div class="card-body">
-                            <div class="rating-summary mb-6">
-                                <div class="flex items-center gap-4 mb-4">
+                            <div class="rating-summary mb-6 p-4 border rounded-lg">
+                                <div class="flex items-center gap-4">
                                     <div class="text-4xl font-bold text-primary-blue">4.2</div>
                                     <div>
                                         <div class="stars mb-1">
@@ -640,8 +692,18 @@
                    이른 시간에 방문하시는 걸 추천해요. 신시청사 엘리베이터로 올라가면 뮌헨 전망도 볼 수 있어요!</p>
                                 </div>
                             </div>
-
-                            <button class="btn btn-primary w-full">리뷰 더보기</button>
+                            
+                            <!-- 로딩 스피너 -->
+                            <div id="reviewLoader" class="text-center py-4" style="display: none;">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="sr-only">리뷰 로딩 중...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 더 이상 리뷰가 없을 때 메시지 -->
+                            <div id="noMoreReviews" class="text-center py-4 text-gray-500" style="display: none;">
+                                모든 리뷰를 불러왔습니다.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -713,6 +775,104 @@
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(placeName)}`;
             window.open(mapsUrl, '_blank');
         }
+        
+        // 추가 리뷰 데이터 (실제로는 API에서 가져와야 함)
+        const additionalReviews = [
+            {
+                name: '이여행',
+                date: '2024.01.08',
+                rating: 5,
+                text: '독일 여행의 시작점으로 완벽했어요! 아침 일찍 가면 사람이 적어서 사진 찍기 좋고, 주변에 맛집도 많아요.'
+            },
+            {
+                name: 'travel_lover',
+                date: '2024.01.05',
+                rating: 4,
+                text: '유럽 여행에서 꼭 들러야 할 곳! 시계탑 인형극이 정말 신기했어요. 다만 주말에는 정말 붐비니 평일 방문 추천!'
+            },
+            {
+                name: '독일매니아',
+                date: '2023.12.28',
+                rating: 5,
+                text: '크리스마스 마켓 시즌에 갔는데 정말 환상적이었습니다! 글뤼바인과 함께 즐기는 야경이 최고예요.'
+            },
+            {
+                name: 'europe_trip',
+                date: '2023.12.20',
+                rating: 4,
+                text: '역사적인 건물들과 현대적인 상점들이 조화롭게 어우러진 곳. 구시가지 투어의 출발점으로 추천!'
+            }
+        ];
+        
+        let currentReviewIndex = 0;
+        let isLoading = false;
+        
+        // 리뷰 추가 함수
+        function loadMoreReviews() {
+            if (isLoading || currentReviewIndex >= additionalReviews.length) return;
+            
+            isLoading = true;
+            const loader = document.getElementById('reviewLoader');
+            loader.style.display = 'block';
+            
+            // 실제 API 호출을 시뮬레이션
+            setTimeout(() => {
+                const reviewList = document.querySelector('.review-list');
+                const reviewsToAdd = additionalReviews.slice(currentReviewIndex, currentReviewIndex + 2);
+                
+                reviewsToAdd.forEach(review => {
+                    const reviewHtml = `
+                        <div class="review-item mb-6 p-4 border rounded-lg" style="opacity: 0; transition: opacity 0.5s;">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="font-semibold">${review.name}</div>
+                                <div class="text-sm text-gray-500">${review.date}</div>
+                            </div>
+                            <div class="stars mb-2">
+                                ${[...Array(5)].map((_, i) => 
+                                    `<span class="star${i < review.rating ? '' : ' empty'}">${i < review.rating ? '★' : '☆'}</span>`
+                                ).join('')}
+                            </div>
+                            <p class="text-gray-700">${review.text}</p>
+                        </div>
+                    `;
+                    reviewList.insertAdjacentHTML('beforeend', reviewHtml);
+                });
+                
+                // 페이드인 효과
+                setTimeout(() => {
+                    const newReviews = reviewList.querySelectorAll('.review-item[style*="opacity: 0"]');
+                    newReviews.forEach(review => {
+                        review.style.opacity = '1';
+                    });
+                }, 100);
+                
+                currentReviewIndex += reviewsToAdd.length;
+                loader.style.display = 'none';
+                isLoading = false;
+                
+                // 모든 리뷰를 불러왔을 때
+                if (currentReviewIndex >= additionalReviews.length) {
+                    document.getElementById('noMoreReviews').style.display = 'block';
+                }
+            }, 800); // 로딩 시뮬레이션
+        }
+        
+        // 스크롤 이벤트 핸들러
+        function handleScroll() {
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const threshold = document.body.offsetHeight - 200; // 하단 200px 전에 로드
+            
+            if (scrollPosition >= threshold && !isLoading) {
+                loadMoreReviews();
+            }
+        }
+        
+        // 스크롤 이벤트 등록 (디바운스 적용)
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(handleScroll, 100);
+        });
     </script>
 </body>
 </html>

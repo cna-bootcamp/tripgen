@@ -1,6 +1,4 @@
-/**
- * TripGen - 여행 일정 생성 서비스 공통 JavaScript
- */
+// TripGen - 공통 JavaScript
 
 // DOM 로드 완료 후 실행
 document.addEventListener('DOMContentLoaded', function() {
@@ -10,9 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initAnimations();
 });
 
-/**
- * 모바일 메뉴 초기화
- */
+// 모바일 메뉴 초기화
 function initMobileMenu() {
   const menuToggle = document.querySelector('.mobile-menu-toggle');
   const navMenu = document.querySelector('.nav-menu');
@@ -61,9 +57,7 @@ function initMobileMenu() {
   });
 }
 
-/**
- * 폼 유효성 검사 초기화
- */
+// 폼 유효성 검사
 function initFormValidation() {
   const forms = document.querySelectorAll('form[data-validate]');
   
@@ -88,9 +82,7 @@ function initFormValidation() {
   });
 }
 
-/**
- * 폼 유효성 검사
- */
+// 폼 유효성 검사
 function validateForm(form) {
   const inputs = form.querySelectorAll('input[required], textarea[required], select[required]');
   let isValid = true;
@@ -104,9 +96,7 @@ function validateForm(form) {
   return isValid;
 }
 
-/**
- * 개별 필드 유효성 검사
- */
+// 필드 유효성 검사
 function validateField(field) {
   const value = field.value.trim();
   const type = field.type;
@@ -167,9 +157,6 @@ function validateField(field) {
   return true;
 }
 
-/**
- * 필드 에러 표시
- */
 function showFieldError(field, message) {
   field.classList.add('error');
   
@@ -183,9 +170,6 @@ function showFieldError(field, message) {
   errorElement.textContent = message;
 }
 
-/**
- * 필드 에러 제거
- */
 function clearFieldError(field) {
   field.classList.remove('error');
   
@@ -195,33 +179,22 @@ function clearFieldError(field) {
   }
 }
 
-/**
- * 이메일 유효성 검사
- */
 function isValidEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
 
-/**
- * 전화번호 유효성 검사
- */
 function isValidPhone(phone) {
   const phoneRegex = /^(\+82|0)?[1-9][0-9]{1,2}-?[0-9]{3,4}-?[0-9]{4}$/;
   return phoneRegex.test(phone.replace(/\s/g, ''));
 }
 
-/**
- * 날짜 유효성 검사
- */
 function isValidDate(dateString) {
   const date = new Date(dateString);
   return date instanceof Date && !isNaN(date);
 }
 
-/**
- * 툴팁 초기화
- */
+// 툴팁 초기화
 function initTooltips() {
   const tooltipElements = document.querySelectorAll('[data-tooltip]');
   
@@ -233,9 +206,6 @@ function initTooltips() {
   });
 }
 
-/**
- * 툴팁 표시
- */
 function showTooltip(e) {
   const element = e.target;
   const text = element.getAttribute('data-tooltip');
@@ -278,9 +248,6 @@ function showTooltip(e) {
   element.setAttribute('data-tooltip-id', tooltip.id);
 }
 
-/**
- * 툴팁 숨기기
- */
 function hideTooltip(e) {
   const element = e.target;
   const tooltipId = element.getAttribute('data-tooltip-id');
@@ -294,9 +261,7 @@ function hideTooltip(e) {
   }
 }
 
-/**
- * 애니메이션 초기화
- */
+// 애니메이션 초기화
 function initAnimations() {
   // Intersection Observer for fade-in animations
   const observerOptions = {
@@ -317,9 +282,6 @@ function initAnimations() {
   });
 }
 
-/**
- * 로딩 상태 표시
- */
 function showLoading(element, text = '로딩 중...') {
   element.classList.add('loading');
   element.innerHTML = `
@@ -331,18 +293,12 @@ function showLoading(element, text = '로딩 중...') {
   element.disabled = true;
 }
 
-/**
- * 로딩 상태 해제
- */
 function hideLoading(element, originalContent) {
   element.classList.remove('loading');
   element.innerHTML = originalContent;
   element.disabled = false;
 }
 
-/**
- * 토스트 알림 표시
- */
 function showToast(message, type = 'info', duration = 3000) {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
@@ -368,9 +324,6 @@ function showToast(message, type = 'info', duration = 3000) {
   });
 }
 
-/**
- * 모달 열기
- */
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
@@ -389,9 +342,6 @@ function openModal(modalId) {
   }
 }
 
-/**
- * 여행 목록 정보 팝업 표시
- */
 function showTravelListInfo() {
   TripGen.showModal(
     '여행보기 화면 (개발 예정)',
@@ -415,9 +365,6 @@ function showTravelListInfo() {
   );
 }
 
-/**
- * 메뉴 오버레이 토글
- */
 function toggleMenuOverlay() {
   const menuOverlay = document.getElementById('menuOverlay');
   if (menuOverlay) {
@@ -426,9 +373,6 @@ function toggleMenuOverlay() {
   }
 }
 
-/**
- * 메뉴 오버레이 닫기
- */
 function closeMenuOverlay() {
   const menuOverlay = document.getElementById('menuOverlay');
   if (menuOverlay) {
@@ -437,9 +381,7 @@ function closeMenuOverlay() {
   }
 }
 
-/**
- * 새 여행 시작 - localStorage 삭제 후 이동
- */
+// 새 여행 시작
 function startNewTrip() {
   // 기존 여행 데이터 모두 삭제
   try {
@@ -471,9 +413,6 @@ function startNewTrip() {
   }
 }
 
-/**
- * 마이 페이지 정보 팝업 표시
- */
 function showMyPageInfo() {
   showModal(
     '마이 페이지 (개발 예정)',
@@ -497,9 +436,6 @@ function showMyPageInfo() {
   );
 }
 
-/**
- * 모달 닫기
- */
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
@@ -508,18 +444,13 @@ function closeModal(modalId) {
   }
 }
 
-/**
- * 확인 다이얼로그
- */
 function confirmDialog(message, callback) {
   if (confirm(message)) {
     callback();
   }
 }
 
-/**
- * 데이터 포맷팅 유틸리티
- */
+// 데이터 포맷팅 유틸리티
 const Utils = {
   // 날짜 포맷팅
   formatDate: (date, format = 'YYYY-MM-DD') => {
@@ -590,9 +521,6 @@ const Utils = {
   }
 };
 
-/**
- * 모달 표시 (showToast를 활용한 확장된 모달)
- */
 function showModal(title, content, type = 'info') {
   const modal = document.createElement('div');
   modal.className = `modal-overlay modal-${type}`;
@@ -677,9 +605,7 @@ function showModal(title, content, type = 'info') {
   document.addEventListener('keydown', handleEsc);
 }
 
-/**
- * localStorage 기본값 설정 유틸리티 함수들
- */
+// localStorage 유틸리티
 
 // 기본 여행 설정 데이터
 function getDefaultBasicSettings() {
