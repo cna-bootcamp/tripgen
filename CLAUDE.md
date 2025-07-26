@@ -119,7 +119,7 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 [가이드]
 ```
 # Clauding Guide 
-최종 수정일시: 2025-07-25 23:00
+최종 수정일시: 2025-07-26 03:40
 
 ## 서비스 기획 가이드 
 - **서비스 기획 프롬프트**
@@ -264,15 +264,13 @@ AI 기반 여행 상세 일정 생성 서비스 개발
   - 설명: Window에서 Cloude Desktop의 MCP설정을 읽어 Claude Code에 MCP 서버를 동기화하는 툴 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/sync-mcp.md
   - 파일명: sync-mcp.md
+  
+  ---
 
----
-
-## 산출물 디렉토리 
+  ## 산출물 디렉토리 
 - 유저스토리: design/userstory.md
 - UI/UX 설계서: design/uiux/uiux.md
-- 스타일가이드: design/uiux/style-guide.md 
-- Wireframe: design/uiux/wireframe/{화면순서번호 2자리}-{화면명}.svg
-- Flow 다이어그램: design/uiux/user-flow-diagram.svg 
+- 스타일가이드: design/uiux/style-guide.md  
 - UI/UX 설계서: design/uiux/uiux.md
 - 프로토타입: design/uiux/prototype/*.html 
 - 아키텍처패턴: design/pattern/아키텍처패턴.puml
@@ -285,7 +283,35 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 - High Level 아키텍처 정의: design/backend/physical/*.puml
 
 ## 프롬프트 약어 
-- "@ux-upgrade": "/sc:upgrade --personar-frontend --think --seq "
+## 역할 약어 
+- "@archi": "--persona-architect"
+- "@front": "--persona-front"
+- "@back": "--persona-backend"
+- "@secu": "--persona-security"
+- "@qa": "--persona-qa"
+- "@refact": "--persona-refactor" 
+- "@devops": "--persona-devops"
+- "@scribe": "--persona-scriber"
+
+## 작업 약어 
+- "@complex-flag": --seq --c7 --uc --wave-mode auto --wave-strategy systematic --delegate auto
+
+- "@userstory": /sc:document @scribe @archi --think --wave-strategy systematic
+- "@uiux": /sc:design --think @front --uc --wave-mode auto --wave-strategy systematic
+- "@prototype": /sc:implement @front --answer-only 
+- "@design-pattern": /sc:design @archi --think-hard @complex-flag
+- "@architecture": /sc:design @archi @back @refact --think-hard  @complex-flag
+- "@backing-service": /sc:implement @devops @back --think-hard  @complex-flag
+- "@dev-backend": /sc:implement @back --think-hard @complex-flag
+- "@dev-front": /sc:implement @front --think-hard @complex-flag
+- "@dev-testcode": /sc:test @back @qa --think @complex-flag
+- "@cicd": /sc:implement @devops @archi @back --think @complex-flag
+- "@document": /sc:document --think-hard @scribe @complex-flag
+- "@fix": /sc:troubleshoot --think-hard --seq 
+- "@improve": /sc:improve --think-hard @complex-flag
+- "@estimate": /sc:estimate --think-hard @complex-flag
+
+## 파일 약어 
 - "@error": claude/debug/error.png파일을 의미함 
 - "@info": claude/debug/info.png파일을 의미함
 

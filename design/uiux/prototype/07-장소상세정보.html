@@ -270,6 +270,52 @@
             position: relative;
         }
         
+        /* 하단 네비게이션 바 스타일 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: var(--space-3) 0;
+            z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--gray-600);
+            padding: var(--space-2) var(--space-4);
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 100px;
+        }
+        
+        .bottom-nav-item:hover {
+            color: var(--primary-blue);
+        }
+        
+        .bottom-nav-item.active {
+            color: var(--primary-blue);
+        }
+        
+        .nav-icon {
+            font-size: 24px;
+        }
+        
+        /* 하단 네비게이션 바를 위한 여백 */
+        body {
+            padding-bottom: 70px;
+        }
+        
         .user-avatar {
             width: 40px;
             height: 40px;
@@ -292,6 +338,88 @@
             background: var(--error);
             border-radius: 50%;
             border: 2px solid white;
+        }
+        
+        /* 모바일 메뉴 오버레이 스타일 */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 70px; /* 헤더 높이만큼 아래로 */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.98);
+            z-index: 999;
+            overflow-y: auto;
+            padding: var(--space-6);
+            backdrop-filter: blur(10px);
+        }
+        
+        .menu-overlay.active {
+            display: block;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--space-4);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .menu-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: var(--space-6) var(--space-4);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--gray-700);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-3);
+            min-height: 120px;
+            position: relative;
+        }
+        
+        .menu-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-blue);
+        }
+        
+        .menu-card.new {
+            border: 2px dashed var(--gray-300);
+            color: var(--gray-500);
+        }
+        
+        .menu-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+        
+        .menu-label {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+        }
+        
+        .menu-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--error);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-xs);
+            font-weight: var(--font-bold);
         }
     </style>
 </head>
@@ -316,12 +444,42 @@
                             <span class="notification-badge"></span>
                         </div>
                     </div>
-                    <button class="mobile-menu-toggle">☰</button>
+                    <button class="mobile-menu-toggle" aria-label="메뉴 열기">☰</button>
                 </div>
             </nav>
         </div>
         <div class="mobile-overlay"></div>
     </header>
+
+    <!-- 메뉴 오버레이 -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-grid">
+            <a href="01-대시보드.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">🏠</span>
+                <span class="menu-label">홈</span>
+            </a>
+            <a href="javascript:showMyPageInfo()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">👤</span>
+                <span class="menu-label">마이 페이지</span>
+            </a>
+            <a href="javascript:startNewTrip()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">✈️</span>
+                <span class="menu-label">새 여행</span>
+            </a>
+            <a href="09-주변장소검색.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">📍</span>
+                <span class="menu-label">장소검색</span>
+            </a>
+            <a href="javascript:showTravelListInfo()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">📋</span>
+                <span class="menu-label">여행목록</span>
+            </a>
+            <a href="06-생성된일정조회.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">🗓️</span>
+                <span class="menu-label">현재 여행</span>
+            </a>
+        </div>
+    </div>
 
     <!-- 메인 콘텐츠 -->
     <main class="main">
@@ -347,18 +505,12 @@
                         <button class="action-btn" data-tooltip="공유하기">
                             📤
                         </button>
-                        <button class="action-btn bookmark-btn" data-tooltip="북마크" onclick="toggleBookmark()">
-                            🤍
-                        </button>
                         <button class="action-btn" data-tooltip="경로 찾기" onclick="navigateToRoute()">
                             🧭
                         </button>
                     </div>
 
                     <div class="place-hero-overlay">
-                        <div class="place-category">
-                            🏛️ 역사적 광장 · 시계탑
-                        </div>
                         <h1 class="place-title">마리엔플라츠 시계탑</h1>
                         <div class="place-rating">
                             <div class="stars">
@@ -386,7 +538,7 @@
                                 <span class="info-value">Marienplatz 1, 80331 München, 독일</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">맵 검색어</span>
+                                <span class="info-label">장소 찾기</span>
                                 <span class="info-value">Marienplatz, Munich</span>
                             </div>
                             <div class="info-item">
@@ -405,7 +557,7 @@
                                 </span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">개방 시간</span>
+                                <span class="info-label">영업 시간</span>
                                 <span class="info-value">24시간 개방</span>
                             </div>
                             <div class="info-item">
@@ -497,14 +649,43 @@
         </div>
     </main>
 
+    <!-- 하단 네비게이션 바 -->
+    <nav class="bottom-nav">
+        <a href="01-대시보드.html" class="bottom-nav-item">
+            <span class="nav-icon">🏠</span>
+        </a>
+        <a href="javascript:startNewTrip()" class="bottom-nav-item">
+            <span class="nav-icon">✈️</span>
+        </a>
+        <a href="09-주변장소검색.html" class="bottom-nav-item">
+            <span class="nav-icon">📍</span>
+        </a>
+        <a href="javascript:showTravelListInfo()" class="bottom-nav-item">
+            <span class="nav-icon">📋</span>
+        </a>
+    </nav>
+
 
 
     <script src="assets/js/common.js"></script>
     <script>
+        // 메뉴 오버레이 닫기
+        function closeMenuOverlay() {
+            const overlay = document.getElementById('menuOverlay');
+            overlay.classList.remove('active');
+        }
 
+        // 메뉴 오버레이 토글
+        function toggleMenuOverlay() {
+            const overlay = document.getElementById('menuOverlay');
+            overlay.classList.toggle('active');
+        }
 
-
-
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 초기화 코드
+        });
+        
         // 공유 기능
         document.querySelector('[data-tooltip="공유하기"]').addEventListener('click', function() {
             if (navigator.share) {
@@ -521,21 +702,6 @@
             }
         });
 
-        // 북마크 토글 함수
-        function toggleBookmark() {
-            const bookmarkBtn = document.querySelector('.bookmark-btn');
-            const isBookmarked = bookmarkBtn.textContent.trim() === '❤️';
-            
-            if (isBookmarked) {
-                bookmarkBtn.textContent = '🤍';
-                bookmarkBtn.setAttribute('data-tooltip', '북마크');
-                TripGen.showToast('북마크에서 제거되었습니다', 'info');
-            } else {
-                bookmarkBtn.textContent = '❤️';
-                bookmarkBtn.setAttribute('data-tooltip', '북마크 제거');
-                TripGen.showToast('북마크에 추가되었습니다', 'success');
-            }
-        }
 
         // 이동경로확인 화면으로 이동
         function navigateToRoute() {

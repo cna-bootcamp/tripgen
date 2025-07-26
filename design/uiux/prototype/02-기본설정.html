@@ -663,6 +663,88 @@
                 grid-template-columns: repeat(2, 1fr);
             }
         }
+        /* 모바일 메뉴 오버레이 스타일 */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 70px; /* 헤더 높이만큼 아래로 */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.98);
+            z-index: 999;
+            overflow-y: auto;
+            padding: var(--space-6);
+            backdrop-filter: blur(10px);
+        }
+        
+        .menu-overlay.active {
+            display: block;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--space-4);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .menu-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: var(--space-6) var(--space-4);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--gray-700);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-3);
+            min-height: 120px;
+            position: relative;
+        }
+        
+        .menu-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-blue);
+        }
+        
+        .menu-card.new {
+            border: 2px dashed var(--gray-300);
+            color: var(--gray-500);
+        }
+        
+        .menu-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+        
+        .menu-label {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+        }
+        
+        .menu-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--error);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-xs);
+            font-weight: var(--font-bold);
+        }
+        
         /* 사용자 메뉴 스타일 */
         .user-menu {
             position: relative;
@@ -690,6 +772,52 @@
             background: var(--error);
             border-radius: 50%;
             border: 2px solid white;
+        }
+        
+        /* 하단 네비게이션 바 스타일 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: var(--space-3) 0;
+            z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--gray-600);
+            padding: var(--space-2) var(--space-4);
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 100px;
+        }
+        
+        .bottom-nav-item:hover {
+            color: var(--primary-blue);
+        }
+        
+        .bottom-nav-item.active {
+            color: var(--primary-blue);
+        }
+        
+        .nav-icon {
+            font-size: 24px;
+        }
+        
+        /* 하단 네비게이션 바를 위한 여백 */
+        body {
+            padding-bottom: 70px;
         }
     </style>
 </head>
@@ -721,6 +849,36 @@
         <div class="mobile-overlay"></div>
     </header>
 
+    <!-- 메뉴 오버레이 -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-grid">
+            <a href="01-대시보드.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">🏠</span>
+                <span class="menu-label">홈</span>
+            </a>
+            <a href="javascript:showMyPageInfo()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">👤</span>
+                <span class="menu-label">마이 페이지</span>
+            </a>
+            <a href="javascript:startNewTrip()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">✈️</span>
+                <span class="menu-label">새 여행</span>
+            </a>
+            <a href="09-주변장소검색.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">📍</span>
+                <span class="menu-label">장소검색</span>
+            </a>
+            <a href="javascript:showTravelListInfo()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">📋</span>
+                <span class="menu-label">여행목록</span>
+            </a>
+            <a href="06-생성된일정조회.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">🗓️</span>
+                <span class="menu-label">현재 여행</span>
+            </a>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <main class="main">
         <div class="container">
@@ -733,9 +891,9 @@
                             <div class="nav-step__circle">1</div>
                             <span class="nav-step__label">기본설정</span>
                         </div>
-                        <div class="nav-step" onclick="navigateToTripStep('03-여행일정설정.html')">
+                        <div class="nav-step" onclick="navigateToTripStep('03-여행지설정.html')">
                             <div class="nav-step__circle">2</div>
-                            <span class="nav-step__label">일정설정</span>
+                            <span class="nav-step__label">여행지설정</span>
                         </div>
                         <div class="nav-step" onclick="navigateToTripStep('05-AI일정생성.html')">
                             <div class="nav-step__circle">3</div>
@@ -1008,15 +1166,36 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 TripGen. AI 기반 여행 일정 생성 서비스</p>
-        </div>
-    </footer>
+    <!-- 하단 네비게이션 바 -->
+    <nav class="bottom-nav">
+        <a href="01-대시보드.html" class="bottom-nav-item">
+            <span class="nav-icon">🏠</span>
+        </a>
+        <a href="javascript:startNewTrip()" class="bottom-nav-item active">
+            <span class="nav-icon">✈️</span>
+        </a>
+        <a href="09-주변장소검색.html" class="bottom-nav-item">
+            <span class="nav-icon">📍</span>
+        </a>
+        <a href="javascript:showTravelListInfo()" class="bottom-nav-item">
+            <span class="nav-icon">📋</span>
+        </a>
+    </nav>
 
     <script src="assets/js/common.js"></script>
     <script>
+        // 메뉴 오버레이 닫기
+        function closeMenuOverlay() {
+            const overlay = document.getElementById('menuOverlay');
+            overlay.classList.remove('active');
+        }
+
+        // 메뉴 오버레이 토글
+        function toggleMenuOverlay() {
+            const overlay = document.getElementById('menuOverlay');
+            overlay.classList.toggle('active');
+        }
+
         // 멤버 데이터 저장소 (실제로는 API 연동)
         let members = [
             {
@@ -1192,6 +1371,11 @@
         function renderMemberList() {
             const memberList = document.getElementById('memberList');
             
+            // members가 배열인지 확인
+            if (!Array.isArray(members)) {
+                members = [];
+            }
+            
             if (members.length === 0) {
                 memberList.innerHTML = `
                     <div class="empty-state" style="grid-column: 1 / -1;">
@@ -1286,7 +1470,7 @@
             
             TripGen.showToast('기본설정이 저장되었습니다. 여행 일정 설정 페이지로 이동합니다.', 'success');
             setTimeout(() => {
-                window.location.href = '03-여행일정설정.html';
+                window.location.href = '03-여행지설정.html';
             }, 1000);
         }
 
@@ -1380,6 +1564,11 @@
             const preview = document.getElementById('tripNamePreview');
             const previewText = document.getElementById('previewText');
             
+            // 요소가 없으면 리턴
+            if (!tripNameInput || !preview || !previewText) {
+                return;
+            }
+            
             const tripName = tripNameInput.value.trim();
             
             if (tripName) {
@@ -1431,7 +1620,13 @@
                 }
                 
                 // 멤버 데이터 설정
-                members = storedSettings?.members || [...currentTrip.members];
+                if (storedSettings?.members && Array.isArray(storedSettings.members)) {
+                    members = storedSettings.members;
+                } else if (currentTrip.members && Array.isArray(currentTrip.members)) {
+                    members = [...currentTrip.members];
+                } else {
+                    members = [];
+                }
                 
                 // 편집 권한 확인 및 UI 업데이트
                 updateEditableState();

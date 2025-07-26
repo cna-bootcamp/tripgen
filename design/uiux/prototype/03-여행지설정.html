@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>여행일정설정 - TripGen</title>
+    <title>여행지설정 - TripGen</title>
     <link rel="stylesheet" href="assets/css/common.css">
     <style>
-        /* 여행일정설정 전용 스타일 */
+        /* 여행지설정 전용 스타일 */
         .trip-schedule-container {
             max-width: 800px;
             margin: 0 auto;
@@ -437,28 +437,45 @@
         }
 
         .add-travel-plan-btn {
-            background: var(--primary-blue);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: var(--space-4) var(--space-6);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px dashed var(--gray-400);
+            background: white;
+            color: var(--primary-blue);
+            font-size: 28px;
+            font-weight: var(--font-normal);
             cursor: pointer;
             transition: all 0.2s ease;
-            font-size: var(--text-base);
-            font-weight: var(--font-medium);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: var(--space-3);
-            width: 100%;
-            margin-bottom: var(--space-6);
-            border: 2px dashed transparent;
+            margin: var(--space-6) auto;
         }
 
         .add-travel-plan-btn:hover {
-            background: var(--primary-blue-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px -3px rgba(46, 134, 171, 0.3);
+            border-color: var(--primary-blue);
+            background: var(--gray-50);
+            transform: scale(1.1);
+        }
+        
+        /* 추가 폼 스타일 */
+        .add-form-container {
+            margin-top: var(--space-4);
+            padding: var(--space-6);
+            background: var(--gray-50);
+            border-radius: 12px;
+            border: 2px solid var(--primary-blue);
+        }
+        
+        .add-form h3 {
+            margin-bottom: var(--space-4);
+            color: var(--gray-800);
+        }
+        
+        .add-button-container {
+            text-align: center;
+            margin-top: var(--space-6);
         }
 
         .empty-state {
@@ -745,6 +762,52 @@
             position: relative;
         }
         
+        /* 하단 네비게이션 바 스타일 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: var(--space-3) 0;
+            z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--gray-600);
+            padding: var(--space-2) var(--space-4);
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 100px;
+        }
+        
+        .bottom-nav-item:hover {
+            color: var(--primary-blue);
+        }
+        
+        .bottom-nav-item.active {
+            color: var(--primary-blue);
+        }
+        
+        .nav-icon {
+            font-size: 24px;
+        }
+        
+        /* 하단 네비게이션 바를 위한 여백 */
+        body {
+            padding-bottom: 70px;
+        }
+        
         .user-avatar {
             width: 40px;
             height: 40px;
@@ -767,6 +830,67 @@
             background: var(--error);
             border-radius: 50%;
             border: 2px solid white;
+        }
+        
+        /* 모바일 메뉴 오버레이 스타일 */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 70px; /* 헤더 높이만큼 아래로 */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.98);
+            z-index: 999;
+            overflow-y: auto;
+            padding: var(--space-6);
+            backdrop-filter: blur(10px);
+        }
+        
+        .menu-overlay.active {
+            display: block;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--space-4);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .menu-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: var(--space-6) var(--space-4);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--gray-700);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-3);
+            min-height: 120px;
+            position: relative;
+        }
+        
+        .menu-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-blue);
+        }
+        
+        .menu-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+        
+        .menu-label {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
         }
     </style>
 </head>
@@ -798,6 +922,36 @@
         </div>
     </header>
 
+    <!-- 메뉴 오버레이 -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-grid">
+            <a href="01-대시보드.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">🏠</span>
+                <span class="menu-label">홈</span>
+            </a>
+            <a href="javascript:showMyPageInfo()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">👤</span>
+                <span class="menu-label">마이 페이지</span>
+            </a>
+            <a href="javascript:startNewTrip()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">✈️</span>
+                <span class="menu-label">새 여행</span>
+            </a>
+            <a href="09-주변장소검색.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">📍</span>
+                <span class="menu-label">장소검색</span>
+            </a>
+            <a href="javascript:showTravelListInfo()" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">📋</span>
+                <span class="menu-label">여행목록</span>
+            </a>
+            <a href="06-생성된일정조회.html" class="menu-card" onclick="closeMenuOverlay();">
+                <span class="menu-icon">🗓️</span>
+                <span class="menu-label">현재 여행</span>
+            </a>
+        </div>
+    </div>
+
     <!-- Navigation Progress -->
     <div class="nav-progress-wrapper">
         <div class="container">
@@ -808,7 +962,7 @@
                 </div>
                 <div class="nav-step nav-step--current">
                     <div class="nav-step__circle">2</div>
-                    <span class="nav-step__label">일정설정</span>
+                    <span class="nav-step__label">여행지설정</span>
                 </div>
                 <div class="nav-step" onclick="navigateToTripStep('05-AI일정생성.html')">
                     <div class="nav-step__circle">3</div>
@@ -826,7 +980,7 @@
     <main class="main">
         <div class="trip-schedule-container">
             <div class="page-header">
-                <h2>여행 일정 설정</h2>
+                <h2>여행지 설정</h2>
                 <p>여행지별로 여행기간과 숙소를 등록하세요.</p>
             </div>
 
@@ -847,14 +1001,9 @@
 
                 <!-- 여행 계획들 -->
                 <div class="form-section">
-                    <h3>여행 계획 목록</h3>
+                    <h3>여행지 목록</h3>
                     
-                    <!-- 여행 계획 추가 버튼 -->
-                    <button type="button" class="add-travel-plan-btn" onclick="addTravelPlan()">
-                        ➕ 새 여행 계획 추가
-                    </button>
-                    
-                    <!-- 여행 계획 카드들 -->
+                    <!-- 여행 계획 카드들만 포함하는 컨테이너 -->
                     <div id="travelPlansContainer">
                         <!-- 여행 계획 1 -->
                         <div class="travel-plan-wrapper" data-plan-id="1">
@@ -946,7 +1095,50 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                    
+                    <!-- 추가 버튼과 폼을 여행지 목록 외부로 이동 -->
+                    <div class="add-button-container" style="text-align: center; margin-top: var(--space-6);">
+                        <button type="button" class="add-travel-plan-btn" onclick="toggleAddForm()">+</button>
+                    </div>
+                    
+                    <!-- 추가 폼 (숨김 상태) -->
+                    <div class="add-form-container" id="addFormContainer" style="display: none;">
+                        <div class="add-form">
+                            <h3>새 여행지 추가</h3>
+                            <div class="form-group">
+                                <label>여행지명 <span class="required">*</span></label>
+                                <input type="text" id="newTravelName" class="input-field" placeholder="예: 이탈리아 베니스">
+                            </div>
+                            <div class="form-group">
+                                <label>숙박일 <span class="required">*</span></label>
+                                <input type="number" id="newStayNights" class="input-field" min="0" max="99" placeholder="예: 3">
+                            </div>
+                            <div class="form-group">
+                                <label>숙소명</label>
+                                <input type="text" id="newAccommodation" class="input-field" placeholder="예: 베니스 호텔">
+                            </div>
+                            <div class="form-group">
+                                <label>체크인/체크아웃 <span class="optional">(선택사항)</span></label>
+                                <div class="checkin-checkout-container">
+                                    <div class="time-field">
+                                        <input type="number" id="newCheckInTime" class="input-field" 
+                                               placeholder="15" min="0" max="23">
+                                        <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">시</span>
+                                    </div>
+                                    <span style="color: var(--gray-500); font-weight: var(--font-medium); font-size: var(--text-lg);">/</span>
+                                    <div class="time-field">
+                                        <input type="number" id="newCheckOutTime" class="input-field" 
+                                               placeholder="11" min="0" max="23">
+                                        <span style="color: var(--gray-700); font-weight: var(--font-medium); white-space: nowrap;">시</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="display: flex; gap: var(--space-4); margin-top: var(--space-6);">
+                                <button type="button" class="btn-back" onclick="toggleAddForm()">취소</button>
+                                <button type="button" class="btn-next" onclick="addNewTravelPlan()">추가</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
 
@@ -958,12 +1150,21 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 TripGen. All rights reserved.</p>
-        </div>
-    </footer>
+    <!-- 하단 네비게이션 바 -->
+    <nav class="bottom-nav">
+        <a href="01-대시보드.html" class="bottom-nav-item">
+            <span class="nav-icon">🏠</span>
+        </a>
+        <a href="javascript:startNewTrip()" class="bottom-nav-item active">
+            <span class="nav-icon">✈️</span>
+        </a>
+        <a href="09-주변장소검색.html" class="bottom-nav-item">
+            <span class="nav-icon">📍</span>
+        </a>
+        <a href="javascript:showTravelListInfo()" class="bottom-nav-item">
+            <span class="nav-icon">📋</span>
+        </a>
+    </nav>
 
     <script src="assets/js/common.js"></script>
     <script>
@@ -971,7 +1172,7 @@
         let travelPlanCounter = 1;
         let accommodationSearchInstances = {};
 
-        // 여행일정설정 페이지 전용 JavaScript
+        // 여행지설정 페이지 전용 JavaScript
         class TripScheduleManager {
             constructor() {
                 this.form = document.getElementById('tripScheduleForm');
@@ -1451,6 +1652,76 @@
             }
         }
 
+        // + 버튼을 맨 끝으로 이동시키는 함수
+        function moveAddButtonToEnd() {
+            const container = document.getElementById('travelPlansContainer');
+            const addButtonContainer = document.querySelector('.add-button-container');
+            const addFormContainer = document.getElementById('addFormContainer');
+            
+            if (addButtonContainer && addButtonContainer.parentNode !== container.parentNode) {
+                // + 버튼과 추가 폼을 travelPlansContainer 다음으로 이동
+                container.parentNode.insertBefore(addButtonContainer, container.nextSibling);
+                if (addFormContainer) {
+                    container.parentNode.insertBefore(addFormContainer, addButtonContainer.nextSibling);
+                }
+            }
+        }
+
+        // + 버튼 토글 함수
+        function toggleAddForm() {
+            const formContainer = document.getElementById('addFormContainer');
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                document.getElementById('newTravelName').focus();
+            } else {
+                formContainer.style.display = 'none';
+                // 폼 초기화
+                document.getElementById('newTravelName').value = '';
+                document.getElementById('newStayNights').value = '';
+                document.getElementById('newAccommodation').value = '';
+                document.getElementById('newCheckInTime').value = '';
+                document.getElementById('newCheckOutTime').value = '';
+            }
+        }
+        
+        // 새 여행지 추가 함수
+        function addNewTravelPlan() {
+            const travelName = document.getElementById('newTravelName').value.trim();
+            const stayNights = document.getElementById('newStayNights').value;
+            const accommodation = document.getElementById('newAccommodation').value.trim();
+            const checkInTime = document.getElementById('newCheckInTime').value;
+            const checkOutTime = document.getElementById('newCheckOutTime').value;
+            
+            if (!travelName || !stayNights) {
+                TripGen.showToast('여행지명과 숙박일은 필수입니다.', 'warning');
+                return;
+            }
+            
+            // 기존 addTravelPlan 함수 활용
+            addTravelPlan();
+            
+            // 새로 추가된 계획에 데이터 설정
+            document.getElementById(`destination_${travelPlanCounter}`).value = travelName;
+            document.getElementById(`stayNights_${travelPlanCounter}`).value = stayNights;
+            document.getElementById(`accommodation_${travelPlanCounter}`).value = accommodation;
+            if (checkInTime) document.getElementById(`checkInTime_${travelPlanCounter}`).value = checkInTime;
+            if (checkOutTime) document.getElementById(`checkOutTime_${travelPlanCounter}`).value = checkOutTime;
+            
+            // 요약 정보 업데이트
+            const manager = window.tripScheduleManager;
+            if (manager) {
+                manager.updatePlanSummary(travelPlanCounter);
+            }
+            
+            // 편집 폼 닫기
+            cancelEditTravelPlan(travelPlanCounter);
+            
+            // 추가 폼 닫기
+            toggleAddForm();
+            
+            TripGen.showToast('새 여행지가 추가되었습니다.', 'success');
+        }
+
         // 여행 계획 관리 함수들
         function addTravelPlan() {
             travelPlanCounter++;
@@ -1548,6 +1819,7 @@
                 </div>
             `;
             
+            // 새 카드를 추가 (항상 컨테이너의 마지막에)
             container.appendChild(newCard);
             
             // 이벤트 리스너 설정
@@ -1555,6 +1827,9 @@
             if (manager) {
                 manager.setupTravelPlanEventListeners(travelPlanCounter);
             }
+            
+            // + 버튼을 맨 뒤로 이동
+            moveAddButtonToEnd();
             
             // 새 계획은 바로 편집 모드로 전환 (수동 추가시에만)
             if (arguments[0] !== 'skipEdit') {
@@ -1885,6 +2160,9 @@
             // 여행 시작일 설정
             document.getElementById('tripStartDate').value = currentTrip.schedule.startDate;
             
+            // 먼저 + 버튼과 추가 폼을 이동시킴
+            moveAddButtonToEnd();
+            
             // 모든 계획 데이터 설정
             if (currentTrip.schedule.plans && currentTrip.schedule.plans.length > 0) {
                 // 첫 번째 계획 (이미 HTML에 존재)
@@ -1932,6 +2210,11 @@
                         const manager = window.tripScheduleManager;
                         if (manager) {
                             manager.updatePlanSummary(planIndex);
+                        }
+                        
+                        // 마지막 계획 추가 후 + 버튼을 다시 맨 뒤로 이동
+                        if (i === currentTrip.schedule.plans.length - 1) {
+                            setTimeout(moveAddButtonToEnd, 200);
                         }
                     }, 100 * i);
                 }

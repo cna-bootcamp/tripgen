@@ -17,16 +17,23 @@ function initMobileMenu() {
   const menuToggle = document.querySelector('.mobile-menu-toggle');
   const navMenu = document.querySelector('.nav-menu');
   const overlay = document.querySelector('.mobile-overlay');
+  const menuOverlay = document.getElementById('menuOverlay');
   
-  if (!menuToggle || !navMenu) return;
+  if (!menuToggle) return;
   
-  // 메뉴 토글 버튼 이벤트
+  // 메뉴 토글 버튼 이벤트 - 새로운 메뉴 오버레이 사용
   menuToggle.addEventListener('click', function() {
-    navMenu.classList.toggle('active');
-    if (overlay) {
-      overlay.classList.toggle('active');
+    if (menuOverlay) {
+      menuOverlay.classList.toggle('active');
+      document.body.style.overflow = menuOverlay.classList.contains('active') ? 'hidden' : '';
+    } else if (navMenu) {
+      // 폴백: 기존 방식
+      navMenu.classList.toggle('active');
+      if (overlay) {
+        overlay.classList.toggle('active');
+      }
+      document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
     }
-    document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
   });
   
   // 오버레이 클릭 시 메뉴 닫기
@@ -40,10 +47,16 @@ function initMobileMenu() {
   
   // ESC 키로 메뉴 닫기
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && navMenu.classList.contains('active')) {
-      navMenu.classList.remove('active');
-      if (overlay) overlay.classList.remove('active');
-      document.body.style.overflow = '';
+    if (e.key === 'Escape') {
+      if (menuOverlay && menuOverlay.classList.contains('active')) {
+        menuOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+      if (navMenu && navMenu.classList.contains('active')) {
+        navMenu.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
     }
   });
 }
@@ -403,6 +416,88 @@ function showTravelListInfo() {
 }
 
 /**
+ * 메뉴 오버레이 토글
+ */
+function toggleMenuOverlay() {
+  const menuOverlay = document.getElementById('menuOverlay');
+  if (menuOverlay) {
+    menuOverlay.classList.toggle('active');
+    document.body.style.overflow = menuOverlay.classList.contains('active') ? 'hidden' : '';
+  }
+}
+
+/**
+ * 메뉴 오버레이 닫기
+ */
+function closeMenuOverlay() {
+  const menuOverlay = document.getElementById('menuOverlay');
+  if (menuOverlay) {
+    menuOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * 새 여행 시작 - localStorage 삭제 후 이동
+ */
+function startNewTrip() {
+  // 기존 여행 데이터 모두 삭제
+  try {
+    localStorage.removeItem('basicSettingsData');
+    localStorage.removeItem('tripScheduleData');
+    localStorage.removeItem('currentTripId');
+    localStorage.removeItem('tripItineraryData');
+    localStorage.removeItem('generatedItinerary');
+    
+    // 기타 여행 관련 데이터가 있다면 여기에 추가
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('trip_') || key.startsWith('travel_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('✅ 새 여행을 위해 기존 데이터를 정리했습니다.');
+    showToast('새 여행을 시작합니다!', 'success');
+    
+    // 기본설정 페이지로 이동
+    setTimeout(() => {
+      window.location.href = '02-기본설정.html';
+    }, 500);
+    
+  } catch (error) {
+    console.error('❌ 데이터 정리 중 오류:', error);
+    showToast('데이터 정리 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+/**
+ * 마이 페이지 정보 팝업 표시
+ */
+function showMyPageInfo() {
+  showModal(
+    '마이 페이지 (개발 예정)',
+    `
+    <div style="text-align: left; line-height: 1.6;">
+        <h3 style="color: var(--primary-blue); margin-bottom: 16px;">👤 제공될 기능</h3>
+        <ul style="margin: 0; padding-left: 20px;">
+            <li><strong>사용자 정보 관리</strong> - 프로필 정보 수정, 비밀번호 변경</li>
+            <li><strong>즐겨찾기 장소</strong> - 자주 가는 장소 저장 및 관리</li>
+            <li><strong>여행 기록</strong> - 완료된 여행 기록 조회 및 통계</li>
+            <li><strong>선호도 설정</strong> - 여행 스타일, 선호 장소 타입 설정</li>
+            <li><strong>알림 설정</strong> - 여행 일정 알림, 업데이트 알림 관리</li>
+            <li><strong>공유 설정</strong> - 여행 공유 범위 및 권한 설정</li>
+        </ul>
+        <div style="margin-top: 20px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid var(--primary-blue);">
+            <strong>💡 참고:</strong> 마이 페이지는 사용자 개인화 기능을 제공할 예정이며, 향후 업데이트를 통해 제공됩니다.
+        </div>
+    </div>
+    `,
+    'info'
+  );
+}
+
+/**
  * 모달 닫기
  */
 function closeModal(modalId) {
@@ -688,3 +783,10 @@ window.TripGen = {
   getBasicSettingsData,
   getTripScheduleData
 };
+
+// 전역 함수로도 노출 (직접 호출 가능하도록)
+window.toggleMenuOverlay = toggleMenuOverlay;
+window.closeMenuOverlay = closeMenuOverlay;
+window.showTravelListInfo = showTravelListInfo;
+window.startNewTrip = startNewTrip;
+window.showMyPageInfo = showMyPageInfo;
