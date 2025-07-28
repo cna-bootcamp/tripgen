@@ -18,7 +18,7 @@ note over SearchController, AIService
   국내: 카카오맵 기본정보 + 구글 리뷰, 해외: 구글맵만 사용
 end note
 
-Client -> SearchController: GET /search/nearby\n(origin, transportation, timeRange, category, keyword, sort)
+Client -> SearchController: POST /search/nearby\n(origin, transportation, timeRange, category, keyword, sort)
 
 activate SearchController
 

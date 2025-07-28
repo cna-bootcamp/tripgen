@@ -1,0 +1,931 @@
+openapi: 3.0.3
+info:
+  title: Location Service API
+  description: TripGen 장소 검색 및 상세정보 제공 서비스 API
+  version: 1.0.0
+  contact:
+    name: TripGen Team
+    email: support@tripgen.com
+
+servers:
+  - url: https://api.tripgen.com/api/v1/locations
+    description: Production server
+  - url: https://dev-api.tripgen.com/api/v1/locations
+    description: Development server
+  - url: https://virtserver.swaggerhub.com/TRIPGEN/location-service/1.0.0
+    description: SwaggerHub API Auto Mocking
+
+tags:
+  - name: Search
+    description: 주변 장소 검색 API
+  - name: Places
+    description: 장소 상세정보 API
+
+paths:
+  /search/nearby:
+    post:
+      tags:
+        - Search
+      summary: 주변 장소 검색
+      description: 출발지 기준으로 이동수단과 시간 범위에 따른 주변 장소 검색
+      operationId: searchNearbyPlaces
+      x-user-story: UFR-LOC-010
+      x-controller: LocationController
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NearbySearchRequest'
+            examples:
+              default:
+                $ref: '#/components/examples/NearbySearchRequestExample'
+      responses:
+        '200':
+          description: 검색 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearbySearchResponse'
+              examples:
+                default:
+                  $ref: '#/components/examples/NearbySearchResponseExample'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /search/keyword:
+    get:
+      tags:
+        - Search
+      summary: 키워드 검색
+      description: 장소명이나 카테고리로 장소 검색
+      operationId: searchByKeyword
+      x-user-story: UFR-LOC-010
+      x-controller: LocationController
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: 검색 키워드
+          example: "마리엔플라츠"
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: 검색 기준 위도
+          example: 48.1374
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: 검색 기준 경도
+          example: 11.5755
+        - name: radius
+          in: query
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 50000
+            default: 5000
+          description: 검색 반경 (미터)
+          example: 5000
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [all, tourist, restaurant, laundry]
+          description: 카테고리 필터
+          example: "tourist"
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [distance, rating, name, reviews]
+            default: distance
+          description: 정렬 기준
+          example: "distance"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+          example: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 50
+            default: 20
+          description: 페이지 크기
+          example: 20
+      responses:
+        '200':
+          description: 검색 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeywordSearchResponse'
+              examples:
+                default:
+                  $ref: '#/components/examples/KeywordSearchResponseExample'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /places/{placeId}:
+    get:
+      tags:
+        - Places
+      summary: 장소 상세정보 조회
+      description: 특정 장소의 상세정보, 운영시간, AI 추천정보 조회
+      operationId: getPlaceDetails
+      x-user-story: UFR-LOC-030
+      x-controller: LocationController
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 장소 ID
+          example: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+        - name: includeAI
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: AI 추천정보 포함 여부
+          example: true
+        - name: includeReviews
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: 리뷰 포함 여부
+          example: true
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetails'
+              examples:
+                default:
+                  $ref: '#/components/examples/PlaceDetailsExample'
+        '404':
+          description: 장소를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "PLACE_NOT_FOUND"
+                message: "요청한 장소를 찾을 수 없습니다"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /locations/{placeId}/recommendations:
+    get:
+      tags:
+        - Places
+      summary: 장소의 AI 추천정보 조회
+      description: 특정 장소에 대한 AI 추천정보를 조회합니다 (캐시 우선)
+      operationId: getPlaceRecommendations
+      x-user-story: UFR-LOC-030
+      x-controller: LocationController
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          description: 장소 ID
+          schema:
+            type: string
+        - name: tripId
+          in: query
+          description: 여행 ID (사용자 프로필 조회용)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  locationId:
+                    type: string
+                  recommendations:
+                    type: object
+                    properties:
+                      reasons:
+                        type: array
+                        items:
+                          type: string
+                        description: 추천 이유
+                      tips:
+                        type: object
+                        properties:
+                          description:
+                            type: string
+                          events:
+                            type: array
+                            items:
+                              type: string
+                          bestVisitTime:
+                            type: string
+                          estimatedDuration:
+                            type: string
+                          photoSpots:
+                            type: array
+                            items:
+                              type: string
+                          practicalTips:
+                            type: array
+                            items:
+                              type: string
+                          alternativePlaces:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                reason:
+                                  type: string
+                                distance:
+                                  type: string
+                  fromCache:
+                    type: boolean
+                    description: 캐시에서 가져온 데이터인지 여부
+                  generatedAt:
+                    type: string
+                    format: date-time
+              example:
+                locationId: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+                recommendations:
+                  reasons:
+                    - "아이들이 좋아하는 시계탑 인형극이 매시 정각에 열립니다"
+                    - "평탄한 광장으로 이동이 편리합니다"
+                  tips:
+                    description: "뮌헨의 중심 광장으로 1158년부터 시장이 열렸던 역사적 장소입니다"
+                    events:
+                      - "매일 11시, 12시, 17시에 시계탑 인형극 공연"
+                    bestVisitTime: "오전 10시"
+                    estimatedDuration: "1시간 30분"
+                    photoSpots:
+                      - "시계탑 정면에서 전체 건물 촬영"
+                    practicalTips:
+                      - "광장 주변 카페에서 휴식 가능"
+                fromCache: true
+                generatedAt: "2025-07-27T10:00:00Z"
+        '202':
+          description: 캐시에 없어 AI 서비스에 생성 요청됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  estimatedTime:
+                    type: integer
+              example:
+                message: "AI 추천정보를 생성 중입니다. 잠시 후 다시 시도해주세요."
+                estimatedTime: 3
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /places/{placeId}/business-hours:
+    get:
+      tags:
+        - Places
+      summary: 실시간 영업시간 조회
+      description: 장소의 실시간 영업 상태 및 영업시간 조회
+      operationId: getBusinessHours
+      x-user-story: UFR-LOC-030
+      x-controller: LocationController
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 장소 ID
+          example: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessHours'
+              examples:
+                default:
+                  $ref: '#/components/examples/BusinessHoursExample'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    NearbySearchRequest:
+      type: object
+      required:
+        - origin
+        - transportMode
+        - timeRange
+      properties:
+        origin:
+          $ref: '#/components/schemas/Location'
+        transportMode:
+          type: string
+          enum: [public_transport, car, walking]
+          description: 이동수단
+          example: "public_transport"
+        timeRange:
+          type: integer
+          enum: [10, 30, 60]
+          description: 시간 범위 (분)
+          example: 30
+        category:
+          type: string
+          enum: [all, tourist, restaurant, laundry]
+          default: all
+          description: 카테고리 필터
+          example: "tourist"
+        sort:
+          type: string
+          enum: [distance, rating, name, reviews]
+          default: distance
+          description: 정렬 기준
+          example: "distance"
+        page:
+          type: integer
+          minimum: 1
+          default: 1
+          description: 페이지 번호
+          example: 1
+        size:
+          type: integer
+          minimum: 10
+          maximum: 50
+          default: 20
+          description: 페이지 크기
+          example: 20
+
+    NearbySearchResponse:
+      type: object
+      properties:
+        totalCount:
+          type: integer
+          description: 전체 검색 결과 수
+          example: 45
+        page:
+          type: integer
+          description: 현재 페이지
+          example: 1
+        size:
+          type: integer
+          description: 페이지 크기
+          example: 20
+        hasNext:
+          type: boolean
+          description: 다음 페이지 존재 여부
+          example: true
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceCard'
+
+    KeywordSearchResponse:
+      type: object
+      properties:
+        keyword:
+          type: string
+          description: 검색 키워드
+          example: "마리엔플라츠"
+        totalCount:
+          type: integer
+          description: 전체 검색 결과 수
+          example: 12
+        page:
+          type: integer
+          description: 현재 페이지
+          example: 1
+        size:
+          type: integer
+          description: 페이지 크기
+          example: 20
+        hasNext:
+          type: boolean
+          description: 다음 페이지 존재 여부
+          example: false
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceCard'
+
+    PlaceCard:
+      type: object
+      properties:
+        placeId:
+          type: string
+          description: 장소 ID
+          example: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+        name:
+          type: string
+          description: 장소명
+          example: "마리엔플라츠"
+        category:
+          type: string
+          description: 카테고리
+          example: "관광지"
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          description: 평점
+          example: 4.5
+        reviewCount:
+          type: integer
+          description: 리뷰 수
+          example: 5234
+        address:
+          type: string
+          description: 주소
+          example: "Marienplatz 1, 80331 München, Germany"
+        distance:
+          type: integer
+          description: 거리 (미터)
+          example: 850
+        travelTime:
+          type: integer
+          description: 이동 시간 (분)
+          example: 12
+        imageUrl:
+          type: string
+          format: uri
+          description: 대표 이미지 URL
+          example: "https://cdn.tripgen.com/places/marienplatz-thumb.jpg"
+
+    PlaceDetails:
+      type: object
+      properties:
+        placeId:
+          type: string
+          description: 장소 ID
+          example: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+        name:
+          type: string
+          description: 장소명
+          example: "마리엔플라츠"
+        category:
+          type: string
+          description: 카테고리
+          example: "관광지"
+        description:
+          type: string
+          description: 장소 설명
+          example: "뮌헨의 중심 광장으로 신시청사와 구시청사가 위치해 있습니다."
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          description: 평점
+          example: 4.5
+        reviewCount:
+          type: integer
+          description: 리뷰 수
+          example: 5234
+        priceLevel:
+          type: integer
+          minimum: 0
+          maximum: 4
+          description: 가격 수준 (0-4)
+          example: 0
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: 장소 이미지 URL 목록
+          example: 
+            - "https://cdn.tripgen.com/places/marienplatz-1.jpg"
+            - "https://cdn.tripgen.com/places/marienplatz-2.jpg"
+        location:
+          $ref: '#/components/schemas/LocationInfo'
+        businessHours:
+          $ref: '#/components/schemas/BusinessHours'
+        contact:
+          $ref: '#/components/schemas/ContactInfo'
+        aiRecommendation:
+          $ref: '#/components/schemas/AIRecommendation'
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+          description: 최신 리뷰 목록 (최대 5개)
+
+    Location:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+          description: 위도
+          example: 48.1374
+        longitude:
+          type: number
+          format: double
+          description: 경도
+          example: 11.5755
+        address:
+          type: string
+          description: 주소
+          example: "Munich Central Station"
+
+    LocationInfo:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+          description: 위도
+          example: 48.1374
+        longitude:
+          type: number
+          format: double
+          description: 경도
+          example: 11.5755
+        address:
+          type: string
+          description: 전체 주소
+          example: "Marienplatz 1, 80331 München, Germany"
+        searchKeyword:
+          type: string
+          description: 지도 검색용 키워드
+          example: "Marienplatz, Munich"
+        parkingKeyword:
+          type: string
+          description: 주차장 검색 키워드
+          example: "Parkhaus Marienplatz"
+        region:
+          type: string
+          enum: [domestic, international]
+          description: 지역 구분 (국내/해외)
+          example: "international"
+
+    BusinessHours:
+      type: object
+      properties:
+        isOpen:
+          type: boolean
+          description: 현재 영업 중 여부
+          example: true
+        currentStatus:
+          type: string
+          description: 현재 영업 상태
+          example: "영업중"
+        todayHours:
+          type: string
+          description: 오늘 영업시간
+          example: "24시간 개방"
+        weeklyHours:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+                description: 요일
+                example: "월요일"
+              hours:
+                type: string
+                description: 영업시간
+                example: "24시간 개방"
+              isToday:
+                type: boolean
+                description: 오늘 여부
+                example: false
+
+    ContactInfo:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: 전화번호
+          example: "+49 89 23396500"
+        website:
+          type: string
+          format: uri
+          description: 웹사이트
+          example: "https://www.muenchen.de/marienplatz"
+
+    AIRecommendation:
+      type: object
+      properties:
+        recommendReason:
+          type: string
+          description: AI 추천 이유
+          example: "아이들이 좋아하는 시계탑 인형 공연이 매일 11시, 12시, 17시에 열립니다. 대중교통으로 10분 거리에 있어 접근성이 좋습니다."
+        tips:
+          type: object
+          properties:
+            description:
+              type: string
+              description: 장소 설명
+              example: "뮌헨의 중심부에 위치한 역사적인 광장으로, 신시청사의 글로켄슈필이 유명합니다."
+            specialEvents:
+              type: string
+              description: 특별 이벤트
+              example: "매시 정각 시계탑 인형 공연 (11시, 12시, 17시)"
+            bestVisitTime:
+              type: string
+              description: 추천 방문 시간
+              example: "오전 10시 (한적한 시간대)"
+            estimatedDuration:
+              type: string
+              description: 예상 소요 시간
+              example: "1시간 30분"
+            photoSpots:
+              type: array
+              items:
+                type: string
+              description: 베스트 포토 스팟
+              example: 
+                - "시계탑 정면"
+                - "분수대 앞"
+            practicalTips:
+              type: array
+              items:
+                type: string
+              description: 실용적 팁
+              example:
+                - "편한 신발 착용 권장"
+                - "우천 시 우산 필수"
+            weatherTips:
+              type: string
+              description: 날씨별 준비사항
+              example: "여름철 선크림, 겨울철 방한복 필수"
+            alternativePlaces:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  reason:
+                    type: string
+              description: 대체 장소
+              example:
+                - name: "빅투알리엔마르크트"
+                  reason: "우천 시 실내 시장에서 쇼핑 가능"
+
+    Review:
+      type: object
+      properties:
+        reviewId:
+          type: string
+          description: 리뷰 ID
+          example: "review123456"
+        authorName:
+          type: string
+          description: 작성자 이름
+          example: "김여행"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: 평점
+          example: 5
+        text:
+          type: string
+          description: 리뷰 내용
+          example: "뮌헨 여행의 시작점으로 최고예요! 시계탑 공연은 꼭 보세요."
+        time:
+          type: integer
+          format: int64
+          description: 작성 시간 (Unix timestamp)
+          example: 1722084000
+        relativeTimeDescription:
+          type: string
+          description: 상대 시간 표시
+          example: "1주일 전"
+        language:
+          type: string
+          description: 리뷰 언어
+          example: "ko"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: 에러 코드
+        message:
+          type: string
+          description: 에러 메시지
+        timestamp:
+          type: string
+          format: date-time
+          description: 에러 발생 시간
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "BAD_REQUEST"
+            message: "요청 데이터가 올바르지 않습니다"
+
+    NotFound:
+      description: 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "NOT_FOUND"
+            message: "요청한 리소스를 찾을 수 없습니다"
+
+    InternalServerError:
+      description: 서버 내부 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "INTERNAL_SERVER_ERROR"
+            message: "서버 처리 중 오류가 발생했습니다"
+
+  examples:
+    NearbySearchRequestExample:
+      value:
+        origin:
+          latitude: 48.1374
+          longitude: 11.5755
+          address: "Munich Central Station"
+        transportMode: "public_transport"
+        timeRange: 30
+        category: "tourist"
+        sort: "distance"
+        page: 1
+        size: 20
+
+    NearbySearchResponseExample:
+      value:
+        totalCount: 45
+        page: 1
+        size: 20
+        hasNext: true
+        places:
+          - placeId: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+            name: "마리엔플라츠"
+            category: "관광지"
+            rating: 4.5
+            reviewCount: 5234
+            address: "Marienplatz 1, 80331 München, Germany"
+            distance: 850
+            travelTime: 12
+            imageUrl: "https://cdn.tripgen.com/places/marienplatz-thumb.jpg"
+          - placeId: "ChIJLWiif8x1nkcRiJe7hhoHWS8"
+            name: "프라우엔키르헤"
+            category: "관광지"
+            rating: 4.4
+            reviewCount: 3456
+            address: "Frauenplatz 12, 80331 München, Germany"
+            distance: 1200
+            travelTime: 18
+            imageUrl: "https://cdn.tripgen.com/places/frauenkirche-thumb.jpg"
+
+    KeywordSearchResponseExample:
+      value:
+        keyword: "마리엔플라츠"
+        totalCount: 12
+        page: 1
+        size: 20
+        hasNext: false
+        places:
+          - placeId: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+            name: "마리엔플라츠"
+            category: "관광지"
+            rating: 4.5
+            reviewCount: 5234
+            address: "Marienplatz 1, 80331 München, Germany"
+            distance: 850
+            travelTime: 12
+            imageUrl: "https://cdn.tripgen.com/places/marienplatz-thumb.jpg"
+
+    PlaceDetailsExample:
+      value:
+        placeId: "ChIJU5LMbCt1nkcRGwGLFraPTBg"
+        name: "마리엔플라츠"
+        category: "관광지"
+        description: "뮌헨의 중심 광장으로 신시청사와 구시청사가 위치해 있습니다."
+        rating: 4.5
+        reviewCount: 5234
+        priceLevel: 0
+        images:
+          - "https://cdn.tripgen.com/places/marienplatz-1.jpg"
+          - "https://cdn.tripgen.com/places/marienplatz-2.jpg"
+        location:
+          latitude: 48.1374
+          longitude: 11.5755
+          address: "Marienplatz 1, 80331 München, Germany"
+          searchKeyword: "Marienplatz, Munich"
+          parkingKeyword: "Parkhaus Marienplatz"
+          region: "international"
+        businessHours:
+          isOpen: true
+          currentStatus: "영업중"
+          todayHours: "24시간 개방"
+          weeklyHours:
+            - day: "월요일"
+              hours: "24시간 개방"
+              isToday: true
+            - day: "화요일"
+              hours: "24시간 개방"
+              isToday: false
+        contact:
+          phone: "+49 89 23396500"
+          website: "https://www.muenchen.de/marienplatz"
+        aiRecommendation:
+          recommendReason: "아이들이 좋아하는 시계탑 인형 공연이 매일 11시, 12시, 17시에 열립니다. 대중교통으로 10분 거리에 있어 접근성이 좋습니다."
+          tips:
+            description: "뮌헨의 중심부에 위치한 역사적인 광장으로, 신시청사의 글로켄슈필이 유명합니다."
+            specialEvents: "매시 정각 시계탑 인형 공연 (11시, 12시, 17시)"
+            bestVisitTime: "오전 10시 (한적한 시간대)"
+            estimatedDuration: "1시간 30분"
+            photoSpots:
+              - "시계탑 정면"
+              - "분수대 앞"
+            practicalTips:
+              - "편한 신발 착용 권장"
+              - "우천 시 우산 필수"
+            weatherTips: "여름철 선크림, 겨울철 방한복 필수"
+            alternativePlaces:
+              - name: "빅투알리엔마르크트"
+                reason: "우천 시 실내 시장에서 쇼핑 가능"
+        reviews:
+          - reviewId: "review123456"
+            authorName: "김여행"
+            rating: 5
+            text: "뮌헨 여행의 시작점으로 최고예요! 시계탑 공연은 꼭 보세요."
+            time: 1722084000
+            relativeTimeDescription: "1주일 전"
+            language: "ko"
+          - reviewId: "review123457"
+            authorName: "이관광"
+            rating: 4
+            text: "광장이 넓고 볼거리가 많아요. 주변 카페에서 쉬어가기 좋습니다."
+            time: 1721997600
+            relativeTimeDescription: "1주일 전"
+            language: "ko"
+
+    BusinessHoursExample:
+      value:
+        isOpen: true
+        currentStatus: "영업중"
+        todayHours: "24시간 개방"
+        weeklyHours:
+          - day: "월요일"
+            hours: "24시간 개방"
+            isToday: true
+          - day: "화요일"
+            hours: "24시간 개방"
+            isToday: false
+          - day: "수요일"
+            hours: "24시간 개방"
+            isToday: false
+          - day: "목요일"
+            hours: "24시간 개방"
+            isToday: false
+          - day: "금요일"
+            hours: "24시간 개방"
+            isToday: false
+          - day: "토요일"
+            hours: "24시간 개방"
+            isToday: false
+          - day: "일요일"
+            hours: "24시간 개방"
+            isToday: false

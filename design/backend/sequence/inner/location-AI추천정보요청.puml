@@ -18,7 +18,7 @@ group 검색 컨텍스트 AI 추천 요청
     User -> client: 검색 결과에서 특정 장소 클릭
     note right of User: 주변장소 검색 결과에서\n장소 클릭
     
-    client -> controller: POST /ai/places/{placeId}/search-recommendations
+    client -> controller: POST /ai/locations/{placeId}/search-recommendations
     note right of client
     요청 데이터:
     {
@@ -134,7 +134,7 @@ end
 
 ' === 시나리오 4: 배치 추천 요청 (여러 장소) ===
 group 배치 추천 요청
-    client -> controller: POST /ai/places/batch-recommendations
+    client -> controller: POST /ai/locations/batch-recommendations
     note right of client
     요청 데이터:
     {

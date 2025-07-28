@@ -19,7 +19,7 @@ note over PlaceController, AIService
   AI 추천 정보 및 실시간 영업시간 포함
 end note
 
-Client -> PlaceController: GET /places/{placeId}\n(includeReviews=true, includeAI=true)
+Client -> PlaceController: GET /locations/{placeId}\n(includeReviews=true, includeAI=true)
 
 activate PlaceController
 

@@ -136,7 +136,7 @@ end
 deactivate AI
 
 ' 클라이언트에서 AI 추천정보 별도 조회
-MC -> GW: GET /api/v1/locations/{placeId}/ai-recommendations
+MC -> GW: GET /api/v1/locations/{placeId}/recommendations
 activate GW
 GW -> LS: AI 추천정보 조회
 activate LS
@@ -155,7 +155,7 @@ note over MC: 장소 상세정보 화면에\nAI 추천정보 섹션 업데이트
 
 == 선택적 플로우 ==
 group 키워드 검색 (UFR-LOC-010)
-    MC -> GW: POST /api/v1/locations/search/keyword\n(키워드, 출발지, 옵션)
+    MC -> GW: GET /api/v1/locations/search/keyword\n(키워드, 출발지, 옵션)
     GW -> LS: 키워드 검색 요청
     LS -> MAP: 키워드 검색 API
     MAP --> LS: 검색 결과
