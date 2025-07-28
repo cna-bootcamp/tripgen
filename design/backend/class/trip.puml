@@ -1,897 +1,895 @@
 @startuml
 !theme mono
 
-title Trip Service - Clean Architecture Class Design
+title Trip 서비스 클래스 설계 (Clean Architecture)
 
-' ===== USE CASE LAYER (INPUT PORTS) =====
-package "usecase/in" {
+package "com.unicorn.tripgen.biz.usecase.in" {
     interface TripUseCase {
-        +createTrip(request: CreateTripCommand): Trip
-        +getTripList(userId: String, request: TripListQuery): PageResponse<TripSummary>
-        +getTripDetail(tripId: String): TripDetail
-        +updateTrip(tripId: String, request: UpdateTripCommand): Trip
+        +getTripList(request: GetTripListQuery): GetTripListResult
+        +getTripDetail(tripId: String): GetTripDetailResult
+        +createTrip(request: CreateTripCommand): CreateTripResult
+        +updateTrip(tripId: String, request: UpdateTripCommand): UpdateTripResult
         +deleteTrip(tripId: String): void
-        +updateBasicInfo(tripId: String, request: UpdateBasicInfoCommand): TripDetail
+        +updateTripBasicInfo(tripId: String, request: UpdateTripBasicInfoCommand): UpdateTripBasicInfoResult
     }
-    
+
     interface MemberUseCase {
-        +getTripMembers(tripId: String): List<Member>
-        +addMember(tripId: String, request: CreateMemberCommand): Member
-        +updateMember(tripId: String, memberId: String, request: UpdateMemberCommand): Member
-        +deleteMember(tripId: String, memberId: String): void
+        +getTripMembers(tripId: String): List<GetMemberResult>
+        +addTripMember(tripId: String, request: CreateMemberCommand): CreateMemberResult
+        +updateTripMember(tripId: String, memberId: String, request: UpdateMemberCommand): UpdateMemberResult
+        +deleteTripMember(tripId: String, memberId: String): void
     }
-    
+
     interface DestinationUseCase {
-        +getTripDestinations(tripId: String): List<Destination>
-        +addDestination(tripId: String, request: CreateDestinationCommand): Destination
-        +updateDestination(tripId: String, destinationId: String, request: UpdateDestinationCommand): Destination
-        +deleteDestination(tripId: String, destinationId: String): void
-        +updateDestinationsBatch(tripId: String, request: UpdateDestinationsBatchCommand): TripDestinationResult
+        +getTripDestinations(tripId: String): List<GetDestinationResult>
+        +addTripDestination(tripId: String, request: CreateDestinationCommand): CreateDestinationResult
+        +updateTripDestination(tripId: String, destinationId: String, request: UpdateDestinationCommand): UpdateDestinationResult
+        +deleteTripDestination(tripId: String, destinationId: String): void
+        +updateDestinationsBatch(tripId: String, request: UpdateDestinationsBatchCommand): UpdateDestinationsBatchResult
     }
-    
+
     interface ScheduleUseCase {
-        +generateSchedule(tripId: String, request: GenerateScheduleCommand): ScheduleGenerationResult
-        +getGenerationStatus(tripId: String, requestId: String): GenerationStatus
-        +getSchedules(tripId: String, day: Integer): List<Schedule>
-        +updateDaySchedule(tripId: String, day: Integer, request: UpdateScheduleCommand): Schedule
-        +regenerateDaySchedule(tripId: String, day: Integer, request: RegenerateScheduleCommand): ScheduleGenerationResult
-        +exportSchedule(tripId: String, request: ExportScheduleCommand): ExportResult
-        +getPlaceRecommendations(tripId: String, placeId: String, day: Integer): PlaceRecommendation
+        +generateSchedule(tripId: String, request: GenerateScheduleCommand): GenerateScheduleResult
+        +getGenerationStatus(tripId: String, requestId: String): GetGenerationStatusResult
+        +getSchedules(tripId: String, day: Integer): GetSchedulesResult
+        +updateDaySchedule(tripId: String, day: Integer, request: UpdateScheduleCommand): UpdateScheduleResult
+        +regenerateDaySchedule(tripId: String, day: Integer, request: RegenerateScheduleCommand): GenerateScheduleResult
+        +exportSchedule(tripId: String, request: ExportScheduleCommand): ExportScheduleResult
+        +getSchedulePlaceRecommendations(tripId: String, placeId: String, day: Integer): GetPlaceRecommendationsResult
     }
 }
 
-' ===== USE CASE LAYER (OUTPUT PORTS) =====
-package "usecase/out" {
-    interface TripPort {
-        +save(trip: Trip): Trip
+package "com.unicorn.tripgen.biz.usecase.out" {
+    interface TripRepository {
         +findById(tripId: String): Optional<Trip>
-        +findByUserIdAndStatus(userId: String, status: TripStatus, pageable: Pageable): Page<Trip>
-        +findByUserId(userId: String, pageable: Pageable): Page<Trip>
-        +searchTrips(userId: String, search: String, pageable: Pageable): Page<Trip>
+        +findByUserId(userId: String, filter: TripFilter): Page<Trip>
+        +save(trip: Trip): Trip
         +delete(tripId: String): void
-        +existsByUserIdAndTripName(userId: String, tripName: String): boolean
+        +existsById(tripId: String): boolean
     }
-    
-    interface MemberPort {
-        +save(member: Member): Member
+
+    interface MemberRepository {
         +findByTripId(tripId: String): List<Member>
-        +findById(memberId: String): Optional<Member>
+        +findByTripIdAndMemberId(tripId: String, memberId: String): Optional<Member>
+        +save(member: Member): Member
+        +saveAll(members: List<Member>): List<Member>
+        +delete(tripId: String, memberId: String): void
         +deleteByTripId(tripId: String): void
-        +delete(memberId: String): void
     }
-    
-    interface DestinationPort {
-        +save(destination: Destination): Destination
+
+    interface DestinationRepository {
         +findByTripId(tripId: String): List<Destination>
-        +findById(destinationId: String): Optional<Destination>
-        +deleteByTripId(tripId: String): void
-        +delete(destinationId: String): void
+        +findByTripIdAndDestinationId(tripId: String, destinationId: String): Optional<Destination>
+        +save(destination: Destination): Destination
         +saveAll(destinations: List<Destination>): List<Destination>
+        +delete(tripId: String, destinationId: String): void
+        +deleteByTripId(tripId: String): void
     }
-    
-    interface SchedulePort {
-        +save(schedule: Schedule): Schedule
+
+    interface ScheduleRepository {
         +findByTripId(tripId: String): List<Schedule>
         +findByTripIdAndDay(tripId: String, day: Integer): Optional<Schedule>
-        +deleteByTripId(tripId: String): void
-        +saveGenerationRequest(request: ScheduleGenerationRequest): ScheduleGenerationRequest
-        +findGenerationRequest(requestId: String): Optional<ScheduleGenerationRequest>
-        +updateGenerationStatus(requestId: String, status: GenerationStatus): void
+        +save(schedule: Schedule): Schedule
+        +saveAll(schedules: List<Schedule>): List<Schedule>
+        +delete(tripId: String): void
+        +existsByTripId(tripId: String): boolean
     }
-    
-    interface AIServicePort {
-        +generateSchedule(request: AIScheduleRequest): CompletableFuture<AIScheduleResponse>
-        +getRecommendations(request: PlaceRecommendationRequest): CompletableFuture<PlaceRecommendationResponse>
+
+    interface AIService {
+        +generateSchedule(request: AIScheduleGenerationRequest): AIScheduleGenerationResponse
+        +getGenerationStatus(requestId: String): AIGenerationStatusResponse
+        +regenerateSchedule(request: AIScheduleRegenerationRequest): AIScheduleGenerationResponse
+        +getPlaceRecommendations(request: AIPlaceRecommendationRequest): AIPlaceRecommendationResponse
     }
-    
-    interface LocationServicePort {
-        +getLocationInfo(locationName: String): Optional<LocationInfo>
-        +searchLocations(query: String): List<LocationInfo>
-        +validateDestination(destinationName: String): boolean
+
+    interface ExportService {
+        +exportToPdf(request: ExportRequest): byte[]
+        +exportToImage(request: ExportRequest): byte[]
     }
-    
-    interface ExportServicePort {
-        +exportToPdf(schedules: List<Schedule>, options: ExportOptions): byte[]
-        +exportToImage(schedules: List<Schedule>, options: ExportOptions): byte[]
+
+    interface UserContextService {
+        +getCurrentUserId(): String
+        +validateTripAccess(tripId: String, userId: String): boolean
     }
-    
-    interface CachePort {
+
+    interface CacheService {
+        +get(key: String): Optional<Object>
         +put(key: String, value: Object, ttl: Duration): void
-        +get(key: String, type: Class<T>): Optional<T>
-        +delete(key: String): void
-        +exists(key: String): boolean
+        +evict(key: String): void
+        +evictByPattern(pattern: String): void
     }
-    
-    interface EventPort {
+
+    interface EventPublisher {
         +publishTripCreated(event: TripCreatedEvent): void
+        +publishTripUpdated(event: TripUpdatedEvent): void
         +publishTripDeleted(event: TripDeletedEvent): void
         +publishScheduleGenerated(event: ScheduleGeneratedEvent): void
     }
 }
 
-' ===== SERVICE LAYER =====
-package "service" {
-    class TripService implements TripUseCase {
-        -tripPort: TripPort
-        -memberPort: MemberPort
-        -destinationPort: DestinationPort
-        -cachePort: CachePort
-        -eventPort: EventPort
-        +TripService(tripPort: TripPort, memberPort: MemberPort, destinationPort: DestinationPort, cachePort: CachePort, eventPort: EventPort)
-        +createTrip(request: CreateTripCommand): Trip
-        +getTripList(userId: String, request: TripListQuery): PageResponse<TripSummary>
-        +getTripDetail(tripId: String): TripDetail
-        +updateTrip(tripId: String, request: UpdateTripCommand): Trip
+package "com.unicorn.tripgen.biz.service" {
+    class TripService {
+        -tripRepository: TripRepository
+        -memberRepository: MemberRepository
+        -destinationRepository: DestinationRepository
+        -scheduleRepository: ScheduleRepository
+        -userContextService: UserContextService
+        -cacheService: CacheService
+        -eventPublisher: EventPublisher
+        +getTripList(request: GetTripListQuery): GetTripListResult
+        +getTripDetail(tripId: String): GetTripDetailResult 
+        +createTrip(request: CreateTripCommand): CreateTripResult
+        +updateTrip(tripId: String, request: UpdateTripCommand): UpdateTripResult
         +deleteTrip(tripId: String): void
-        +updateBasicInfo(tripId: String, request: UpdateBasicInfoCommand): TripDetail
-        -validateTripOwnership(tripId: String, userId: String): void
-        -generateTripId(): String
+        +updateTripBasicInfo(tripId: String, request: UpdateTripBasicInfoCommand): UpdateTripBasicInfoResult
+        -validateTripAccess(tripId: String): void
+        -calculateTripProgress(trip: Trip): Integer
+        -buildTripSummary(trip: Trip): TripSummary
     }
-    
-    class MemberService implements MemberUseCase {
-        -memberPort: MemberPort
-        -tripPort: TripPort
-        -cachePort: CachePort
-        +MemberService(memberPort: MemberPort, tripPort: TripPort, cachePort: CachePort)
-        +getTripMembers(tripId: String): List<Member>
-        +addMember(tripId: String, request: CreateMemberCommand): Member
-        +updateMember(tripId: String, memberId: String, request: UpdateMemberCommand): Member
-        +deleteMember(tripId: String, memberId: String): void
+
+    class MemberService {
+        -memberRepository: MemberRepository
+        -tripRepository: TripRepository
+        -userContextService: UserContextService
+        -eventPublisher: EventPublisher
+        +getTripMembers(tripId: String): List<GetMemberResult>
+        +addTripMember(tripId: String, request: CreateMemberCommand): CreateMemberResult
+        +updateTripMember(tripId: String, memberId: String, request: UpdateMemberCommand): UpdateMemberResult
+        +deleteTripMember(tripId: String, memberId: String): void
         -validateTripExists(tripId: String): void
+        -validateMemberLimit(tripId: String): void
         -generateMemberId(): String
     }
-    
-    class DestinationService implements DestinationUseCase {
-        -destinationPort: DestinationPort
-        -tripPort: TripPort
-        -locationServicePort: LocationServicePort
-        -cachePort: CachePort
-        +DestinationService(destinationPort: DestinationPort, tripPort: TripPort, locationServicePort: LocationServicePort, cachePort: CachePort)
-        +getTripDestinations(tripId: String): List<Destination>
-        +addDestination(tripId: String, request: CreateDestinationCommand): Destination
-        +updateDestination(tripId: String, destinationId: String, request: UpdateDestinationCommand): Destination
-        +deleteDestination(tripId: String, destinationId: String): void
-        +updateDestinationsBatch(tripId: String, request: UpdateDestinationsBatchCommand): TripDestinationResult
-        -validateDestinationName(destinationName: String): void
+
+    class DestinationService {
+        -destinationRepository: DestinationRepository
+        -tripRepository: TripRepository
+        -scheduleRepository: ScheduleRepository
+        -userContextService: UserContextService
+        -eventPublisher: EventPublisher
+        +getTripDestinations(tripId: String): List<GetDestinationResult>
+        +addTripDestination(tripId: String, request: CreateDestinationCommand): CreateDestinationResult
+        +updateTripDestination(tripId: String, destinationId: String, request: UpdateDestinationCommand): UpdateDestinationResult
+        +deleteTripDestination(tripId: String, destinationId: String): void
+        +updateDestinationsBatch(tripId: String, request: UpdateDestinationsBatchCommand): UpdateDestinationsBatchResult
+        -validateTripExists(tripId: String): void
         -calculateTripDates(destinations: List<Destination>): TripDateRange
+        -updateTripDates(tripId: String, dateRange: TripDateRange): void
         -generateDestinationId(): String
+        -invalidateScheduleCache(tripId: String): void
     }
-    
-    class ScheduleService implements ScheduleUseCase {
-        -schedulePort: SchedulePort
-        -tripPort: TripPort
-        -aiServicePort: AIServicePort
-        -exportServicePort: ExportServicePort
-        -cachePort: CachePort
-        -eventPort: EventPort
-        +ScheduleService(schedulePort: SchedulePort, tripPort: TripPort, aiServicePort: AIServicePort, exportServicePort: ExportServicePort, cachePort: CachePort, eventPort: EventPort)
-        +generateSchedule(tripId: String, request: GenerateScheduleCommand): ScheduleGenerationResult
-        +getGenerationStatus(tripId: String, requestId: String): GenerationStatus
-        +getSchedules(tripId: String, day: Integer): List<Schedule>
-        +updateDaySchedule(tripId: String, day: Integer, request: UpdateScheduleCommand): Schedule
-        +regenerateDaySchedule(tripId: String, day: Integer, request: RegenerateScheduleCommand): ScheduleGenerationResult
-        +exportSchedule(tripId: String, request: ExportScheduleCommand): ExportResult
-        +getPlaceRecommendations(tripId: String, placeId: String, day: Integer): PlaceRecommendation
-        -validateTripForScheduleGeneration(tripId: String): void
-        -buildAIScheduleRequest(trip: Trip, request: GenerateScheduleCommand): AIScheduleRequest
-        -processAIScheduleResponse(tripId: String, response: AIScheduleResponse): List<Schedule>
-        -generateRequestId(): String
+
+    class ScheduleService {
+        -scheduleRepository: ScheduleRepository
+        -tripRepository: TripRepository
+        -destinationRepository: DestinationRepository
+        -memberRepository: MemberRepository  
+        -aiService: AIService
+        -exportService: ExportService
+        -userContextService: UserContextService
+        -cacheService: CacheService
+        -eventPublisher: EventPublisher
+        +generateSchedule(tripId: String, request: GenerateScheduleCommand): GenerateScheduleResult
+        +getGenerationStatus(tripId: String, requestId: String): GetGenerationStatusResult
+        +getSchedules(tripId: String, day: Integer): GetSchedulesResult
+        +updateDaySchedule(tripId: String, day: Integer, request: UpdateScheduleCommand): UpdateScheduleResult
+        +regenerateDaySchedule(tripId: String, day: Integer, request: RegenerateScheduleCommand): GenerateScheduleResult
+        +exportSchedule(tripId: String, request: ExportScheduleCommand): ExportScheduleResult
+        +getSchedulePlaceRecommendations(tripId: String, placeId: String, day: Integer): GetPlaceRecommendationsResult
+        -validateTripReadyForSchedule(tripId: String): void
+        -buildAIGenerationContext(trip: Trip, members: List<Member>, destinations: List<Destination>): AIGenerationContext
+        -validateScheduleExists(tripId: String): void
+        -getCachedPlaceRecommendations(tripId: String, placeId: String): Optional<PlaceRecommendations>
+        -cacheSchedules(tripId: String, schedules: List<Schedule>): void
     }
 }
 
-' ===== DOMAIN LAYER =====
-package "domain" {
-    class Trip extends BaseTimeEntity {
-        -tripId: String
-        -userId: String
-        -tripName: String
-        -transportMode: TransportMode
-        -status: TripStatus
-        -currentStep: String
-        -startDate: LocalDate
-        -endDate: LocalDate
-        -progress: Integer
-        +Trip()
+package "com.unicorn.tripgen.biz.domain" {
+    class Trip {
+        +tripId: String
+        +userId: String
+        +tripName: String
+        +transportMode: TransportMode
+        +status: TripStatus
+        +currentStep: String
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
         +Trip(tripId: String, userId: String, tripName: String, transportMode: TransportMode)
         +updateBasicInfo(tripName: String, transportMode: TransportMode): void
-        +updateStatus(status: TripStatus): void
-        +updateProgress(progress: Integer): void
         +updateDates(startDate: LocalDate, endDate: LocalDate): void
+        +updateStatus(status: TripStatus): void
+        +updateCurrentStep(step: String): void
         +getTotalDays(): Integer
         +isOwner(userId: String): boolean
-        +canGenerateSchedule(): boolean
-        +isCompleted(): boolean
+        +isEditable(): boolean
     }
-    
-    enum TripStatus {
-        +PLANNING
-        +ONGOING
-        +COMPLETED
-    }
-    
-    enum TransportMode {
-        +PUBLIC
-        +CAR
-    }
-    
-    class Member extends BaseTimeEntity {
-        -memberId: String
-        -tripId: String
-        -name: String
-        -age: Integer
-        -gender: Gender
-        -healthStatus: HealthStatus
-        -preferences: List<ActivityPreference>
-        +Member()
+
+    class Member {
+        +memberId: String
+        +tripId: String
+        +name: String
+        +age: Integer
+        +gender: Gender
+        +healthStatus: HealthStatus
+        +preferences: List<ActivityPreference>
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
         +Member(memberId: String, tripId: String, name: String, age: Integer, gender: Gender, healthStatus: HealthStatus)
-        +updateInfo(name: String, age: Integer, gender: Gender, healthStatus: HealthStatus): void
+        +updateProfile(name: String, age: Integer, gender: Gender, healthStatus: HealthStatus): void
         +updatePreferences(preferences: List<ActivityPreference>): void
-        +isValidAge(): boolean
-        +canParticipateIn(activity: String): boolean
+        +hasPreference(preference: ActivityPreference): boolean
+        +isHealthSuitable(activityLevel: ActivityLevel): boolean
     }
-    
-    enum Gender {
-        +MALE
-        +FEMALE
-    }
-    
-    enum HealthStatus {
-        +EXCELLENT
-        +GOOD
-        +CAUTION
-        +LIMITED
-    }
-    
-    enum ActivityPreference {
-        +SIGHTSEEING
-        +SHOPPING
-        +CULTURE
-        +NATURE
-        +SPORTS
-        +REST
-    }
-    
-    class Destination extends BaseTimeEntity {
-        -destinationId: String
-        -tripId: String
-        -destinationName: String
-        -nights: Integer
-        -accommodation: String
-        -checkInTime: LocalTime
-        -checkOutTime: LocalTime
-        -startDate: LocalDate
-        -endDate: LocalDate
-        -order: Integer
-        +Destination()
+
+    class Destination {
+        +destinationId: String
+        +tripId: String
+        +destinationName: String
+        +nights: Integer
+        +accommodation: String
+        +checkInTime: LocalTime
+        +checkOutTime: LocalTime
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +order: Integer
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
         +Destination(destinationId: String, tripId: String, destinationName: String, nights: Integer)
-        +updateInfo(destinationName: String, nights: Integer, accommodation: String): void
-        +updateCheckTimes(checkInTime: LocalTime, checkOutTime: LocalTime): void
+        +updateBasicInfo(destinationName: String, nights: Integer): void
+        +updateAccommodation(accommodation: String, checkInTime: LocalTime, checkOutTime: LocalTime): void
         +updateDates(startDate: LocalDate, endDate: LocalDate): void
         +updateOrder(order: Integer): void
-        +getTotalNights(): Integer
-        +isValidNights(): boolean
+        +getTotalDays(): Integer
     }
-    
-    class Schedule extends BaseTimeEntity {
-        -scheduleId: String
-        -tripId: String
-        -day: Integer
-        -date: LocalDate
-        -city: String
-        -weather: Weather
-        -places: List<Place>
-        +Schedule()
+
+    class Schedule {
+        +scheduleId: String
+        +tripId: String
+        +day: Integer
+        +date: LocalDate
+        +city: String
+        +weather: Weather
+        +places: List<Place>
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
         +Schedule(scheduleId: String, tripId: String, day: Integer, date: LocalDate, city: String)
+        +updateWeather(weather: Weather): void
+        +updatePlaces(places: List<Place>): void
         +addPlace(place: Place): void
         +removePlace(placeId: String): void
-        +updatePlace(place: Place): void
-        +reorderPlaces(places: List<Place>): void
-        +updateWeather(weather: Weather): void
+        +reorderPlaces(placeOrders: Map<String, Integer>): void
         +getTotalDuration(): Integer
-        +isValidSchedule(): boolean
+        +getEstimatedEndTime(): LocalTime
     }
-    
+
     class Place {
-        -placeId: String
-        -placeName: String
-        -category: String
-        -startTime: LocalTime
-        -duration: Integer
-        -transportation: Transportation
-        -healthConsideration: HealthConsideration
-        -order: Integer
-        +Place()
+        +placeId: String
+        +placeName: String
+        +category: String
+        +startTime: LocalTime
+        +duration: Integer
+        +transportation: Transportation
+        +healthConsideration: HealthConsideration
+        +order: Integer
         +Place(placeId: String, placeName: String, category: String, startTime: LocalTime, duration: Integer)
         +updateTiming(startTime: LocalTime, duration: Integer): void
         +updateTransportation(transportation: Transportation): void
         +updateOrder(order: Integer): void
         +getEndTime(): LocalTime
-        +isAccessible(healthStatus: HealthStatus): boolean
     }
-    
+
     class Weather {
-        -condition: String
-        -minTemperature: Double
-        -maxTemperature: Double
-        -icon: String
-        +Weather()
-        +Weather(condition: String, minTemperature: Double, maxTemperature: Double, icon: String)
-        +getTemperatureRange(): String
-        +isGoodWeather(): boolean
+        +condition: String
+        +temperature: Temperature
+        +icon: String
+        +Weather(condition: String, temperature: Temperature, icon: String)
     }
-    
+
+    class Temperature {
+        +min: Double
+        +max: Double
+        +Temperature(min: Double, max: Double)
+        +getAverage(): Double
+    }
+
     class Transportation {
-        -type: TransportType
-        -duration: Integer
-        -distance: Double
-        -route: String
-        +Transportation()
-        +Transportation(type: TransportType, duration: Integer, distance: Double, route: String)
-        +isWalkingDistance(): boolean
-        +getEstimatedCost(): Double
+        +type: TransportationType
+        +duration: Integer
+        +distance: Double
+        +route: String
+        +Transportation(type: TransportationType, duration: Integer, distance: Double)
+        +updateRoute(route: String): void
     }
-    
-    enum TransportType {
-        +WALK
-        +CAR
-        +PUBLIC
-    }
-    
+
     class HealthConsideration {
-        -restPoints: List<String>
-        -accessibility: List<AccessibilityFeature>
-        -walkingDistance: Double
-        +HealthConsideration()
+        +restPoints: List<String>
+        +accessibility: List<AccessibilityFeature>
+        +walkingDistance: Double
+        +HealthConsideration(walkingDistance: Double)
         +addRestPoint(restPoint: String): void
-        +addAccessibility(feature: AccessibilityFeature): void
-        +isSuitableFor(healthStatus: HealthStatus): boolean
+        +addAccessibilityFeature(feature: AccessibilityFeature): void
     }
-    
+
+    enum TripStatus {
+        PLANNING
+        IN_PROGRESS
+        COMPLETED
+    }
+
+    enum TransportMode {
+        PUBLIC
+        CAR
+    }
+
+    enum Gender {
+        MALE
+        FEMALE
+    }
+
+    enum HealthStatus {
+        EXCELLENT
+        GOOD
+        CAUTION
+        LIMITED
+    }
+
+    enum ActivityPreference {
+        SIGHTSEEING
+        SHOPPING
+        CULTURE
+        NATURE
+        SPORTS
+        REST
+    }
+
+    enum TransportationType {
+        WALK
+        CAR
+        PUBLIC
+    }
+
     enum AccessibilityFeature {
-        +ELEVATOR
-        +RAMP
-        +WHEELCHAIR
-    }
-    
-    class ScheduleGenerationRequest extends BaseTimeEntity {
-        -requestId: String
-        -tripId: String
-        -startTime: LocalTime
-        -specialRequests: String
-        -status: GenerationRequestStatus
-        -progress: Integer
-        -message: String
-        -estimatedTime: Integer
-        -error: String
-        +ScheduleGenerationRequest()
-        +ScheduleGenerationRequest(requestId: String, tripId: String, startTime: LocalTime)
-        +updateStatus(status: GenerationRequestStatus, progress: Integer, message: String): void
-        +updateError(error: String): void
-        +isCompleted(): boolean
-        +isFailed(): boolean
-    }
-    
-    enum GenerationRequestStatus {
-        +QUEUED
-        +PROCESSING
-        +COMPLETED
-        +FAILED
+        ELEVATOR
+        RAMP
+        WHEELCHAIR
     }
 }
 
-' ===== CONTROLLER LAYER =====
-package "controller" {
+package "com.unicorn.tripgen.biz.dto" {
+    ' Command DTOs
+    class CreateTripCommand {
+        +tripName: String
+        +transportMode: TransportMode
+        +CreateTripCommand(tripName: String, transportMode: TransportMode)
+        +validate(): void
+    }
+
+    class UpdateTripCommand {
+        +tripName: String
+        +transportMode: TransportMode
+    }
+
+    class UpdateTripBasicInfoCommand {
+        +tripName: String
+        +transportMode: TransportMode
+        +members: List<CreateMemberCommand>
+    }
+
+    class CreateMemberCommand {
+        +name: String
+        +age: Integer
+        +gender: Gender
+        +healthStatus: HealthStatus
+        +preferences: List<ActivityPreference>
+    }
+
+    class UpdateMemberCommand {
+        +name: String
+        +age: Integer
+        +gender: Gender
+        +healthStatus: HealthStatus
+        +preferences: List<ActivityPreference>
+    }
+
+    class CreateDestinationCommand {
+        +destinationName: String
+        +nights: Integer
+        +accommodation: String
+        +checkInTime: LocalTime
+        +checkOutTime: LocalTime
+    }
+
+    class UpdateDestinationCommand {
+        +destinationName: String
+        +nights: Integer
+        +accommodation: String
+        +checkInTime: LocalTime
+        +checkOutTime: LocalTime
+    }
+
+    class UpdateDestinationsBatchCommand {
+        +destinations: List<CreateDestinationCommand>
+    }
+
+    class GenerateScheduleCommand {
+        +startTime: LocalTime
+        +specialRequests: String
+    }
+
+    class UpdateScheduleCommand {
+        +places: List<PlaceOrderCommand>
+    }
+
+    class PlaceOrderCommand {
+        +placeId: String
+        +order: Integer
+    }
+
+    class RegenerateScheduleCommand {
+        +specialRequests: String
+    }
+
+    class ExportScheduleCommand {
+        +format: ExportFormat
+        +includeMap: Boolean
+        +days: List<Integer>
+    }
+
+    ' Query DTOs
+    class GetTripListQuery {
+        +status: TripStatus
+        +search: String
+        +sort: String
+        +page: Integer
+        +size: Integer
+    }
+
+    ' Result DTOs
+    class GetTripListResult {
+        +trips: List<TripSummary>
+        +totalCount: Integer
+        +currentPage: Integer
+        +totalPages: Integer
+    }
+
+    class TripSummary {
+        +tripId: String
+        +tripName: String
+        +status: TripStatus
+        +currentStep: String
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +memberCount: Integer
+        +destinationCount: Integer
+        +progress: Integer
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
+    }
+
+    class GetTripDetailResult {
+        +tripId: String
+        +tripName: String
+        +transportMode: TransportMode
+        +status: TripStatus
+        +currentStep: String
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +members: List<MemberDetail>
+        +destinations: List<DestinationDetail>
+        +hasSchedule: Boolean
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
+    }
+
+    class CreateTripResult {
+        +tripId: String
+        +tripName: String
+        +transportMode: TransportMode
+        +status: TripStatus
+        +currentStep: String
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
+    }
+
+    class MemberDetail {
+        +memberId: String
+        +name: String
+        +age: Integer
+        +gender: Gender
+        +healthStatus: HealthStatus
+        +preferences: List<ActivityPreference>
+    }
+
+    class DestinationDetail {
+        +destinationId: String
+        +destinationName: String
+        +nights: Integer
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +accommodation: String
+        +checkInTime: LocalTime
+        +checkOutTime: LocalTime
+        +order: Integer
+    }
+
+    enum ExportFormat {
+        PDF
+        IMAGE
+    }
+}
+
+package "com.unicorn.tripgen.infra.controller" {
     class TripController {
         -tripUseCase: TripUseCase
-        +TripController(tripUseCase: TripUseCase)
-        +getTripList(status: String, search: String, sort: String, page: Integer, size: Integer): ResponseEntity<ApiResponse<TripListResponse>>
-        +createTrip(request: CreateTripRequest): ResponseEntity<ApiResponse<TripResponse>>
-        +getTripDetail(tripId: String): ResponseEntity<ApiResponse<TripDetailResponse>>
-        +updateTrip(tripId: String, request: UpdateTripRequest): ResponseEntity<ApiResponse<TripResponse>>
+        +getTripList(status: String, search: String, sort: String, page: Integer, size: Integer): ResponseEntity<ApiResponse<GetTripListResult>>
+        +getTripDetail(tripId: String): ResponseEntity<ApiResponse<GetTripDetailResult>>
+        +createTrip(request: CreateTripRequest): ResponseEntity<ApiResponse<CreateTripResult>>
+        +updateTrip(tripId: String, request: UpdateTripRequest): ResponseEntity<ApiResponse<UpdateTripResult>>
         +deleteTrip(tripId: String): ResponseEntity<ApiResponse<Void>>
-        +updateTripBasicInfo(tripId: String, request: UpdateTripBasicInfoRequest): ResponseEntity<ApiResponse<TripBasicInfoResponse>>
-        -getCurrentUserId(): String
-        -buildTripListQuery(status: String, search: String, sort: String, page: Integer, size: Integer): TripListQuery
+        +updateTripBasicInfo(tripId: String, request: UpdateTripBasicInfoRequest): ResponseEntity<ApiResponse<UpdateTripBasicInfoResult>>
     }
-    
+
     class MemberController {
         -memberUseCase: MemberUseCase
-        +MemberController(memberUseCase: MemberUseCase)
-        +getTripMembers(tripId: String): ResponseEntity<ApiResponse<List<MemberResponse>>>
-        +addTripMember(tripId: String, request: CreateMemberRequest): ResponseEntity<ApiResponse<MemberResponse>>
-        +updateTripMember(tripId: String, memberId: String, request: UpdateMemberRequest): ResponseEntity<ApiResponse<MemberResponse>>
+        +getTripMembers(tripId: String): ResponseEntity<ApiResponse<List<GetMemberResult>>>
+        +addTripMember(tripId: String, request: CreateMemberRequest): ResponseEntity<ApiResponse<CreateMemberResult>>
+        +updateTripMember(tripId: String, memberId: String, request: UpdateMemberRequest): ResponseEntity<ApiResponse<UpdateMemberResult>>
         +deleteTripMember(tripId: String, memberId: String): ResponseEntity<ApiResponse<Void>>
     }
-    
+
     class DestinationController {
         -destinationUseCase: DestinationUseCase
-        +DestinationController(destinationUseCase: DestinationUseCase)
-        +getTripDestinations(tripId: String): ResponseEntity<ApiResponse<List<DestinationResponse>>>
-        +addTripDestination(tripId: String, request: CreateDestinationRequest): ResponseEntity<ApiResponse<DestinationResponse>>
-        +updateTripDestination(tripId: String, destinationId: String, request: UpdateDestinationRequest): ResponseEntity<ApiResponse<DestinationResponse>>
+        +getTripDestinations(tripId: String): ResponseEntity<ApiResponse<List<GetDestinationResult>>>
+        +addTripDestination(tripId: String, request: CreateDestinationRequest): ResponseEntity<ApiResponse<CreateDestinationResult>>
+        +updateTripDestination(tripId: String, destinationId: String, request: UpdateDestinationRequest): ResponseEntity<ApiResponse<UpdateDestinationResult>>
         +deleteTripDestination(tripId: String, destinationId: String): ResponseEntity<ApiResponse<Void>>
-        +updateTripDestinationsBatch(tripId: String, request: UpdateDestinationsBatchRequest): ResponseEntity<ApiResponse<DestinationsBatchResponse>>
+        +updateDestinationsBatch(tripId: String, request: UpdateDestinationsBatchRequest): ResponseEntity<ApiResponse<UpdateDestinationsBatchResult>>
     }
-    
+
     class ScheduleController {
         -scheduleUseCase: ScheduleUseCase
-        +ScheduleController(scheduleUseCase: ScheduleUseCase)
-        +generateSchedule(tripId: String, request: GenerateScheduleRequest): ResponseEntity<ApiResponse<GenerateScheduleResponse>>
-        +getGenerationStatus(tripId: String, requestId: String): ResponseEntity<ApiResponse<GenerationStatusResponse>>
-        +getSchedules(tripId: String, day: Integer): ResponseEntity<ApiResponse<ScheduleListResponse>>
-        +updateDaySchedule(tripId: String, day: Integer, request: UpdateScheduleRequest): ResponseEntity<ApiResponse<ScheduleResponse>>
-        +regenerateDaySchedule(tripId: String, day: Integer, request: RegenerateScheduleRequest): ResponseEntity<ApiResponse<GenerateScheduleResponse>>
+        +generateSchedule(tripId: String, request: GenerateScheduleRequest): ResponseEntity<ApiResponse<GenerateScheduleResult>>
+        +getGenerationStatus(tripId: String, requestId: String): ResponseEntity<ApiResponse<GetGenerationStatusResult>>
+        +getSchedules(tripId: String, day: Integer): ResponseEntity<ApiResponse<GetSchedulesResult>>
+        +updateDaySchedule(tripId: String, day: Integer, request: UpdateScheduleRequest): ResponseEntity<ApiResponse<UpdateScheduleResult>>
+        +regenerateDaySchedule(tripId: String, day: Integer, request: RegenerateScheduleRequest): ResponseEntity<ApiResponse<GenerateScheduleResult>>
         +exportSchedule(tripId: String, request: ExportScheduleRequest): ResponseEntity<byte[]>
-        +getSchedulePlaceRecommendations(tripId: String, placeId: String, day: Integer): ResponseEntity<ApiResponse<PlaceRecommendationResponse>>
+        +getSchedulePlaceRecommendations(tripId: String, placeId: String, day: Integer): ResponseEntity<ApiResponse<GetPlaceRecommendationsResult>>
     }
 }
 
-' ===== GATEWAY LAYER =====
-package "gateway" {
-    class TripJpaAdapter implements TripPort {
-        -tripRepository: TripRepository
-        +TripJpaAdapter(tripRepository: TripRepository)
-        +save(trip: Trip): Trip
+package "com.unicorn.tripgen.infra.dto" {
+    class CreateTripRequest {
+        +tripName: String
+        +transportMode: String
+        +toCommand(): CreateTripCommand
+    }
+
+    class UpdateTripRequest {
+        +tripName: String
+        +transportMode: String
+        +toCommand(): UpdateTripCommand
+    }
+
+    class UpdateTripBasicInfoRequest {
+        +tripName: String
+        +transportMode: String
+        +members: List<CreateMemberRequest>
+        +toCommand(): UpdateTripBasicInfoCommand
+    }
+
+    class CreateMemberRequest {
+        +name: String
+        +age: Integer
+        +gender: String
+        +healthStatus: String
+        +preferences: List<String>
+        +toCommand(): CreateMemberCommand
+    }
+
+    class UpdateMemberRequest {
+        +name: String
+        +age: Integer
+        +gender: String  
+        +healthStatus: String
+        +preferences: List<String>
+        +toCommand(): UpdateMemberCommand
+    }
+
+    class CreateDestinationRequest {
+        +destinationName: String
+        +nights: Integer
+        +accommodation: String
+        +checkInTime: String
+        +checkOutTime: String
+        +toCommand(): CreateDestinationCommand
+    }
+
+    class UpdateDestinationRequest {
+        +destinationName: String
+        +nights: Integer
+        +accommodation: String
+        +checkInTime: String
+        +checkOutTime: String
+        +toCommand(): UpdateDestinationCommand
+    }
+
+    class UpdateDestinationsBatchRequest {
+        +destinations: List<CreateDestinationRequest>
+        +toCommand(): UpdateDestinationsBatchCommand
+    }
+
+    class GenerateScheduleRequest {
+        +startTime: String
+        +specialRequests: String
+        +toCommand(): GenerateScheduleCommand
+    }
+
+    class UpdateScheduleRequest {
+        +places: List<PlaceOrderRequest>
+        +toCommand(): UpdateScheduleCommand
+    }
+
+    class PlaceOrderRequest {
+        +placeId: String
+        +order: Integer
+    }
+
+    class RegenerateScheduleRequest {
+        +specialRequests: String
+        +toCommand(): RegenerateScheduleCommand
+    }
+
+    class ExportScheduleRequest {
+        +format: String
+        +includeMap: Boolean
+        +days: List<Integer>
+        +toCommand(): ExportScheduleCommand
+    }
+}
+
+package "com.unicorn.tripgen.infra.gateway.repository" {
+    class JpaTripRepository {
+        -tripJpaRepository: TripJpaRepository
+        -memberJpaRepository: MemberJpaRepository
+        -destinationJpaRepository: DestinationJpaRepository
         +findById(tripId: String): Optional<Trip>
-        +findByUserIdAndStatus(userId: String, status: TripStatus, pageable: Pageable): Page<Trip>
-        +findByUserId(userId: String, pageable: Pageable): Page<Trip>
-        +searchTrips(userId: String, search: String, pageable: Pageable): Page<Trip>
+        +findByUserId(userId: String, filter: TripFilter): Page<Trip>
+        +save(trip: Trip): Trip
         +delete(tripId: String): void
-        +existsByUserIdAndTripName(userId: String, tripName: String): boolean
+        +existsById(tripId: String): boolean
+        -toEntity(trip: Trip): TripEntity
+        -toDomain(entity: TripEntity): Trip
     }
-    
-    class MemberJpaAdapter implements MemberPort {
-        -memberRepository: MemberRepository
-        +MemberJpaAdapter(memberRepository: MemberRepository)
-        +save(member: Member): Member
+
+    class JpaMemberRepository {
+        -memberJpaRepository: MemberJpaRepository
         +findByTripId(tripId: String): List<Member>
-        +findById(memberId: String): Optional<Member>
+        +findByTripIdAndMemberId(tripId: String, memberId: String): Optional<Member>
+        +save(member: Member): Member
+        +saveAll(members: List<Member>): List<Member>
+        +delete(tripId: String, memberId: String): void
         +deleteByTripId(tripId: String): void
-        +delete(memberId: String): void
+        -toEntity(member: Member): MemberEntity
+        -toDomain(entity: MemberEntity): Member
     }
-    
-    class DestinationJpaAdapter implements DestinationPort {
-        -destinationRepository: DestinationRepository
-        +DestinationJpaAdapter(destinationRepository: DestinationRepository)
-        +save(destination: Destination): Destination
+
+    class JpaDestinationRepository {
+        -destinationJpaRepository: DestinationJpaRepository
         +findByTripId(tripId: String): List<Destination>
-        +findById(destinationId: String): Optional<Destination>
-        +deleteByTripId(tripId: String): void
-        +delete(destinationId: String): void
+        +findByTripIdAndDestinationId(tripId: String, destinationId: String): Optional<Destination>
+        +save(destination: Destination): Destination
         +saveAll(destinations: List<Destination>): List<Destination>
+        +delete(tripId: String, destinationId: String): void
+        +deleteByTripId(tripId: String): void
+        -toEntity(destination: Destination): DestinationEntity
+        -toDomain(entity: DestinationEntity): Destination
     }
-    
-    class ScheduleJpaAdapter implements SchedulePort {
-        -scheduleRepository: ScheduleRepository
-        -generationRequestRepository: GenerationRequestRepository
-        +ScheduleJpaAdapter(scheduleRepository: ScheduleRepository, generationRequestRepository: GenerationRequestRepository)
-        +save(schedule: Schedule): Schedule
+
+    class JpaScheduleRepository {
+        -scheduleJpaRepository: ScheduleJpaRepository
         +findByTripId(tripId: String): List<Schedule>
         +findByTripIdAndDay(tripId: String, day: Integer): Optional<Schedule>
-        +deleteByTripId(tripId: String): void
-        +saveGenerationRequest(request: ScheduleGenerationRequest): ScheduleGenerationRequest
-        +findGenerationRequest(requestId: String): Optional<ScheduleGenerationRequest>
-        +updateGenerationStatus(requestId: String, status: GenerationStatus): void
+        +save(schedule: Schedule): Schedule
+        +saveAll(schedules: List<Schedule>): List<Schedule>
+        +delete(tripId: String): void
+        +existsByTripId(tripId: String): boolean
+        -toEntity(schedule: Schedule): ScheduleEntity
+        -toDomain(entity: ScheduleEntity): Schedule
     }
-    
-    class AIServiceAdapter implements AIServicePort {
-        -aiServiceClient: AIServiceClient
-        -cachePort: CachePort
-        +AIServiceAdapter(aiServiceClient: AIServiceClient, cachePort: CachePort)
-        +generateSchedule(request: AIScheduleRequest): CompletableFuture<AIScheduleResponse>
-        +getRecommendations(request: PlaceRecommendationRequest): CompletableFuture<PlaceRecommendationResponse>
-        -getCachedRecommendation(placeId: String): Optional<PlaceRecommendation>
-        -cacheRecommendation(placeId: String, recommendation: PlaceRecommendation): void
+}
+
+package "com.unicorn.tripgen.infra.gateway.entity" {
+    class TripEntity {
+        +id: Long
+        +tripId: String
+        +userId: String
+        +tripName: String
+        +transportMode: String
+        +status: String
+        +currentStep: String
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
     }
-    
-    class LocationServiceAdapter implements LocationServicePort {
-        -locationServiceClient: LocationServiceClient
-        -cachePort: CachePort
-        +LocationServiceAdapter(locationServiceClient: LocationServiceClient, cachePort: CachePort)
-        +getLocationInfo(locationName: String): Optional<LocationInfo>
-        +searchLocations(query: String): List<LocationInfo>
-        +validateDestination(destinationName: String): boolean
-        -getCachedLocationInfo(locationName: String): Optional<LocationInfo>
-        -cacheLocationInfo(locationName: String, locationInfo: LocationInfo): void
+
+    class MemberEntity {
+        +id: Long
+        +memberId: String
+        +tripId: String
+        +name: String
+        +age: Integer
+        +gender: String
+        +healthStatus: String
+        +preferences: String
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
     }
-    
-    class ExportServiceAdapter implements ExportServicePort {
-        -pdfGenerator: PdfGenerator
-        -imageGenerator: ImageGenerator
-        +ExportServiceAdapter(pdfGenerator: PdfGenerator, imageGenerator: ImageGenerator)
-        +exportToPdf(schedules: List<Schedule>, options: ExportOptions): byte[]
-        +exportToImage(schedules: List<Schedule>, options: ExportOptions): byte[]
+
+    class DestinationEntity {
+        +id: Long
+        +destinationId: String
+        +tripId: String
+        +destinationName: String
+        +nights: Integer
+        +accommodation: String
+        +checkInTime: LocalTime
+        +checkOutTime: LocalTime
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +order: Integer
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
     }
-    
-    class RedisCacheAdapter implements CachePort {
+
+    class ScheduleEntity {
+        +id: Long
+        +scheduleId: String
+        +tripId: String
+        +day: Integer
+        +date: LocalDate
+        +city: String
+        +weatherData: String
+        +placesData: String
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
+    }
+}
+
+package "com.unicorn.tripgen.infra.gateway" {
+    class RestAIService {
+        -restTemplate: RestTemplate
+        -aiServiceUrl: String
         -cacheService: CacheService
-        +RedisCacheAdapter(cacheService: CacheService)
-        +put(key: String, value: Object, ttl: Duration): void
-        +get(key: String, type: Class<T>): Optional<T>
-        +delete(key: String): void
-        +exists(key: String): boolean
+        +generateSchedule(request: AIScheduleGenerationRequest): AIScheduleGenerationResponse
+        +getGenerationStatus(requestId: String): AIGenerationStatusResponse
+        +regenerateSchedule(request: AIScheduleRegenerationRequest): AIScheduleGenerationResponse
+        +getPlaceRecommendations(request: AIPlaceRecommendationRequest): AIPlaceRecommendationResponse
+        -buildHttpHeaders(): HttpHeaders
+        -handleApiException(ex: Exception): void
     }
-    
-    class EventPublisherAdapter implements EventPort {
-        -eventPublisher: EventPublisher
-        +EventPublisherAdapter(eventPublisher: EventPublisher)
+
+    class PdfExportService {
+        -pdfGenerator: PdfGenerator
+        +exportToPdf(request: ExportRequest): byte[]
+        -generateTripPdf(schedules: List<Schedule>, includeMap: Boolean): byte[]
+    }
+
+    class ImageExportService {
+        -imageGenerator: ImageGenerator
+        +exportToImage(request: ExportRequest): byte[]
+        -generateTripImage(schedules: List<Schedule>, includeMap: Boolean): byte[]
+    }
+
+    class SecurityContextUserService {
+        -jwtTokenProvider: JwtTokenProvider
+        +getCurrentUserId(): String
+        +validateTripAccess(tripId: String, userId: String): boolean
+        -extractUserFromToken(): User
+    }
+
+    class RedisCacheService {
+        -redisTemplate: RedisTemplate
+        +get(key: String): Optional<Object>
+        +put(key: String, value: Object, ttl: Duration): void
+        +evict(key: String): void
+        +evictByPattern(pattern: String): void
+        -buildCacheKey(prefix: String, key: String): String
+    }
+
+    class ApplicationEventPublisher {
+        -eventPublisher: org.springframework.context.ApplicationEventPublisher
         +publishTripCreated(event: TripCreatedEvent): void
+        +publishTripUpdated(event: TripUpdatedEvent): void
         +publishTripDeleted(event: TripDeletedEvent): void
         +publishScheduleGenerated(event: ScheduleGeneratedEvent): void
     }
 }
 
-' ===== DTO LAYER =====
-package "dto" {
-    ' Command Objects (Input)
-    class CreateTripCommand {
-        -tripName: String
-        -transportMode: TransportMode
-        +CreateTripCommand()
-        +CreateTripCommand(tripName: String, transportMode: TransportMode)
-        +validate(): void
-    }
-    
-    class UpdateTripCommand {
-        -tripName: String
-        -transportMode: TransportMode
-        +UpdateTripCommand()
-        +validate(): void
-    }
-    
-    class UpdateBasicInfoCommand {
-        -tripName: String
-        -transportMode: TransportMode
-        -members: List<CreateMemberCommand>
-        +UpdateBasicInfoCommand()
-        +validate(): void
-    }
-    
-    class TripListQuery {
-        -userId: String
-        -status: TripStatus
-        -search: String
-        -sort: String
-        -pageable: Pageable
-        +TripListQuery()
-        +TripListQuery(userId: String, status: TripStatus, search: String, sort: String, pageable: Pageable)
-    }
-    
-    class CreateMemberCommand {
-        -name: String
-        -age: Integer
-        -gender: Gender
-        -healthStatus: HealthStatus
-        -preferences: List<ActivityPreference>
-        +CreateMemberCommand()
-        +validate(): void
-    }
-    
-    class UpdateMemberCommand {
-        -name: String
-        -age: Integer
-        -gender: Gender
-        -healthStatus: HealthStatus
-        -preferences: List<ActivityPreference>
-        +UpdateMemberCommand()
-        +validate(): void
-    }
-    
-    class CreateDestinationCommand {
-        -destinationName: String
-        -nights: Integer
-        -accommodation: String
-        -checkInTime: LocalTime
-        -checkOutTime: LocalTime
-        +CreateDestinationCommand()
-        +validate(): void
-    }
-    
-    class UpdateDestinationCommand {
-        -destinationName: String
-        -nights: Integer
-        -accommodation: String
-        -checkInTime: LocalTime
-        -checkOutTime: LocalTime
-        +UpdateDestinationCommand()
-        +validate(): void
-    }
-    
-    class UpdateDestinationsBatchCommand {
-        -destinations: List<CreateDestinationCommand>
-        +UpdateDestinationsBatchCommand()
-        +validate(): void
-    }
-    
-    class GenerateScheduleCommand {
-        -startTime: LocalTime
-        -specialRequests: String
-        +GenerateScheduleCommand()
-        +GenerateScheduleCommand(startTime: LocalTime, specialRequests: String)
-        +validate(): void
-    }
-    
-    class UpdateScheduleCommand {
-        -places: List<PlaceOrder>
-        +UpdateScheduleCommand()
-        +validate(): void
-    }
-    
-    class RegenerateScheduleCommand {
-        -specialRequests: String
-        +RegenerateScheduleCommand()
-        +RegenerateScheduleCommand(specialRequests: String)
-    }
-    
-    class ExportScheduleCommand {
-        -format: String
-        -includeMap: Boolean
-        -days: List<Integer>
-        +ExportScheduleCommand()
-        +validate(): void
-    }
-    
-    class PlaceOrder {
-        -placeId: String
-        -order: Integer
-        +PlaceOrder()
-        +PlaceOrder(placeId: String, order: Integer)
-    }
-    
-    ' Response Objects (Output)
-    class TripSummary {
-        -tripId: String
-        -tripName: String
-        -status: TripStatus
-        -currentStep: String
-        -startDate: LocalDate
-        -endDate: LocalDate
-        -memberCount: Integer
-        -destinationCount: Integer
-        -progress: Integer
-        -createdAt: LocalDateTime
-        -updatedAt: LocalDateTime
-        +TripSummary()
-        +fromTrip(trip: Trip): TripSummary
-    }
-    
-    class TripDetail {
-        -tripId: String
-        -tripName: String
-        -transportMode: TransportMode
-        -status: TripStatus
-        -currentStep: String
-        -startDate: LocalDate
-        -endDate: LocalDate
-        -members: List<Member>
-        -destinations: List<Destination>
-        -hasSchedule: Boolean
-        -createdAt: LocalDateTime
-        -updatedAt: LocalDateTime
-        +TripDetail()
-        +fromTrip(trip: Trip, members: List<Member>, destinations: List<Destination>, hasSchedule: Boolean): TripDetail
-    }
-    
-    class TripDestinationResult {
-        -tripId: String
-        -destinations: List<Destination>
-        -totalDays: Integer
-        -startDate: LocalDate
-        -endDate: LocalDate
-        -updatedAt: LocalDateTime
-        +TripDestinationResult()
-        +create(tripId: String, destinations: List<Destination>): TripDestinationResult
-    }
-    
-    class ScheduleGenerationResult {
-        -requestId: String
-        -status: GenerationRequestStatus
-        -message: String
-        +ScheduleGenerationResult()
-        +ScheduleGenerationResult(requestId: String, status: GenerationRequestStatus, message: String)
-    }
-    
-    class GenerationStatus {
-        -requestId: String
-        -status: GenerationRequestStatus
-        -progress: Integer
-        -message: String
-        -estimatedTime: Integer
-        -error: String
-        +GenerationStatus()
-        +fromRequest(request: ScheduleGenerationRequest): GenerationStatus
-    }
-    
-    class ExportResult {
-        -data: byte[]
-        -contentType: String
-        -filename: String
-        +ExportResult()
-        +ExportResult(data: byte[], contentType: String, filename: String)
-    }
-    
-    class PlaceRecommendation {
-        -placeId: String
-        -placeName: String
-        -reasons: List<String>
-        -tips: RecommendationTips
-        -context: RecommendationContext
-        -fromCache: Boolean
-        +PlaceRecommendation()
-    }
-    
-    class RecommendationTips {
-        -description: String
-        -events: List<String>
-        -bestVisitTime: String
-        -estimatedDuration: String
-        -photoSpots: List<String>
-        -practicalTips: List<String>
-        +RecommendationTips()
-    }
-    
-    class RecommendationContext {
-        -day: Integer
-        -previousPlace: String
-        -nextPlace: String
-        +RecommendationContext()
-    }
-    
-    ' External Service DTOs
-    class AIScheduleRequest {
-        -tripId: String
-        -members: List<Member>
-        -destinations: List<Destination>
-        -startTime: LocalTime
-        -specialRequests: String
-        -transportMode: TransportMode
-        +AIScheduleRequest()
-    }
-    
-    class AIScheduleResponse {
-        -schedules: List<AIScheduleDay>
-        -metadata: AIResponseMetadata
-        +AIScheduleResponse()
-    }
-    
-    class AIScheduleDay {
-        -day: Integer
-        -date: LocalDate
-        -city: String
-        -weather: Weather
-        -places: List<AIPlace>
-        +AIScheduleDay()
-    }
-    
-    class AIPlace {
-        -placeId: String
-        -placeName: String
-        -category: String
-        -startTime: LocalTime
-        -duration: Integer
-        -transportation: Transportation
-        -healthConsideration: HealthConsideration
-        +AIPlace()
-    }
-    
-    class AIResponseMetadata {
-        -generatedAt: LocalDateTime
-        -confidence: Double
-        -version: String
-        +AIResponseMetadata()
-    }
-    
-    class PlaceRecommendationRequest {
-        -placeId: String
-        -placeName: String
-        -tripContext: TripContext
-        -memberProfiles: List<MemberProfile>
-        +PlaceRecommendationRequest()
-    }
-    
-    class PlaceRecommendationResponse {
-        -placeId: String
-        -recommendations: PlaceRecommendation
-        +PlaceRecommendationResponse()
-    }
-    
-    class TripContext {
-        -tripId: String
-        -day: Integer
-        -previousPlace: String
-        -nextPlace: String
-        -transportMode: TransportMode
-        +TripContext()
-    }
-    
-    class MemberProfile {
-        -age: Integer
-        -gender: Gender
-        -healthStatus: HealthStatus
-        -preferences: List<ActivityPreference>
-        +MemberProfile()
-        +fromMember(member: Member): MemberProfile
-    }
-    
-    class LocationInfo {
-        -locationId: String
-        -locationName: String
-        -coordinates: Coordinates
-        -category: String
-        -description: String
-        +LocationInfo()
-    }
-    
-    class Coordinates {
-        -latitude: Double
-        -longitude: Double
-        +Coordinates()
-        +Coordinates(latitude: Double, longitude: Double)
-    }
-    
-    class ExportOptions {
-        -includeMap: Boolean
-        -days: List<Integer>
-        -format: String
-        +ExportOptions()
+package "com.unicorn.tripgen.infra.config" {
+    class TripServiceConfig {
+        +tripUseCase(): TripUseCase
+        +memberUseCase(): MemberUseCase
+        +destinationUseCase(): DestinationUseCase
+        +scheduleUseCase(): ScheduleUseCase
+        +restTemplate(): RestTemplate
+        +pdfGenerator(): PdfGenerator
+        +imageGenerator(): ImageGenerator
     }
 }
 
-' ===== RELATIONSHIPS =====
-' Use Case Dependencies
-TripService --> TripPort : uses
-TripService --> MemberPort : uses
-TripService --> DestinationPort : uses
-TripService --> CachePort : uses
-TripService --> EventPort : uses
+' Use Case Implementations
+TripUseCase <|.. TripService
+MemberUseCase <|.. MemberService
+DestinationUseCase <|.. DestinationService
+ScheduleUseCase <|.. ScheduleService
 
-MemberService --> MemberPort : uses
-MemberService --> TripPort : uses
-MemberService --> CachePort : uses
+' Repository Implementations
+TripRepository <|.. JpaTripRepository
+MemberRepository <|.. JpaMemberRepository
+DestinationRepository <|.. JpaDestinationRepository
+ScheduleRepository <|.. JpaScheduleRepository
 
-DestinationService --> DestinationPort : uses
-DestinationService --> TripPort : uses
-DestinationService --> LocationServicePort : uses
-DestinationService --> CachePort : uses
-
-ScheduleService --> SchedulePort : uses
-ScheduleService --> TripPort : uses
-ScheduleService --> AIServicePort : uses
-ScheduleService --> ExportServicePort : uses
-ScheduleService --> CachePort : uses
-ScheduleService --> EventPort : uses
-
-' Controller Dependencies
-TripController --> TripUseCase : uses
-MemberController --> MemberUseCase : uses
-DestinationController --> DestinationUseCase : uses
-ScheduleController --> ScheduleUseCase : uses
-
-' Gateway Implementations
-TripJpaAdapter --|> TripPort : implements
-MemberJpaAdapter --|> MemberPort : implements
-DestinationJpaAdapter --|> DestinationPort : implements
-ScheduleJpaAdapter --|> SchedulePort : implements
-AIServiceAdapter --|> AIServicePort : implements
-LocationServiceAdapter --|> LocationServicePort : implements
-ExportServiceAdapter --|> ExportServicePort : implements
-RedisCacheAdapter --|> CachePort : implements
-EventPublisherAdapter --|> EventPort : implements
+' Service Implementations
+AIService <|.. RestAIService
+ExportService <|.. PdfExportService
+ExportService <|.. ImageExportService
+UserContextService <|.. SecurityContextUserService
+CacheService <|.. RedisCacheService
+EventPublisher <|.. ApplicationEventPublisher
 
 ' Domain Relationships
-Trip ||--o{ Member : contains
-Trip ||--o{ Destination : contains
-Trip ||--o{ Schedule : contains
-Schedule ||--o{ Place : contains
-Place ||--o{ Transportation : has
-Place ||--o{ HealthConsideration : has
-Schedule ||--o{ Weather : has
+Trip ||--o{ Member : "contains"
+Trip ||--o{ Destination : "contains"
+Trip ||--o{ Schedule : "has"
+Schedule ||--o{ Place : "contains"
+Place ||--|| Transportation : "has"
+Place ||--|| HealthConsideration : "has"
+Schedule ||--|| Weather : "has"
+Weather ||--|| Temperature : "has"
 
-' Inheritance
-Trip --|> BaseTimeEntity : extends
-Member --|> BaseTimeEntity : extends
-Destination --|> BaseTimeEntity : extends
-Schedule --|> BaseTimeEntity : extends
-ScheduleGenerationRequest --|> BaseTimeEntity : extends
+' Service Dependencies
+TripService --> TripRepository
+TripService --> MemberRepository
+TripService --> DestinationRepository
+TripService --> ScheduleRepository
+TripService --> UserContextService
+TripService --> CacheService
+TripService --> EventPublisher
+
+MemberService --> MemberRepository
+MemberService --> TripRepository
+MemberService --> UserContextService
+MemberService --> EventPublisher
+
+DestinationService --> DestinationRepository
+DestinationService --> TripRepository
+DestinationService --> ScheduleRepository
+DestinationService --> UserContextService
+DestinationService --> EventPublisher
+
+ScheduleService --> ScheduleRepository
+ScheduleService --> TripRepository
+ScheduleService --> DestinationRepository
+ScheduleService --> MemberRepository
+ScheduleService --> AIService
+ScheduleService --> ExportService
+ScheduleService --> UserContextService
+ScheduleService --> CacheService
+ScheduleService --> EventPublisher
+
+' Controller Dependencies
+TripController --> TripUseCase
+MemberController --> MemberUseCase
+DestinationController --> DestinationUseCase
+ScheduleController --> ScheduleUseCase
+
+' Entity Relationships
+TripEntity ||--o{ MemberEntity : "trip_id"
+TripEntity ||--o{ DestinationEntity : "trip_id"
+TripEntity ||--o{ ScheduleEntity : "trip_id"
 
 @enduml

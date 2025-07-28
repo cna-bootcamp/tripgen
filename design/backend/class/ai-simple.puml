@@ -1,167 +1,333 @@
 @startuml
 !theme mono
 
-title AI Service - Simple Class Design (Layered Architecture)
+title AI 서비스 클래스 설계 (간단)
 
-' ===== Controller Layer =====
-package "com.unicorn.tripgen.ai.controller" <<Container>> {
-    class AIScheduleController
-    class AIRecommendationController
-    class AIExceptionHandler
+' ========== Controller Layer ==========
+package "Controller Layer" {
+    class AIScheduleController {
+        -aiScheduleService: AIScheduleService
+        +generateAISchedule(): ResponseEntity
+        +getGenerationStatus(): ResponseEntity
+        +getGeneratedSchedule(): ResponseEntity
+        +cancelGeneration(): ResponseEntity
+        +regenerateDaySchedule(): ResponseEntity
+        +analyzeWeatherImpact(): ResponseEntity
+    }
+
+    class AIRecommendationController {
+        -aiRecommendationService: AIRecommendationService
+        +generatePlaceRecommendations(): ResponseEntity
+    }
 }
 
-' ===== Service Layer =====
-package "com.unicorn.tripgen.ai.service" <<Container>> {
-    interface AIScheduleService
-    class AIScheduleServiceImpl
-    interface AIRecommendationService
-    class AIRecommendationServiceImpl
-    interface GenerationStatusService
-    class GenerationStatusServiceImpl
-    interface AIModelService
-    class OpenAIModelService
-    class GeminiModelService
+' ========== Service Layer ==========
+package "Service Layer" {
+    interface AIScheduleService {
+        +generateSchedule(): GenerateScheduleResponse
+        +getGenerationStatus(): GenerationStatusResponse
+        +getGeneratedSchedule(): GeneratedScheduleResponse
+        +cancelGeneration(): void
+        +regenerateDaySchedule(): GenerateScheduleResponse
+        +analyzeWeatherImpact(): WeatherImpactResponse
+    }
+
+    class AIScheduleServiceImpl {
+        -aiRequestRepository: AIRequestRepository
+        -aiScheduleRepository: AIScheduleRepository
+        -aiEngineClient: AIEngineClient
+        -weatherService: WeatherService
+        -locationService: LocationService
+        -cacheService: CacheService
+        -messagingService: MessagingService
+    }
+
+    interface AIRecommendationService {
+        +generateRecommendations(): RecommendationResponse
+    }
+
+    class AIRecommendationServiceImpl {
+        -aiRecommendationRepository: AIRecommendationRepository
+        -aiEngineClient: AIEngineClient
+        -locationService: LocationService
+        -cacheService: CacheService
+    }
+
+    interface WeatherService {
+        +getCurrentWeather(): WeatherInfo
+        +getWeatherForecast(): List<WeatherInfo>
+        +analyzeWeatherImpact(): WeatherImpactAnalysis
+    }
+
+    class WeatherServiceImpl {
+        -weatherApiClient: WeatherApiClient
+        -cacheService: CacheService
+    }
+
+    interface LocationService {
+        +getLocationInfo(): LocationInfo
+        +searchNearbyPlaces(): List<LocationInfo>
+        +calculateRoute(): RouteInfo
+    }
+
+    class LocationServiceImpl {
+        -locationApiClient: LocationApiClient
+        -cacheService: CacheService
+    }
+
+    interface CacheService {
+        +put(): void
+        +get(): Optional<T>
+        +evict(): void
+    }
+
+    class CacheServiceImpl {
+        -redisTemplate: RedisTemplate
+    }
+
+    interface MessagingService {
+        +publishScheduleGenerationEvent(): void
+        +subscribeToScheduleEvents(): void
+    }
+
+    class MessagingServiceImpl {
+        -rabbitTemplate: RabbitTemplate
+    }
 }
 
-' ===== Repository Layer =====
-package "com.unicorn.tripgen.ai.repository" <<Container>> {
-    interface ScheduleRepository
-    interface GenerationStatusRepository
-    interface RecommendationRepository
+' ========== Domain Layer ==========
+package "Domain Layer" {
+    class AIRequest {
+        +requestId: String
+        +tripId: String
+        +status: GenerationStatus
+        +progress: Integer
+        +members: List<TripMember>
+        +destinations: List<Destination>
+        +updateStatus(): void
+        +markCompleted(): void
+        +isCompleted(): boolean
+    }
+
+    class AISchedule {
+        +requestId: String
+        +tripId: String
+        +schedules: List<DaySchedule>
+        +metadata: ScheduleMetadata
+        +addDaySchedule(): void
+        +getTotalDays(): Integer
+    }
+
+    class AIRecommendation {
+        +placeId: String
+        +recommendations: RecommendationContent
+        +generatedAt: LocalDateTime
+        +isExpired(): boolean
+    }
+
+    class TripMember {
+        +name: String
+        +age: Integer
+        +gender: Gender
+        +healthStatus: HealthStatus
+        +preferences: List<String>
+        +isElderly(): boolean
+        +needsSpecialCare(): boolean
+    }
+
+    class Destination {
+        +destinationName: String
+        +nights: Integer
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +accommodation: String
+        +getDuration(): Period
+    }
+
+    class DaySchedule {
+        +day: Integer
+        +date: LocalDate
+        +destinationName: String
+        +weather: WeatherInfo
+        +places: List<PlaceVisit>
+        +getTotalDuration(): Integer
+    }
+
+    class PlaceVisit {
+        +placeId: String
+        +placeName: String
+        +startTime: LocalTime
+        +duration: Integer
+        +transportation: Transportation
+        +getEndTime(): LocalTime
+    }
+
+    class RecommendationContent {
+        +reasons: List<String>
+        +tips: RecommendationTips
+        +addReason(): void
+    }
+
+    class WeatherInfo {
+        +condition: String
+        +temperature: Temperature
+        +precipitation: Double
+        +isRainy(): boolean
+    }
 }
 
-' ===== Entity Layer =====
-package "com.unicorn.tripgen.ai.entity" <<Container>> {
-    class SchedulePlan
-    class GenerationStatusEntity
-    class PlaceRecommendationEntity
-    enum GenerationStatus
+' ========== Repository Layer ==========
+package "Repository Layer" {
+    interface AIRequestRepository {
+        +findByRequestId(): Optional<AIRequestEntity>
+        +findByTripId(): List<AIRequestEntity>
+        +save(): AIRequestEntity
+    }
+
+    interface AIScheduleRepository {
+        +findByRequestId(): Optional<AIScheduleEntity>
+        +findByTripId(): List<AIScheduleEntity>
+        +save(): AIScheduleEntity
+    }
+
+    interface AIRecommendationRepository {
+        +findByPlaceId(): Optional<AIRecommendationEntity>
+        +save(): AIRecommendationEntity
+        +deleteExpiredRecommendations(): void
+    }
+
+    class AIRequestEntity {
+        +id: Long
+        +requestId: String
+        +tripId: String
+        +status: String
+        +toDomain(): AIRequest
+        +fromDomain(): AIRequestEntity
+    }
+
+    class AIScheduleEntity {
+        +id: Long
+        +requestId: String
+        +tripId: String
+        +schedulesJson: String
+        +toDomain(): AISchedule
+        +fromDomain(): AIScheduleEntity
+    }
+
+    class AIRecommendationEntity {
+        +id: Long
+        +placeId: String
+        +recommendationsJson: String
+        +toDomain(): AIRecommendation
+        +fromDomain(): AIRecommendationEntity
+    }
 }
 
-' ===== DTO Layer =====
-package "com.unicorn.tripgen.ai.dto" <<Container>> {
-    class GenerateScheduleRequestDto
-    class GenerateScheduleResponseDto
-    class GenerationStatusResponseDto
-    class GeneratedScheduleResponseDto
-    class RegenerateScheduleRequestDto
-    class RecommendationRequestDto
-    class RecommendationResponseDto
-    class WeatherImpactRequestDto
-    class WeatherImpactResponseDto
-    
-    ' Supporting DTOs
-    class TripMemberDto
-    class TripDestinationDto
-    class DailyScheduleDto
-    class PlaceScheduleDto
-    class GenerationStepDto
-    class ScheduleMetadataDto
-    class ExistingScheduleDto
-    class UserProfileDto
-    class TripContextDto
-    class PlaceRecommendationDto
-    class RecommendationTipsDto
-    class AlternativePlaceDto
-    class ScheduleForAnalysisDto
-    class AnalysisPlaceDto
-    class WeatherChangeDto
-    class ImpactedDayDto
-    class WeatherDto
-    class TemperatureDto
-    class TransportationDto
-    class ParkingInfoDto
-    class HealthConsiderationDto
-    class OptionalActivitiesDto
-    class WeatherConsiderationDto
+' ========== External Client Layer ==========
+package "External Client Layer" {
+    interface AIEngineClient {
+        +submitScheduleGeneration(): AIEngineResponse
+        +getGenerationStatus(): AIEngineStatusResponse
+        +generateRecommendations(): AIEngineRecommendationResponse
+    }
+
+    class AIEngineClientImpl {
+        -restTemplate: RestTemplate
+        -aiEngineConfig: AIEngineConfig
+    }
+
+    interface WeatherApiClient {
+        +getCurrentWeather(): WeatherApiResponse
+        +getWeatherForecast(): WeatherForecastResponse
+    }
+
+    class WeatherApiClientImpl {
+        -restTemplate: RestTemplate
+        -weatherApiConfig: WeatherApiConfig
+    }
+
+    interface LocationApiClient {
+        +getLocationDetails(): LocationApiResponse
+        +searchPlaces(): LocationSearchResponse
+        +calculateRoute(): RouteApiResponse
+    }
+
+    class LocationApiClientImpl {
+        -restTemplate: RestTemplate
+        -locationApiConfig: LocationApiConfig
+    }
 }
 
-' ===== Configuration Layer =====
-package "com.unicorn.tripgen.ai.config" <<Container>> {
-    class AIServiceConfig
-    class AIModelConfig
+' ========== Configuration ==========
+package "Configuration Layer" {
+    class AIServiceConfig {
+        +aiEngineConfig: AIEngineConfig
+        +cacheConfig: CacheConfig
+        +messagingConfig: MessagingConfig
+    }
+}
+
+' ========== Common Components ==========
+package "Common Components" {
+    class ApiResponse
+    class BaseException
+    class BaseTimeEntity
     class CacheConfig
-    class AsyncConfig
 }
 
-' ===== Exception Layer =====
-package "com.unicorn.tripgen.ai.exception" <<Container>> {
-    class AIServiceException
-    class AIModelException
-    class GenerationTimeoutException
-    class ScheduleNotFoundException
-    class RecommendationNotFoundException
-}
+' ========== Relationships ==========
 
-' ===== Event Layer =====
-package "com.unicorn.tripgen.ai.event" <<Container>> {
-    class ScheduleGenerationStartedEvent
-    class ScheduleGenerationCompletedEvent
-    class ScheduleGenerationFailedEvent
-}
+' Controller to Service
+AIScheduleController --> AIScheduleService
+AIRecommendationController --> AIRecommendationService
 
-' ===== Model Layer =====
-package "com.unicorn.tripgen.ai.model" <<Container>> {
-    class DailySchedule
-    class PlaceSchedule
-    class PlaceRecommendation
-    class RecommendationTips
-    class AlternativePlace
-    class Weather
-    class Temperature
-    class Transportation
-    class ParkingInfo
-    class HealthConsideration
-    class OptionalActivities
-    class WeatherConsideration
-}
+' Service Implementation
+AIScheduleService <|.. AIScheduleServiceImpl
+AIRecommendationService <|.. AIRecommendationServiceImpl
+WeatherService <|.. WeatherServiceImpl
+LocationService <|.. LocationServiceImpl
+CacheService <|.. CacheServiceImpl
+MessagingService <|.. MessagingServiceImpl
 
-' ===== Layer Relationships =====
-' Interface Implementations
-AIScheduleServiceImpl ..|> AIScheduleService : implements
-AIRecommendationServiceImpl ..|> AIRecommendationService : implements
-GenerationStatusServiceImpl ..|> GenerationStatusService : implements
-OpenAIModelService ..|> AIModelService : implements
-GeminiModelService ..|> AIModelService : implements
+' Service Dependencies
+AIScheduleServiceImpl --> AIRequestRepository
+AIScheduleServiceImpl --> AIScheduleRepository
+AIScheduleServiceImpl --> AIEngineClient
+AIScheduleServiceImpl --> WeatherService
+AIScheduleServiceImpl --> LocationService
+AIScheduleServiceImpl --> CacheService
 
-' Controller to Service Dependencies
-AIScheduleController --> AIScheduleService : uses
-AIScheduleController --> GenerationStatusService : uses
-AIRecommendationController --> AIRecommendationService : uses
+AIRecommendationServiceImpl --> AIRecommendationRepository
+AIRecommendationServiceImpl --> AIEngineClient
+AIRecommendationServiceImpl --> LocationService
 
-' Service to Repository Dependencies
-AIScheduleServiceImpl --> ScheduleRepository : uses
-AIScheduleServiceImpl --> GenerationStatusRepository : uses
-AIRecommendationServiceImpl --> RecommendationRepository : uses
-GenerationStatusServiceImpl --> GenerationStatusRepository : uses
+' Domain Relationships
+AIRequest --> TripMember
+AIRequest --> Destination
+AISchedule --> DaySchedule
+DaySchedule --> PlaceVisit
+PlaceVisit --> Transportation
+AIRecommendation --> RecommendationContent
 
-' Service to Model Dependencies
-AIScheduleServiceImpl --> AIModelService : uses
-AIRecommendationServiceImpl --> AIModelService : uses
-OpenAIModelService --> AIModelConfig : uses
-GeminiModelService --> AIModelConfig : uses
+' Repository Relationships
+AIRequestRepository --> AIRequestEntity
+AIScheduleRepository --> AIScheduleEntity
+AIRecommendationRepository --> AIRecommendationEntity
 
-' Entity Inheritance
-SchedulePlan --|> BaseTimeEntity : extends
-GenerationStatusEntity --|> BaseTimeEntity : extends
-PlaceRecommendationEntity --|> BaseTimeEntity : extends
+' Entity to Base
+AIRequestEntity --> BaseTimeEntity
+AIScheduleEntity --> BaseTimeEntity
+AIRecommendationEntity --> BaseTimeEntity
 
-' Exception Inheritance
-AIServiceException --|> BusinessException : extends
-AIModelException --|> InfraException : extends
-GenerationTimeoutException --|> InfraException : extends
-ScheduleNotFoundException --|> BusinessException : extends
-RecommendationNotFoundException --|> BusinessException : extends
+' Client Implementation
+AIEngineClient <|.. AIEngineClientImpl
+WeatherApiClient <|.. WeatherApiClientImpl
+LocationApiClient <|.. LocationApiClientImpl
 
-' Event Inheritance
-ScheduleGenerationStartedEvent --|> BaseEvent : extends
-ScheduleGenerationCompletedEvent --|> BaseEvent : extends
-ScheduleGenerationFailedEvent --|> BaseEvent : extends
-
-' Configuration Dependencies
-AIServiceConfig --> AIModelConfig : creates
-AIServiceConfig --> OpenAIModelService : creates
-AIServiceConfig --> GeminiModelService : creates
-CacheConfig --> CacheService : creates
+' Common Components
+AIScheduleController --> ApiResponse
+AIRecommendationController --> ApiResponse
+AIScheduleServiceImpl --> BaseException
+CacheServiceImpl --> CacheConfig
 
 @enduml

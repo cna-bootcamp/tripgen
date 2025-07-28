@@ -1,165 +1,178 @@
 @startuml
 !theme mono
 
-title Trip Service - Clean Architecture (Simplified)
+title Trip 서비스 클래스 설계 (간단 버전)
 
-' ===== USE CASE LAYER (INPUT PORTS) =====
-package "usecase/in" {
+package "UseCase (in)" {
     interface TripUseCase
     interface MemberUseCase
     interface DestinationUseCase
     interface ScheduleUseCase
 }
 
-' ===== USE CASE LAYER (OUTPUT PORTS) =====
-package "usecase/out" {
-    interface TripPort
-    interface MemberPort
-    interface DestinationPort
-    interface SchedulePort
-    interface AIServicePort
-    interface LocationServicePort
-    interface ExportServicePort
-    interface CachePort
-    interface EventPort
+package "Port (out)" {
+    interface TripRepository
+    interface MemberRepository
+    interface DestinationRepository
+    interface ScheduleRepository
+    interface AIService
+    interface ExportService
+    interface UserContextService
+    interface CacheService
+    interface EventPublisher
 }
 
-' ===== SERVICE LAYER =====
-package "service" {
+package "Service" {
     class TripService
     class MemberService
     class DestinationService
     class ScheduleService
 }
 
-' ===== DOMAIN LAYER =====
-package "domain" {
-    class Trip
-    class Member
-    class Destination
-    class Schedule
-    class Place
-    class Weather
-    class Transportation
-    class HealthConsideration
-    class ScheduleGenerationRequest
-    
-    enum TripStatus
-    enum TransportMode
-    enum Gender
-    enum HealthStatus
-    enum ActivityPreference
-    enum TransportType
-    enum AccessibilityFeature
-    enum GenerationRequestStatus
+package "Domain" {
+    class Trip {
+        +tripId: String
+        +userId: String
+        +tripName: String
+        +transportMode: TransportMode
+        +status: TripStatus
+        +startDate: LocalDate
+        +endDate: LocalDate
+    }
+
+    class Member {
+        +memberId: String
+        +tripId: String
+        +name: String
+        +age: Integer
+        +gender: Gender
+        +healthStatus: HealthStatus
+        +preferences: List<ActivityPreference>
+    }
+
+    class Destination {
+        +destinationId: String
+        +tripId: String
+        +destinationName: String
+        +nights: Integer
+        +accommodation: String
+        +checkInTime: LocalTime
+        +checkOutTime: LocalTime
+        +startDate: LocalDate
+        +endDate: LocalDate
+        +order: Integer
+    }
+
+    class Schedule {
+        +scheduleId: String
+        +tripId: String
+        +day: Integer
+        +date: LocalDate
+        +city: String
+        +weather: Weather
+        +places: List<Place>
+    }
+
+    class Place {
+        +placeId: String
+        +placeName: String
+        +category: String
+        +startTime: LocalTime
+        +duration: Integer
+        +transportation: Transportation
+        +healthConsideration: HealthConsideration
+        +order: Integer
+    }
+
+    enum TripStatus {
+        PLANNING
+        IN_PROGRESS
+        COMPLETED
+    }
+
+    enum TransportMode {
+        PUBLIC
+        CAR
+    }
 }
 
-' ===== CONTROLLER LAYER =====
-package "controller" {
+package "Controller" {
     class TripController
     class MemberController
     class DestinationController
     class ScheduleController
 }
 
-' ===== GATEWAY LAYER =====
-package "gateway" {
-    class TripJpaAdapter
-    class MemberJpaAdapter
-    class DestinationJpaAdapter
-    class ScheduleJpaAdapter
-    class AIServiceAdapter
-    class LocationServiceAdapter
-    class ExportServiceAdapter
-    class RedisCacheAdapter
-    class EventPublisherAdapter
+package "Gateway/Repository" {
+    class JpaTripRepository
+    class JpaMemberRepository
+    class JpaDestinationRepository
+    class JpaScheduleRepository
 }
 
-' ===== DTO LAYER =====
-package "dto" {
-    ' Command Objects
-    class CreateTripCommand
-    class UpdateTripCommand
-    class UpdateBasicInfoCommand
-    class TripListQuery
-    class CreateMemberCommand
-    class UpdateMemberCommand
-    class CreateDestinationCommand
-    class UpdateDestinationCommand
-    class UpdateDestinationsBatchCommand
-    class GenerateScheduleCommand
-    class UpdateScheduleCommand
-    class RegenerateScheduleCommand
-    class ExportScheduleCommand
-    
-    ' Response Objects
-    class TripSummary
-    class TripDetail
-    class TripDestinationResult
-    class ScheduleGenerationResult
-    class GenerationStatus
-    class ExportResult
-    class PlaceRecommendation
-    
-    ' External Service DTOs
-    class AIScheduleRequest
-    class AIScheduleResponse
-    class PlaceRecommendationRequest
-    class PlaceRecommendationResponse
-    class LocationInfo
+package "Gateway/External" {
+    class RestAIService
+    class PdfExportService
+    class ImageExportService
+    class SecurityContextUserService
+    class RedisCacheService
+    class ApplicationEventPublisher
 }
 
-' ===== RELATIONSHIPS =====
-' Clean Architecture Dependencies (Inner -> Outer)
-TripService --|> TripUseCase : implements
-MemberService --|> MemberUseCase : implements
-DestinationService --|> DestinationUseCase : implements
-ScheduleService --|> ScheduleUseCase : implements
+package "Entity" {
+    class TripEntity
+    class MemberEntity
+    class DestinationEntity
+    class ScheduleEntity
+}
 
-TripController --> TripUseCase : uses
-MemberController --> MemberUseCase : uses
-DestinationController --> DestinationUseCase : uses
-ScheduleController --> ScheduleUseCase : uses
+' Use Case Implementations
+TripUseCase <|.. TripService
+MemberUseCase <|.. MemberService
+DestinationUseCase <|.. DestinationService
+ScheduleUseCase <|.. ScheduleService
 
-TripJpaAdapter --|> TripPort : implements
-MemberJpaAdapter --|> MemberPort : implements
-DestinationJpaAdapter --|> DestinationPort : implements
-ScheduleJpaAdapter --|> SchedulePort : implements
-AIServiceAdapter --|> AIServicePort : implements
-LocationServiceAdapter --|> LocationServicePort : implements
-ExportServiceAdapter --|> ExportServicePort : implements
-RedisCacheAdapter --|> CachePort : implements
-EventPublisherAdapter --|> EventPort : implements
+' Repository Implementations
+TripRepository <|.. JpaTripRepository
+MemberRepository <|.. JpaMemberRepository
+DestinationRepository <|.. JpaDestinationRepository
+ScheduleRepository <|.. JpaScheduleRepository
 
-TripService --> TripPort : uses
-TripService --> MemberPort : uses
-TripService --> DestinationPort : uses
-TripService --> CachePort : uses
-TripService --> EventPort : uses
-
-MemberService --> MemberPort : uses
-MemberService --> TripPort : uses
-MemberService --> CachePort : uses
-
-DestinationService --> DestinationPort : uses
-DestinationService --> TripPort : uses
-DestinationService --> LocationServicePort : uses
-DestinationService --> CachePort : uses
-
-ScheduleService --> SchedulePort : uses
-ScheduleService --> TripPort : uses
-ScheduleService --> AIServicePort : uses
-ScheduleService --> ExportServicePort : uses
-ScheduleService --> CachePort : uses
-ScheduleService --> EventPort : uses
+' Service Implementations
+AIService <|.. RestAIService
+ExportService <|.. PdfExportService
+ExportService <|.. ImageExportService
+UserContextService <|.. SecurityContextUserService
+CacheService <|.. RedisCacheService
+EventPublisher <|.. ApplicationEventPublisher
 
 ' Domain Relationships
-Trip ||--o{ Member : contains
-Trip ||--o{ Destination : contains
-Trip ||--o{ Schedule : contains
-Schedule ||--o{ Place : contains
-Schedule ||--o{ Weather : has
-Place ||--o{ Transportation : has
-Place ||--o{ HealthConsideration : has
+Trip ||--o{ Member
+Trip ||--o{ Destination
+Trip ||--o{ Schedule
+Schedule ||--o{ Place
+
+' Controller Dependencies
+TripController --> TripUseCase
+MemberController --> MemberUseCase
+DestinationController --> DestinationUseCase
+ScheduleController --> ScheduleUseCase
+
+' Service Dependencies
+TripService --> TripRepository
+TripService --> UserContextService
+TripService --> CacheService
+TripService --> EventPublisher
+
+MemberService --> MemberRepository
+MemberService --> TripRepository
+
+DestinationService --> DestinationRepository
+DestinationService --> TripRepository
+
+ScheduleService --> ScheduleRepository
+ScheduleService --> AIService
+ScheduleService --> ExportService
+ScheduleService --> CacheService
 
 @enduml

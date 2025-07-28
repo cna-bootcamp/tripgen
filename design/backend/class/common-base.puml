@@ -1,219 +1,115 @@
 @startuml
 !theme mono
 
-title Common Base Components - 공통 기본 컴포넌트
+title 공통 베이스 컴포넌트 설계
 
-' ===== Common Exception Hierarchy =====
-package "com.unicorn.tripgen.common.exception" {
-    abstract class BaseException {
-        -errorCode: ErrorCode
-        -message: String
-        -details: String
-        +BaseException(errorCode: ErrorCode, message: String)
-        +BaseException(errorCode: ErrorCode, message: String, details: String)
-        +getErrorCode(): ErrorCode
-        +getDetails(): String
-    }
-    
-    class BusinessException extends BaseException {
-        +BusinessException(errorCode: ErrorCode, message: String)
-    }
-    
-    class ValidationException extends BaseException {
-        +ValidationException(errorCode: ErrorCode, message: String)
-    }
-    
-    class InfraException extends BaseException {
-        +InfraException(errorCode: ErrorCode, message: String)
-    }
-    
-    enum ErrorCode {
-        +USER_NOT_FOUND
-        +INVALID_CREDENTIALS
-        +DUPLICATE_USERNAME
-        +DUPLICATE_EMAIL
-        +VALIDATION_ERROR
-        +UNAUTHORIZED
-        +FORBIDDEN
-        +INTERNAL_SERVER_ERROR
-        +TRIP_NOT_FOUND
-        +LOCATION_NOT_FOUND
-        +AI_SERVICE_ERROR
-        -code: String
-        -message: String
-        +ErrorCode(code: String, message: String)
-        +getCode(): String
-        +getMessage(): String
-    }
-}
-
-' ===== Common DTO Components =====
-package "com.unicorn.tripgen.common.dto" {
+package "Common Response" {
     class ApiResponse<T> {
-        -success: boolean
-        -message: String
-        -data: T
-        -timestamp: LocalDateTime
-        +ApiResponse()
+        +success: boolean
+        +message: String
+        +data: T
+        +timestamp: LocalDateTime
         +ApiResponse(success: boolean, message: String, data: T)
         +success(data: T): ApiResponse<T>
-        +error(message: String): ApiResponse<Void>
-        +getSuccess(): boolean
-        +getMessage(): String
-        +getData(): T
-        +getTimestamp(): LocalDateTime
+        +error(message: String): ApiResponse<T>
     }
-    
-    class PageRequest {
-        -page: int
-        -size: int
-        -sort: String
-        +PageRequest()
-        +PageRequest(page: int, size: int)
-        +PageRequest(page: int, size: int, sort: String)
-        +getPage(): int
-        +getSize(): int
-        +getSort(): String
-    }
-    
-    class PageResponse<T> {
-        -content: List<T>
-        -totalElements: long
-        -totalPages: int
-        -currentPage: int
-        -size: int
-        -hasNext: boolean
-        -hasPrevious: boolean
-        +PageResponse()
-        +PageResponse(content: List<T>, totalElements: long, currentPage: int, size: int)
-        +getContent(): List<T>
-        +getTotalElements(): long
-        +getTotalPages(): int
-        +getCurrentPage(): int
-        +getSize(): int
-        +isHasNext(): boolean
-        +isHasPrevious(): boolean
-    }
-    
-    class SuccessResponse {
-        -message: String
-        -timestamp: LocalDateTime
-        +SuccessResponse()
-        +SuccessResponse(message: String)
-        +getMessage(): String
-        +getTimestamp(): LocalDateTime
+
+    class ErrorResponse {
+        +errorCode: String
+        +errorMessage: String
+        +details: Map<String, Object>
+        +path: String
+        +timestamp: LocalDateTime
+        +ErrorResponse(errorCode: String, errorMessage: String, path: String)
     }
 }
 
-' ===== Common Entity Base =====
-package "com.unicorn.tripgen.common.entity" {
+package "Common Exception" {
+    abstract class BaseException {
+        +errorCode: String
+        +message: String
+        +BaseException(errorCode: String, message: String)
+        +getErrorCode(): String
+    }
+
+    class BusinessException {
+        +BusinessException(errorCode: String, message: String)
+    }
+
+    class ValidationException {
+        +field: String
+        +rejectedValue: Object
+        +ValidationException(field: String, message: String, rejectedValue: Object)
+    }
+
+    class ResourceNotFoundException {
+        +resourceType: String
+        +resourceId: String
+        +ResourceNotFoundException(resourceType: String, resourceId: String)
+    }
+}
+
+package "Common Entity" {
     abstract class BaseTimeEntity {
-        -createdAt: LocalDateTime
-        -updatedAt: LocalDateTime
-        +BaseTimeEntity()
-        +getCreatedAt(): LocalDateTime
-        +getUpdatedAt(): LocalDateTime
-        +onPrePersist(): void
-        +onPreUpdate(): void
+        +createdAt: LocalDateTime
+        +updatedAt: LocalDateTime
+        +onCreate(): void
+        +onUpdate(): void
+    }
+
+    abstract class BaseEntity {
+        +id: Long
+        +version: Long
+        +equals(obj: Object): boolean
+        +hashCode(): int
     }
 }
 
-' ===== Common Utility =====
-package "com.unicorn.tripgen.common.util" {
-    class PasswordEncoder {
-        +encode(rawPassword: String): String
-        +matches(rawPassword: String, encodedPassword: String): boolean
-    }
-    
-    class JwtTokenProvider {
-        -secretKey: String
-        -tokenValidityInSeconds: long
-        +generateToken(userDetails: UserDetails): String
-        +validateToken(token: String): boolean
-        +getUsernameFromToken(token: String): String
-        +getExpirationDateFromToken(token: String): Date
-    }
-    
-    class ValidationUtils {
-        +isValidEmail(email: String): boolean
-        +isValidUsername(username: String): boolean
-        +isValidPassword(password: String): boolean
-        +isValidPhoneNumber(phoneNumber: String): boolean
-    }
-    
-    class DateTimeUtils {
+package "Common Utility" {
+    class DateTimeUtil {
         +now(): LocalDateTime
         +format(dateTime: LocalDateTime, pattern: String): String
-        +parse(dateString: String, pattern: String): LocalDateTime
+        +parse(dateTimeString: String, pattern: String): LocalDateTime
+        +isValidDateTimeRange(start: LocalDateTime, end: LocalDateTime): boolean
     }
-}
 
-' ===== Common Cache Service =====
-package "com.unicorn.tripgen.common.service" {
-    interface CacheService {
-        +put(key: String, value: Object): void
-        +put(key: String, value: Object, ttl: Duration): void
-        +get(key: String, type: Class<T>): T
-        +delete(key: String): void
-        +exists(key: String): boolean
-        +clear(): void
+    class ValidationUtil {
+        +isValidEmail(email: String): boolean
+        +isValidPassword(password: String): boolean
+        +isValidPhoneNumber(phoneNumber: String): boolean
+        +sanitizeInput(input: String): String
     }
-    
-    class RedisCacheService implements CacheService {
-        -redisTemplate: RedisTemplate<String, Object>
-        +RedisCacheService(redisTemplate: RedisTemplate<String, Object>)
-        +put(key: String, value: Object): void
-        +put(key: String, value: Object, ttl: Duration): void
-        +get(key: String, type: Class<T>): T
-        +delete(key: String): void
-        +exists(key: String): boolean
-        +clear(): void
-    }
-}
 
-' ===== Security Components =====
-package "com.unicorn.tripgen.common.security" {
-    class SecurityUtils {
-        +getCurrentUserId(): String
-        +getCurrentUsername(): String
-        +hasRole(role: String): boolean
-        +isAuthenticated(): boolean
-    }
-    
-    interface AuthenticationService {
-        +authenticate(username: String, password: String): String
+    class SecurityUtil {
+        +encryptPassword(password: String): String
+        +verifyPassword(rawPassword: String, encodedPassword: String): boolean
+        +generateToken(userId: Long): String
         +validateToken(token: String): boolean
-        +logout(token: String): void
+        +extractUserIdFromToken(token: String): Long
     }
 }
 
-' ===== Event Components =====
-package "com.unicorn.tripgen.common.event" {
-    abstract class BaseEvent {
-        -eventId: String
-        -timestamp: LocalDateTime
-        -eventType: String
-        +BaseEvent()
-        +BaseEvent(eventType: String)
-        +getEventId(): String
-        +getTimestamp(): LocalDateTime
-        +getEventType(): String
+package "Common Configuration" {
+    interface CacheConfig {
+        +getCacheName(): String
+        +getTtl(): Duration
     }
-    
-    interface EventPublisher {
-        +publish(event: BaseEvent): void
-    }
-    
-    interface EventHandler<T extends BaseEvent> {
-        +handle(event: T): void
+
+    class RedisCacheConfig {
+        +redisTemplate: RedisTemplate
+        +getCacheName(): String
+        +getTtl(): Duration
+        +configureRedisTemplate(): RedisTemplate
     }
 }
 
-' ===== Relationships =====
-ApiResponse ..> BaseException : uses
-BusinessException --> ErrorCode : uses
-ValidationException --> ErrorCode : uses
-InfraException --> ErrorCode : uses
-BaseTimeEntity <|-- "all entities" : extends
+' Relationships
+BaseException <|-- BusinessException
+BaseException <|-- ValidationException
+BaseException <|-- ResourceNotFoundException
+
+BaseTimeEntity <|-- BaseEntity
+
+CacheConfig <|.. RedisCacheConfig
 
 @enduml
