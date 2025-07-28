@@ -1,110 +1,105 @@
 @startuml
 !theme mono
 
-title Location Service - 클래스 설계 (요약)
+title Location Service - Layered Architecture (Simple)
 
-' 패키지 정의
-package "com.tripgen.location.presentation.controller" {
+' ===== Controller Layer =====
+package "com.unicorn.tripgen.location.controller" {
     class LocationController
 }
 
-package "com.tripgen.location.application.service" {
-    class LocationSearchService
-    class PlaceDetailService
-    class BusinessHoursService
-    class RecommendationService
-    class ValidationService
-    class TransportCalculator
-    class ReviewService
-}
-
-package "com.tripgen.location.domain.model" {
-    class Place
-    class Location
-    class PlaceDetails extends Place
-    class BusinessHours
-    class AIRecommendation
-    class Review
-    enum PlaceCategory
-    enum TransportMode
-    enum Region
-}
-
-package "com.tripgen.location.domain.repository" {
-    interface LocationRepository
-    interface RecommendationRepository
-    interface ReviewRepository
-}
-
-package "com.tripgen.location.infrastructure.client" {
-    interface GoogleMapsClient
-    class GoogleMapsClientImpl implements GoogleMapsClient
-    interface GooglePlacesClient
-    interface GoogleDirectionsClient
+' ===== Service Layer =====
+package "com.unicorn.tripgen.location.service" {
+    interface LocationService
+    class LocationServiceImpl
+    interface ExternalApiService
+    class GooglePlacesService
+    interface WeatherService
+    class OpenWeatherService
     interface AIServiceClient
+    class AIServiceClientImpl
 }
 
-package "com.tripgen.location.infrastructure.persistence" {
-    class LocationRepositoryImpl implements LocationRepository
-    class RecommendationRepositoryImpl implements RecommendationRepository
+' ===== Repository Layer =====
+package "com.unicorn.tripgen.location.repository" {
+    interface PlaceRepository
+    interface ReviewRepository
+    interface AIRecommendationRepository
 }
 
-package "com.tripgen.location.infrastructure.cache" {
-    interface CacheManager
-    class RedisCacheManager implements CacheManager
+' ===== Entity Layer =====
+package "com.unicorn.tripgen.location.entity" {
+    class Place
+    class Review
+    class AIRecommendation
+    class AlternativePlace
+    enum PlaceCategory
+    enum Region
+    enum TransportMode
+    enum SortType
 }
 
-package "com.tripgen.location.presentation.dto.request" {
+' ===== DTO Layer =====
+package "com.unicorn.tripgen.location.dto" {
     class NearbySearchRequest
-}
-
-package "com.tripgen.location.presentation.dto.response" {
     class NearbySearchResponse
     class KeywordSearchResponse
     class PlaceCard
+    class PlaceDetails
+    class LocationDto
+    class LocationInfo
+    class BusinessHours
+    class DayHours
+    class ContactInfo
+    class AIRecommendationDto
+    class TipsDto
+    class AlternativePlaceDto
+    class ReviewDto
+    class SearchOptions
+    class Coordinates
+    class ExternalPlaceData
+    class WeatherInfo
+    class WeatherForecast
+    class AIRecommendationRequest
+    enum AIProcessingStatus
 }
 
-package "com.tripgen.location.common.exception" {
-    class PlaceNotFoundException extends RuntimeException
-    class InvalidLocationException extends RuntimeException
-    class ExternalAPIException extends RuntimeException
+' ===== Config Layer =====
+package "com.unicorn.tripgen.location.config" {
+    class LocationConfig
+    class ExternalApiConfig
+    class CacheConfig
 }
 
-' 관계 정의
-LocationController --> LocationSearchService
-LocationController --> PlaceDetailService
-LocationController --> BusinessHoursService
-LocationController --> RecommendationService
-LocationController --> ValidationService
+' ===== Layer Dependencies (Simplified) =====
+LocationController --> LocationService
+LocationServiceImpl --|> LocationService
+LocationServiceImpl --> PlaceRepository
+LocationServiceImpl --> ExternalApiService
+LocationServiceImpl --> AIServiceClient
+LocationServiceImpl --> WeatherService
 
-LocationSearchService --> LocationRepository
-LocationSearchService --> GoogleMapsClient
-LocationSearchService --> CacheManager
-LocationSearchService --> TransportCalculator
+GooglePlacesService --|> ExternalApiService
+OpenWeatherService --|> WeatherService
+AIServiceClientImpl --|> AIServiceClient
 
-PlaceDetailService --> LocationRepository
-PlaceDetailService --> GooglePlacesClient
-PlaceDetailService --> ReviewService
-PlaceDetailService --> CacheManager
+PlaceRepository --> Place
+ReviewRepository --> Review
+AIRecommendationRepository --> AIRecommendation
 
-BusinessHoursService --> GooglePlacesClient
-BusinessHoursService --> CacheManager
-
-RecommendationService --> RecommendationRepository
-RecommendationService --> AIServiceClient
-RecommendationService --> CacheManager
-
-TransportCalculator --> GoogleDirectionsClient
-
-ReviewService --> ReviewRepository
-
-Place --> Location
 Place --> PlaceCategory
+Place --> Region
+AIRecommendation --> AlternativePlace
 
+NearbySearchRequest --> LocationDto
+NearbySearchResponse --> PlaceCard
+PlaceDetails --> LocationInfo
 PlaceDetails --> BusinessHours
-PlaceDetails --> AIRecommendation
-PlaceDetails --> Review
+PlaceDetails --> AIRecommendationDto
+AIRecommendationDto --> TipsDto
 
-Location --> Region
+LocationConfig --> GooglePlacesService
+LocationConfig --> OpenWeatherService
+LocationConfig --> AIServiceClient
 
 @enduml

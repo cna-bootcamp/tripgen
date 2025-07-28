@@ -1,105 +1,76 @@
 @startuml
 !theme mono
 
-title User Service - 클래스 설계 (요약)
+title User Service - 클래스 설계 간소화 (Layered Architecture)
 
-' 패키지 정의
-package "com.tripgen.user.presentation.controller" {
+' ===== Controller Layer =====
+package "com.unicorn.tripgen.user.controller" {
     class UserController
 }
 
-package "com.tripgen.user.application.service" {
-    class UserService
-    class AuthService
-    class ValidationService
-    class JwtTokenService
-    class SessionService
-    class ImageService
-    class EmailService
+' ===== Service Layer =====
+package "com.unicorn.tripgen.user.service" {
+    interface UserService
+    class UserServiceImpl
+    interface ValidationService
+    class ValidationServiceImpl
+    interface AuthService
+    class AuthServiceImpl
+    interface ImageService
+    class ImageServiceImpl
+    interface EmailService
+    class EmailServiceImpl
 }
 
-package "com.tripgen.user.domain.model" {
-    class User
-    enum UserStatus
-    class AuthResult
-    class TokenPair
-    class SessionInfo
-    class ValidationResult
-    enum PasswordStrength
-}
-
-package "com.tripgen.user.domain.repository" {
+' ===== Repository Layer =====
+package "com.unicorn.tripgen.user.repository" {
     interface UserRepository
+    class UserRepositoryImpl
 }
 
-package "com.tripgen.user.infrastructure.persistence" {
-    class UserRepositoryImpl implements UserRepository
+' ===== Entity Layer =====
+package "com.unicorn.tripgen.user.entity" {
+    class UserEntity
+    enum Gender
+    enum UserStatus
 }
 
-package "com.tripgen.user.infrastructure.storage" {
-    interface FileStorageService
-    class S3StorageService implements FileStorageService
-}
-
-package "com.tripgen.user.infrastructure.security" {
-    interface PasswordEncoder
-    class BCryptPasswordEncoder implements PasswordEncoder
-}
-
-package "com.tripgen.user.infrastructure.cache" {
-    interface CacheManager
-    class RedisCacheManager implements CacheManager
-}
-
-package "com.tripgen.user.presentation.dto.request" {
+' ===== DTO Layer =====
+package "com.unicorn.tripgen.user.dto" {
     class RegisterRequest
-    class LoginRequest
-    class UpdateProfileRequest
-    class ChangePasswordRequest
-}
-
-package "com.tripgen.user.presentation.dto.response" {
     class RegisterResponse
+    class LoginRequest
     class LoginResponse
     class UserProfile
+    class UpdateProfileRequest
+    class ChangePasswordRequest
+    class AvatarUploadResponse
+    class UsernameCheckResponse
+    class EmailCheckResponse
 }
 
-package "com.tripgen.user.common.exception" {
-    class UserNotFoundException extends RuntimeException
-    class DuplicateUserException extends RuntimeException
-    class InvalidCredentialsException extends RuntimeException
-    class AccountLockedException extends RuntimeException
+' ===== Config Layer =====
+package "com.unicorn.tripgen.user.config" {
+    class UserConfig
+    class SecurityConfig
+    class ValidationConfig
 }
 
-' 관계 정의
-UserController --> UserService
-UserController --> AuthService
-UserController --> ValidationService
-UserController --> ImageService
-UserController --> JwtTokenService
+' ===== Relationships =====
+UserController --> UserService : depends
+UserController --> ValidationService : depends
+UserController --> AuthService : depends
+UserController --> ImageService : depends
 
-UserService --> UserRepository
-UserService --> PasswordEncoder
-UserService --> EmailService
-UserService --> CacheManager
+UserServiceImpl ..|> UserService : implements
+UserServiceImpl --> UserRepository : depends
 
-AuthService --> UserRepository
-AuthService --> PasswordEncoder
-AuthService --> JwtTokenService
-AuthService --> SessionService
-AuthService --> CacheManager
+ValidationServiceImpl ..|> ValidationService : implements
+AuthServiceImpl ..|> AuthService : implements
+ImageServiceImpl ..|> ImageService : implements
+EmailServiceImpl ..|> EmailService : implements
 
-ImageService --> FileStorageService
-ImageService --> UserRepository
-
-SessionService --> CacheManager
-
-User --> UserStatus
-
-AuthResult --> User
-AuthResult --> TokenPair
-AuthResult --> SessionInfo
-
-ValidationResult --> PasswordStrength
+UserRepositoryImpl ..|> UserRepository : implements
+UserEntity --|> BaseTimeEntity : extends
 
 @enduml

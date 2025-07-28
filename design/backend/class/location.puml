@@ -1,428 +1,615 @@
 @startuml
 !theme mono
 
-title Location Service - 클래스 설계
+title Location Service - Layered Architecture (Detailed)
 
-' 패키지 정의
-package "com.tripgen.location.presentation.controller" {
+' ===== Controller Layer =====
+package "com.unicorn.tripgen.location.controller" {
     class LocationController {
-        - locationSearchService: LocationSearchService
-        - placeDetailService: PlaceDetailService
-        - businessHoursService: BusinessHoursService
-        - recommendationService: RecommendationService
-        - validationService: ValidationService
-        --
-        + searchNearbyPlaces(NearbySearchRequest): ResponseEntity<NearbySearchResponse>
-          (/search/nearby 주변 장소 검색)
-        + searchByKeyword(keyword: String, latitude: Double, longitude: Double, radius: Integer, category: String, sort: String, page: Integer, size: Integer): ResponseEntity<KeywordSearchResponse>
-          (/search/keyword 키워드 검색)
-        + getPlaceDetails(placeId: String, includeAI: Boolean, includeReviews: Boolean): ResponseEntity<PlaceDetails>
-          (/places/{placeId} 장소 상세정보 조회)
-        + getPlaceRecommendations(placeId: String, tripId: String): ResponseEntity<Map<String, Object>>
-          (/locations/{placeId}/recommendations 장소의 AI 추천정보 조회)
-        + getBusinessHours(placeId: String): ResponseEntity<BusinessHours>
-          (/places/{placeId}/business-hours 실시간 영업시간 조회)
+        -locationService: LocationService
+        -cacheService: CacheService
+        +LocationController(locationService: LocationService, cacheService: CacheService)
+        +searchNearbyPlaces(request: NearbySearchRequest): ApiResponse<NearbySearchResponse>
+        +searchByKeyword(keyword: String, latitude: Double, longitude: Double, radius: Integer, category: String, sort: String, page: Integer, size: Integer): ApiResponse<KeywordSearchResponse>
+        +getPlaceDetails(placeId: String, includeAI: Boolean, includeReviews: Boolean): ApiResponse<PlaceDetails>
+        +getPlaceRecommendations(placeId: String, tripId: String): ApiResponse<Object>
+        +getBusinessHours(placeId: String): ApiResponse<BusinessHours>
+        -buildPlaceDetailsResponse(place: Place, aiRecommendation: AIRecommendation, reviews: List<Review>): PlaceDetails
+        -validateSearchRequest(request: NearbySearchRequest): void
+        -buildPageResponse(places: List<Place>, totalCount: Long, currentPage: Integer, size: Integer): PageResponse<PlaceCard>
     }
 }
 
-package "com.tripgen.location.application.service" {
-    class LocationSearchService {
-        - locationRepository: LocationRepository
-        - googleMapsClient: GoogleMapsClient
-        - cacheManager: CacheManager
-        - transportCalculator: TransportCalculator
-        --
-        + searchNearby(request: NearbySearchRequest): NearbySearchResponse
-        + searchByKeyword(keyword: String, location: Location, radius: Integer, category: String, sort: String, page: Integer, size: Integer): KeywordSearchResponse
-        - calculateTravelTime(origin: Location, destination: Location, mode: String): Integer
-        - filterByTimeRange(places: List<Place>, origin: Location, mode: String, timeRange: Integer): List<Place>
-        - sortPlaces(places: List<Place>, sortBy: String): List<Place>
+' ===== Service Layer =====
+package "com.unicorn.tripgen.location.service" {
+    interface LocationService {
+        +searchNearbyPlaces(request: NearbySearchRequest): NearbySearchResponse
+        +searchByKeyword(keyword: String, coordinates: Coordinates, searchOptions: SearchOptions): KeywordSearchResponse
+        +getPlaceDetails(placeId: String, includeAI: Boolean, includeReviews: Boolean): PlaceDetails
+        +getPlaceRecommendationsCached(placeId: String, tripId: String): Object
+        +getBusinessHours(placeId: String): BusinessHours
+        +cachePlaceData(place: Place): void
+        +invalidateCache(placeId: String): void
     }
-
-    class PlaceDetailService {
-        - locationRepository: LocationRepository
-        - googlePlacesClient: GooglePlacesClient
-        - aiRecommendationService: AIRecommendationService
-        - reviewService: ReviewService
-        - cacheManager: CacheManager
-        --
-        + getPlaceDetails(placeId: String, includeAI: Boolean, includeReviews: Boolean): PlaceDetails
-        + enrichPlaceWithAI(place: PlaceDetails): PlaceDetails
-        - fetchPlaceFromAPI(placeId: String): PlaceDetails
-        - cachePlace(place: PlaceDetails): void
+    
+    class LocationServiceImpl implements LocationService {
+        -placeRepository: PlaceRepository
+        -cacheService: CacheService
+        -externalApiService: ExternalApiService
+        -aiServiceClient: AIServiceClient
+        -weatherService: WeatherService
+        +LocationServiceImpl(placeRepository: PlaceRepository, cacheService: CacheService, externalApiService: ExternalApiService, aiServiceClient: AIServiceClient, weatherService: WeatherService)
+        +searchNearbyPlaces(request: NearbySearchRequest): NearbySearchResponse
+        +searchByKeyword(keyword: String, coordinates: Coordinates, searchOptions: SearchOptions): KeywordSearchResponse
+        +getPlaceDetails(placeId: String, includeAI: Boolean, includeReviews: Boolean): PlaceDetails
+        +getPlaceRecommendationsCached(placeId: String, tripId: String): Object
+        +getBusinessHours(placeId: String): BusinessHours
+        +cachePlaceData(place: Place): void
+        +invalidateCache(placeId: String): void
+        -mergeExternalData(place: Place, externalData: ExternalPlaceData): Place
+        -filterByCategory(places: List<Place>, category: PlaceCategory): List<Place>
+        -sortPlaces(places: List<Place>, sortType: SortType): List<Place>
+        -calculateTravelTime(origin: Coordinates, destination: Coordinates, transportMode: TransportMode): Integer
+        -buildCacheKey(prefix: String, params: String): String
+        -requestAIRecommendation(placeId: String, tripId: String): void
     }
-
-    class BusinessHoursService {
-        - googlePlacesClient: GooglePlacesClient
-        - cacheManager: CacheManager
-        - timeZoneService: TimeZoneService
-        --
-        + getCurrentBusinessHours(placeId: String): BusinessHours
-        + isCurrentlyOpen(placeId: String): boolean
-        - parseOpeningHours(apiResponse: OpeningHoursResponse): BusinessHours
-        - adjustForTimeZone(hours: BusinessHours, timeZone: String): BusinessHours
+    
+    interface ExternalApiService {
+        +searchPlacesByLocation(coordinates: Coordinates, radius: Integer, category: PlaceCategory): List<ExternalPlaceData>
+        +searchPlacesByKeyword(keyword: String, coordinates: Coordinates, radius: Integer): List<ExternalPlaceData>
+        +getPlaceDetails(placeId: String): ExternalPlaceData
+        +getBusinessHours(placeId: String): BusinessHours
+        +getPlacePhotos(placeId: String): List<String>
     }
-
-    class RecommendationService {
-        - recommendationRepository: RecommendationRepository
-        - aiServiceClient: AIServiceClient
-        - userProfileService: UserProfileService
-        - cacheManager: CacheManager
-        - messageQueueService: MessageQueueService
-        --
-        + getRecommendations(placeId: String, tripId: String): Map<String, Object>
-        + generateRecommendation(placeId: String, userProfile: UserProfile): void
-        - checkCache(placeId: String): Optional<Recommendation>
-        - requestAIGeneration(placeId: String, userProfile: UserProfile): String
-        - pollRecommendationStatus(requestId: String): RecommendationStatus
+    
+    class GooglePlacesService implements ExternalApiService {
+        -googleApiKey: String
+        -restTemplate: RestTemplate
+        -rateLimiter: RateLimiter
+        +GooglePlacesService(googleApiKey: String, restTemplate: RestTemplate)
+        +searchPlacesByLocation(coordinates: Coordinates, radius: Integer, category: PlaceCategory): List<ExternalPlaceData>
+        +searchPlacesByKeyword(keyword: String, coordinates: Coordinates, radius: Integer): List<ExternalPlaceData>
+        +getPlaceDetails(placeId: String): ExternalPlaceData
+        +getBusinessHours(placeId: String): BusinessHours
+        +getPlacePhotos(placeId: String): List<String>
+        -buildSearchUrl(coordinates: Coordinates, radius: Integer, type: String): String
+        -parseGoogleResponse(response: String): List<ExternalPlaceData>
+        -handleApiError(response: String): void
+        -applyRateLimit(): void
     }
-
-    class ValidationService {
-        - coordinateValidator: CoordinateValidator
-        - categoryValidator: CategoryValidator
-        --
-        + validateNearbySearchRequest(request: NearbySearchRequest): ValidationResult
-        + validateKeywordSearch(keyword: String, location: Location): ValidationResult
-        + validateCoordinates(latitude: Double, longitude: Double): boolean
-        + validateCategory(category: String): boolean
-        + validateTimeRange(timeRange: Integer): boolean
+    
+    interface WeatherService {
+        +getCurrentWeather(coordinates: Coordinates): WeatherInfo
+        +getWeatherForecast(coordinates: Coordinates, days: Integer): List<WeatherForecast>
     }
-
-    class TransportCalculator {
-        - googleDirectionsClient: GoogleDirectionsClient
-        - transitService: TransitService
-        --
-        + calculateTravelTime(origin: Location, destination: Location, mode: TransportMode): Integer
-        + calculateDistance(origin: Location, destination: Location): Double
-        - getOptimalRoute(origin: Location, destination: Location, mode: TransportMode): Route
+    
+    class OpenWeatherService implements WeatherService {
+        -apiKey: String
+        -restTemplate: RestTemplate
+        +OpenWeatherService(apiKey: String, restTemplate: RestTemplate)
+        +getCurrentWeather(coordinates: Coordinates): WeatherInfo
+        +getWeatherForecast(coordinates: Coordinates, days: Integer): List<WeatherForecast>
+        -buildWeatherUrl(coordinates: Coordinates, endpoint: String): String
+        -parseWeatherResponse(response: String): WeatherInfo
     }
-
-    class ReviewService {
-        - reviewRepository: ReviewRepository
-        - translationService: TranslationService
-        --
-        + getTopReviews(placeId: String, limit: Integer): List<Review>
-        + translateReview(review: Review, targetLanguage: String): Review
-        - filterRelevantReviews(reviews: List<Review>): List<Review>
-    }
-}
-
-package "com.tripgen.location.domain.model" {
-    class Place {
-        - placeId: String
-        - name: String
-        - category: PlaceCategory
-        - location: Location
-        - rating: Double
-        - reviewCount: Integer
-        - priceLevel: Integer
-        - images: List<String>
-        - description: String
-        - tags: List<String>
-        --
-        + calculateDistance(from: Location): Double
-        + isInCategory(category: String): boolean
-        + hasTag(tag: String): boolean
-    }
-
-    class Location {
-        - latitude: Double
-        - longitude: Double
-        - address: String
-        - searchKeyword: String
-        - parkingKeyword: String
-        - region: Region
-        --
-        + distanceTo(other: Location): Double
-        + toCoordinates(): String
-        + isValid(): boolean
-    }
-
-    class PlaceDetails extends Place {
-        - businessHours: BusinessHours
-        - contact: ContactInfo
-        - aiRecommendation: AIRecommendation
-        - reviews: List<Review>
-        - amenities: List<String>
-        - accessibility: AccessibilityInfo
-        --
-        + isOpenNow(): boolean
-        + getTopReviews(count: Integer): List<Review>
-    }
-
-    class BusinessHours {
-        - isOpen: boolean
-        - currentStatus: String
-        - todayHours: String
-        - weeklyHours: List<DayHours>
-        - specialHours: List<SpecialHours>
-        --
-        + getHoursForDay(day: DayOfWeek): String
-        + isOpenAt(dateTime: LocalDateTime): boolean
-        + getNextOpenTime(): LocalDateTime
-    }
-
-    class AIRecommendation {
-        - recommendReason: String
-        - tips: RecommendationTips
-        - generatedAt: LocalDateTime
-        - confidence: Double
-        --
-        + isExpired(): boolean
-        + getMainReasons(): List<String>
-    }
-
-    class Review {
-        - reviewId: String
-        - authorName: String
-        - rating: Integer
-        - text: String
-        - time: Long
-        - relativeTimeDescription: String
-        - language: String
-        - helpfulCount: Integer
-        --
-        + getAge(): Duration
-        + isRecent(): boolean
-    }
-
-    enum PlaceCategory {
-        ALL
-        TOURIST
-        RESTAURANT
-        LAUNDRY
-        SHOPPING
-        ENTERTAINMENT
-        ACCOMMODATION
-    }
-
-    enum TransportMode {
-        PUBLIC_TRANSPORT
-        CAR
-        WALKING
-        BICYCLE
-    }
-
-    enum Region {
-        DOMESTIC
-        INTERNATIONAL
-    }
-}
-
-package "com.tripgen.location.domain.repository" {
-    interface LocationRepository {
-        + findById(placeId: String): Optional<Place>
-        + findNearby(center: Location, radius: Double, category: PlaceCategory): List<Place>
-        + searchByKeyword(keyword: String, center: Location, radius: Double): List<Place>
-        + savePlace(place: Place): Place
-        + updatePlace(place: Place): Place
-        + existsById(placeId: String): boolean
-    }
-
-    interface RecommendationRepository {
-        + findByPlaceId(placeId: String): Optional<AIRecommendation>
-        + save(recommendation: AIRecommendation): AIRecommendation
-        + deleteByPlaceId(placeId: String): void
-        + findExpiredRecommendations(): List<AIRecommendation>
-    }
-
-    interface ReviewRepository {
-        + findByPlaceId(placeId: String): List<Review>
-        + findTopRatedByPlaceId(placeId: String, limit: Integer): List<Review>
-        + saveReviews(placeId: String, reviews: List<Review>): void
-    }
-}
-
-package "com.tripgen.location.infrastructure.client" {
-    interface GoogleMapsClient {
-        + nearbySearch(request: NearbySearchRequest): NearbySearchResponse
-        + placeDetails(placeId: String): PlaceDetailsResponse
-        + textSearch(query: String, location: Location): TextSearchResponse
-    }
-
-    class GoogleMapsClientImpl implements GoogleMapsClient {
-        - apiKey: String
-        - httpClient: HttpClient
-        - rateLimiter: RateLimiter
-        --
-        + nearbySearch(request: NearbySearchRequest): NearbySearchResponse
-        + placeDetails(placeId: String): PlaceDetailsResponse
-        + textSearch(query: String, location: Location): TextSearchResponse
-        - buildRequest(endpoint: String, params: Map<String, String>): HttpRequest
-        - parseResponse(response: HttpResponse): Object
-    }
-
-    interface GooglePlacesClient {
-        + getPlaceDetails(placeId: String): PlaceDetailsResponse
-        + getOpeningHours(placeId: String): OpeningHoursResponse
-        + getPhotos(photoReference: String): byte[]
-    }
-
-    interface GoogleDirectionsClient {
-        + getDirections(origin: Location, destination: Location, mode: TransportMode): DirectionsResponse
-        + getTransitDetails(origin: Location, destination: Location): TransitResponse
-    }
-
+    
     interface AIServiceClient {
-        + requestRecommendation(placeId: String, context: RecommendationContext): String
-        + getRecommendationStatus(requestId: String): RecommendationStatus
-        + getRecommendation(requestId: String): AIRecommendation
+        +requestRecommendation(placeId: String, tripId: String): void
+        +getRecommendationStatus(placeId: String): AIProcessingStatus
+    }
+    
+    class AIServiceClientImpl implements AIServiceClient {
+        -aiServiceUrl: String
+        -restTemplate: RestTemplate
+        -messageQueue: MessageQueue
+        +AIServiceClientImpl(aiServiceUrl: String, restTemplate: RestTemplate, messageQueue: MessageQueue)
+        +requestRecommendation(placeId: String, tripId: String): void
+        +getRecommendationStatus(placeId: String): AIProcessingStatus
+        -sendAsyncRequest(request: AIRecommendationRequest): void
+        -handleAIServiceError(error: Exception): void
     }
 }
 
-package "com.tripgen.location.infrastructure.persistence" {
-    class LocationRepositoryImpl implements LocationRepository {
-        - mongoTemplate: MongoTemplate
-        - locationMapper: LocationMapper
-        --
-        + findById(placeId: String): Optional<Place>
-        + findNearby(center: Location, radius: Double, category: PlaceCategory): List<Place>
-        + searchByKeyword(keyword: String, center: Location, radius: Double): List<Place>
-        + savePlace(place: Place): Place
-        + updatePlace(place: Place): Place
-        + existsById(placeId: String): boolean
-        - createGeoQuery(center: Location, radius: Double): Query
+' ===== Repository Layer =====
+package "com.unicorn.tripgen.location.repository" {
+    interface PlaceRepository extends JpaRepository<Place, String> {
+        +findByPlaceId(placeId: String): Optional<Place>
+        +findByCoordinatesNear(latitude: Double, longitude: Double, distance: Double): List<Place>
+        +findByNameContainingIgnoreCase(name: String): List<Place>
+        +findByCategoryAndCoordinatesNear(category: PlaceCategory, latitude: Double, longitude: Double, distance: Double): List<Place>
+        +findByPlaceIdIn(placeIds: Set<String>): List<Place>
+        +existsByPlaceId(placeId: String): Boolean
+        +countByCategoryAndCoordinatesNear(category: PlaceCategory, latitude: Double, longitude: Double, distance: Double): Long
     }
-
-    class RecommendationRepositoryImpl implements RecommendationRepository {
-        - mongoTemplate: MongoTemplate
-        --
-        + findByPlaceId(placeId: String): Optional<AIRecommendation>
-        + save(recommendation: AIRecommendation): AIRecommendation
-        + deleteByPlaceId(placeId: String): void
-        + findExpiredRecommendations(): List<AIRecommendation>
+    
+    interface ReviewRepository extends JpaRepository<Review, String> {
+        +findByPlaceIdOrderByCreatedAtDesc(placeId: String, pageable: Pageable): List<Review>
+        +findByPlaceIdAndLanguage(placeId: String, language: String): List<Review>
+        +countByPlaceId(placeId: String): Long
+        +findTopByPlaceIdOrderByRatingDesc(placeId: String): Optional<Review>
     }
-}
-
-package "com.tripgen.location.infrastructure.cache" {
-    interface CacheManager {
-        + get(key: String): Optional<Object>
-        + put(key: String, value: Object, ttl: Long): void
-        + evict(key: String): void
-        + exists(key: String): boolean
-    }
-
-    class RedisCacheManager implements CacheManager {
-        - redisTemplate: RedisTemplate
-        - defaultTTL: Long = 3600
-        --
-        + get(key: String): Optional<Object>
-        + put(key: String, value: Object, ttl: Long): void
-        + evict(key: String): void
-        + exists(key: String): boolean
-        - generateKey(prefix: String, id: String): String
+    
+    interface AIRecommendationRepository extends JpaRepository<AIRecommendation, String> {
+        +findByPlaceId(placeId: String): Optional<AIRecommendation>
+        +findByPlaceIdAndTripId(placeId: String, tripId: String): Optional<AIRecommendation>
+        +deleteByPlaceId(placeId: String): void
+        +findByPlaceIdInAndGeneratedAtAfter(placeIds: Set<String>, generatedAt: LocalDateTime): List<AIRecommendation>
+        +existsByPlaceIdAndGeneratedAtAfter(placeId: String, generatedAt: LocalDateTime): Boolean
     }
 }
 
-package "com.tripgen.location.presentation.dto.request" {
+' ===== Entity Layer =====
+package "com.unicorn.tripgen.location.entity" {
+    class Place extends BaseTimeEntity {
+        -id: String
+        -placeId: String
+        -name: String
+        -category: PlaceCategory
+        -description: String
+        -rating: Double
+        -reviewCount: Integer
+        -priceLevel: Integer
+        -latitude: Double
+        -longitude: Double
+        -address: String
+        -searchKeyword: String
+        -parkingKeyword: String
+        -region: Region
+        -phone: String
+        -website: String
+        -imageUrls: List<String>
+        -isActive: Boolean
+        -lastUpdated: LocalDateTime
+        +Place()
+        +Place(placeId: String, name: String, category: PlaceCategory)
+        +updateBasicInfo(name: String, description: String, rating: Double): void
+        +updateLocation(latitude: Double, longitude: Double, address: String): void
+        +updateContactInfo(phone: String, website: String): void
+        +addImageUrl(imageUrl: String): void
+        +removeImageUrl(imageUrl: String): void
+        +getCoordinates(): Coordinates
+        +calculateDistanceTo(coordinates: Coordinates): Double
+        +isInternational(): Boolean
+        +markAsUpdated(): void
+    }
+    
+    class Review extends BaseTimeEntity {
+        -id: String
+        -reviewId: String
+        -placeId: String
+        -authorName: String
+        -rating: Integer
+        -text: String
+        -language: String
+        -reviewTime: LocalDateTime
+        -relativeTimeDescription: String
+        -isVerified: Boolean
+        +Review()
+        +Review(reviewId: String, placeId: String, authorName: String, rating: Integer, text: String)
+        +updateContent(text: String, rating: Integer): void
+        +setVerificationStatus(isVerified: Boolean): void
+        +isRecentReview(): Boolean
+        +getReviewAge(): Long
+    }
+    
+    class AIRecommendation extends BaseTimeEntity {
+        -id: String
+        -placeId: String
+        -tripId: String
+        -recommendReason: String
+        -description: String
+        -specialEvents: String
+        -bestVisitTime: String
+        -estimatedDuration: String
+        -photoSpots: List<String>
+        -practicalTips: List<String>
+        -weatherTips: String
+        -alternativePlaces: List<AlternativePlace>
+        -generatedAt: LocalDateTime
+        -isValid: Boolean
+        -cacheExpiry: LocalDateTime
+        +AIRecommendation()
+        +AIRecommendation(placeId: String, tripId: String)
+        +updateRecommendation(recommendReason: String, description: String): void
+        +addPhotoSpot(photoSpot: String): void
+        +addPracticalTip(tip: String): void
+        +addAlternativePlace(place: AlternativePlace): void
+        +isExpired(): Boolean
+        +extendCacheExpiry(hours: Integer): void
+        +markAsGenerated(): void
+    }
+    
+    class AlternativePlace {
+        -name: String
+        -reason: String
+        -distance: String
+        +AlternativePlace()
+        +AlternativePlace(name: String, reason: String, distance: String)
+    }
+    
+    enum PlaceCategory {
+        +ALL
+        +TOURIST
+        +RESTAURANT
+        +LAUNDRY
+        +ACCOMMODATION
+        +SHOPPING
+        +ENTERTAINMENT
+        +TRANSPORT
+        -displayName: String
+        +PlaceCategory(displayName: String)
+        +getDisplayName(): String
+        +fromString(category: String): PlaceCategory
+    }
+    
+    enum Region {
+        +DOMESTIC
+        +INTERNATIONAL
+        -displayName: String
+        +Region(displayName: String)
+        +getDisplayName(): String
+    }
+    
+    enum TransportMode {
+        +PUBLIC_TRANSPORT
+        +CAR
+        +WALKING
+        -displayName: String
+        +TransportMode(displayName: String)
+        +getDisplayName(): String
+    }
+    
+    enum SortType {
+        +DISTANCE
+        +RATING
+        +NAME
+        +REVIEWS
+        -displayName: String
+        +SortType(displayName: String)
+        +getDisplayName(): String
+    }
+}
+
+' ===== DTO Layer =====
+package "com.unicorn.tripgen.location.dto" {
     class NearbySearchRequest {
-        - origin: Location
-        - transportMode: String
-        - timeRange: Integer
-        - category: String
-        - sort: String
-        - page: Integer
-        - size: Integer
+        -origin: LocationDto
+        -transportMode: String
+        -timeRange: Integer
+        -category: String
+        -sort: String
+        -page: Integer
+        -size: Integer
+        +NearbySearchRequest()
+        +validate(): void
+        +getCoordinates(): Coordinates
+        +getTransportMode(): TransportMode
+        +getPlaceCategory(): PlaceCategory
+        +getSortType(): SortType
     }
-}
-
-package "com.tripgen.location.presentation.dto.response" {
+    
     class NearbySearchResponse {
-        - totalCount: Integer
-        - page: Integer
-        - size: Integer
-        - hasNext: Boolean
-        - places: List<PlaceCard>
+        -totalCount: Integer
+        -page: Integer
+        -size: Integer
+        -hasNext: Boolean
+        -places: List<PlaceCard>
+        +NearbySearchResponse()
+        +NearbySearchResponse(places: List<PlaceCard>, totalCount: Integer, page: Integer, size: Integer)
+        +addPlace(place: PlaceCard): void
+        +isEmpty(): Boolean
     }
-
+    
     class KeywordSearchResponse {
-        - keyword: String
-        - totalCount: Integer
-        - page: Integer
-        - size: Integer
-        - hasNext: Boolean
-        - places: List<PlaceCard>
+        -keyword: String
+        -totalCount: Integer
+        -page: Integer
+        -size: Integer
+        -hasNext: Boolean
+        -places: List<PlaceCard>
+        +KeywordSearchResponse()
+        +KeywordSearchResponse(keyword: String, places: List<PlaceCard>, totalCount: Integer, page: Integer, size: Integer)
+        +addPlace(place: PlaceCard): void
+        +isEmpty(): Boolean
     }
-
+    
     class PlaceCard {
-        - placeId: String
-        - name: String
-        - category: String
-        - rating: Double
-        - reviewCount: Integer
-        - address: String
-        - distance: Integer
-        - travelTime: Integer
-        - imageUrl: String
+        -placeId: String
+        -name: String
+        -category: String
+        -rating: Double
+        -reviewCount: Integer
+        -address: String
+        -distance: Integer
+        -travelTime: Integer
+        -imageUrl: String
+        +PlaceCard()
+        +PlaceCard(placeId: String, name: String, category: String)
+        +updateTravelInfo(distance: Integer, travelTime: Integer): void
+        +hasImage(): Boolean
+    }
+    
+    class PlaceDetails {
+        -placeId: String
+        -name: String
+        -category: String
+        -description: String
+        -rating: Double
+        -reviewCount: Integer
+        -priceLevel: Integer
+        -images: List<String>
+        -location: LocationInfo
+        -businessHours: BusinessHours
+        -contact: ContactInfo
+        -aiRecommendation: AIRecommendationDto
+        -reviews: List<ReviewDto>
+        +PlaceDetails()
+        +PlaceDetails(placeId: String, name: String, category: String)
+        +setAIRecommendation(aiRecommendation: AIRecommendationDto): void
+        +addReview(review: ReviewDto): void
+        +hasAIRecommendation(): Boolean
+    }
+    
+    class LocationDto {
+        -latitude: Double
+        -longitude: Double
+        -address: String
+        +LocationDto()
+        +LocationDto(latitude: Double, longitude: Double)
+        +validate(): void
+        +getCoordinates(): Coordinates
+        +calculateDistanceTo(other: LocationDto): Double
+    }
+    
+    class LocationInfo {
+        -latitude: Double
+        -longitude: Double
+        -address: String
+        -searchKeyword: String
+        -parkingKeyword: String
+        -region: String
+        +LocationInfo()
+        +LocationInfo(latitude: Double, longitude: Double, address: String)
+        +getCoordinates(): Coordinates
+        +isInternational(): Boolean
+    }
+    
+    class BusinessHours {
+        -isOpen: Boolean
+        -currentStatus: String
+        -todayHours: String
+        -weeklyHours: List<DayHours>
+        +BusinessHours()
+        +BusinessHours(isOpen: Boolean, currentStatus: String, todayHours: String)
+        +addDayHours(dayHours: DayHours): void
+        +isCurrentlyOpen(): Boolean
+    }
+    
+    class DayHours {
+        -day: String
+        -hours: String
+        -isToday: Boolean
+        +DayHours()
+        +DayHours(day: String, hours: String, isToday: Boolean)
+    }
+    
+    class ContactInfo {
+        -phone: String
+        -website: String
+        +ContactInfo()
+        +ContactInfo(phone: String, website: String)
+        +hasContact(): Boolean
+    }
+    
+    class AIRecommendationDto {
+        -recommendReason: String
+        -tips: TipsDto
+        +AIRecommendationDto()
+        +AIRecommendationDto(recommendReason: String, tips: TipsDto)
+        +hasTips(): Boolean
+    }
+    
+    class TipsDto {
+        -description: String
+        -specialEvents: String
+        -bestVisitTime: String
+        -estimatedDuration: String
+        -photoSpots: List<String>
+        -practicalTips: List<String>
+        -weatherTips: String
+        -alternativePlaces: List<AlternativePlaceDto>
+        +TipsDto()
+        +addPhotoSpot(photoSpot: String): void
+        +addPracticalTip(tip: String): void
+        +addAlternativePlace(place: AlternativePlaceDto): void
+    }
+    
+    class AlternativePlaceDto {
+        -name: String
+        -reason: String
+        +AlternativePlaceDto()
+        +AlternativePlaceDto(name: String, reason: String)
+    }
+    
+    class ReviewDto {
+        -reviewId: String
+        -authorName: String
+        -rating: Integer
+        -text: String
+        -time: Long
+        -relativeTimeDescription: String
+        -language: String
+        +ReviewDto()
+        +ReviewDto(reviewId: String, authorName: String, rating: Integer, text: String)
+        +isPositiveReview(): Boolean
+        +getFormattedTime(): String
+    }
+    
+    class SearchOptions {
+        -radius: Integer
+        -category: PlaceCategory
+        -sortType: SortType
+        -page: Integer
+        -size: Integer
+        +SearchOptions()
+        +SearchOptions(radius: Integer, category: PlaceCategory, sortType: SortType)
+        +validate(): void
+        +getOffset(): Integer
+    }
+    
+    class Coordinates {
+        -latitude: Double
+        -longitude: Double
+        +Coordinates()
+        +Coordinates(latitude: Double, longitude: Double)
+        +validate(): void
+        +calculateDistanceTo(other: Coordinates): Double
+        +isValid(): Boolean
+    }
+    
+    class ExternalPlaceData {
+        -placeId: String
+        -name: String
+        -category: String
+        -rating: Double
+        -reviewCount: Integer
+        -latitude: Double
+        -longitude: Double
+        -address: String
+        -phone: String
+        -website: String
+        -imageUrls: List<String>
+        -businessHours: BusinessHours
+        +ExternalPlaceData()
+        +ExternalPlaceData(placeId: String, name: String)
+        +toPlace(): Place
+        +hasValidData(): Boolean
+    }
+    
+    class WeatherInfo {
+        -temperature: Double
+        -humidity: Integer
+        -description: String
+        -iconCode: String
+        +WeatherInfo()
+        +WeatherInfo(temperature: Double, humidity: Integer, description: String)
+        +getFormattedTemperature(): String
+        +isGoodWeather(): Boolean
+    }
+    
+    class WeatherForecast {
+        -date: LocalDate
+        -temperature: Double
+        -humidity: Integer
+        -description: String
+        -iconCode: String
+        +WeatherForecast()
+        +WeatherForecast(date: LocalDate, temperature: Double, description: String)
+        +getFormattedDate(): String
+        +isSuitableForOutdoor(): Boolean
+    }
+    
+    class AIRecommendationRequest {
+        -placeId: String
+        -tripId: String
+        -userPreferences: Map<String, Object>
+        +AIRecommendationRequest()
+        +AIRecommendationRequest(placeId: String, tripId: String)
+        +addPreference(key: String, value: Object): void
+        +validate(): void
+    }
+    
+    enum AIProcessingStatus {
+        +REQUESTED
+        +PROCESSING
+        +COMPLETED
+        +FAILED
+        -displayName: String
+        +AIProcessingStatus(displayName: String)
+        +getDisplayName(): String
     }
 }
 
-package "com.tripgen.location.common.exception" {
-    class PlaceNotFoundException extends RuntimeException {
-        - placeId: String
-        --
-        + PlaceNotFoundException(String)
+' ===== Config Layer =====
+package "com.unicorn.tripgen.location.config" {
+    class LocationConfig {
+        +googlePlacesService(googleApiKey: String, restTemplate: RestTemplate): GooglePlacesService
+        +openWeatherService(weatherApiKey: String, restTemplate: RestTemplate): OpenWeatherService
+        +aiServiceClient(aiServiceUrl: String, restTemplate: RestTemplate, messageQueue: MessageQueue): AIServiceClient
+        +rateLimiter(): RateLimiter
+        +cacheManager(): CacheManager
     }
-
-    class InvalidLocationException extends RuntimeException {
-        - latitude: Double
-        - longitude: Double
-        --
-        + InvalidLocationException(Double, Double)
+    
+    class ExternalApiConfig {
+        -googleApiKey: String
+        -weatherApiKey: String
+        -aiServiceUrl: String
+        -googleApiBaseUrl: String
+        -weatherApiBaseUrl: String
+        -requestTimeout: Integer
+        -maxRetries: Integer
+        +restTemplate(): RestTemplate
+        +httpClientConnectionManager(): PoolingHttpClientConnectionManager
+        +configureTimeouts(factory: ClientHttpRequestFactory): void
     }
-
-    class ExternalAPIException extends RuntimeException {
-        - apiName: String
-        - statusCode: Integer
-        --
-        + ExternalAPIException(String, Integer, String)
+    
+    class CacheConfig {
+        -redisHost: String
+        -redisPort: Integer
+        -redisPassword: String
+        -defaultTtl: Duration
+        -maxCacheSize: Long
+        +redisConnectionFactory(): LettuceConnectionFactory
+        +redisTemplate(): RedisTemplate<String, Object>
+        +cacheManager(): RedisCacheManager
+        +cacheKeyGenerator(): KeyGenerator
     }
 }
 
-' 관계 정의
-LocationController --> LocationSearchService
-LocationController --> PlaceDetailService
-LocationController --> BusinessHoursService
-LocationController --> RecommendationService
-LocationController --> ValidationService
+' ===== Relationships =====
+LocationController --> LocationService : uses
+LocationController --> CacheService : uses
+LocationServiceImpl --> PlaceRepository : uses
+LocationServiceImpl --> CacheService : uses
+LocationServiceImpl --> ExternalApiService : uses
+LocationServiceImpl --> AIServiceClient : uses
+LocationServiceImpl --> WeatherService : uses
+GooglePlacesService --> RestTemplate : uses
+OpenWeatherService --> RestTemplate : uses
+AIServiceClientImpl --> RestTemplate : uses
+AIServiceClientImpl --> MessageQueue : uses
 
-LocationSearchService --> LocationRepository
-LocationSearchService --> GoogleMapsClient
-LocationSearchService --> CacheManager
-LocationSearchService --> TransportCalculator
+PlaceRepository --> Place : manages
+ReviewRepository --> Review : manages
+AIRecommendationRepository --> AIRecommendation : manages
 
-PlaceDetailService --> LocationRepository
-PlaceDetailService --> GooglePlacesClient
-PlaceDetailService --> ReviewService
-PlaceDetailService --> CacheManager
+Place --> PlaceCategory : uses
+Place --> Region : uses
+Place --> BaseTimeEntity : extends
+Review --> BaseTimeEntity : extends
+AIRecommendation --> BaseTimeEntity : extends
+AIRecommendation --> AlternativePlace : contains
 
-BusinessHoursService --> GooglePlacesClient
-BusinessHoursService --> CacheManager
+NearbySearchRequest --> LocationDto : contains
+NearbySearchResponse --> PlaceCard : contains
+KeywordSearchResponse --> PlaceCard : contains
+PlaceDetails --> LocationInfo : contains
+PlaceDetails --> BusinessHours : contains
+PlaceDetails --> ContactInfo : contains
+PlaceDetails --> AIRecommendationDto : contains
+PlaceDetails --> ReviewDto : contains
+AIRecommendationDto --> TipsDto : contains
+TipsDto --> AlternativePlaceDto : contains
+BusinessHours --> DayHours : contains
+SearchOptions --> PlaceCategory : uses
+SearchOptions --> SortType : uses
+ExternalPlaceData --> Place : converts
+AIRecommendationRequest --> Map : contains
 
-RecommendationService --> RecommendationRepository
-RecommendationService --> AIServiceClient
-RecommendationService --> CacheManager
-
-TransportCalculator --> GoogleDirectionsClient
-
-ReviewService --> ReviewRepository
-
-Place --> Location
-Place --> PlaceCategory
-
-PlaceDetails --|> Place
-PlaceDetails --> BusinessHours
-PlaceDetails --> AIRecommendation
-PlaceDetails --> Review
-
-Location --> Region
-
-LocationRepository <|.. LocationRepositoryImpl
-RecommendationRepository <|.. RecommendationRepositoryImpl
-ReviewRepository <|.. ReviewRepositoryImpl
-
-GoogleMapsClient <|.. GoogleMapsClientImpl
-
-CacheManager <|.. RedisCacheManager
+LocationConfig --> GooglePlacesService : creates
+LocationConfig --> OpenWeatherService : creates
+LocationConfig --> AIServiceClient : creates
+ExternalApiConfig --> RestTemplate : creates
+CacheConfig --> RedisTemplate : creates
 
 @enduml

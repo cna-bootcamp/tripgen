@@ -1,176 +1,219 @@
 @startuml
 !theme mono
 
-title 공통 기반 컴포넌트 클래스 다이어그램
+title Common Base Components - 공통 기본 컴포넌트
 
-package "com.unicorn.tripgen.common" {
-    
-    package "dto" {
-        class BaseResponse<T> {
-            -status: ResponseStatus
-            -message: String
-            -data: T
-            -timestamp: LocalDateTime
-            +success(data: T): BaseResponse<T>
-            +success(data: T, message: String): BaseResponse<T>
-            +error(message: String): BaseResponse<T>
-            +error(status: ResponseStatus, message: String): BaseResponse<T>
-        }
-        
-        enum ResponseStatus {
-            SUCCESS
-            ERROR
-            WARNING
-            INFO
-        }
-        
-        class PageRequest {
-            -page: int
-            -size: int
-            -sort: String
-            -direction: String
-            +of(page: int, size: int): PageRequest
-            +of(page: int, size: int, sort: String): PageRequest
-        }
-        
-        class PageResponse<T> {
-            -content: List<T>
-            -totalElements: long
-            -totalPages: int
-            -currentPage: int
-            -size: int
-            -hasNext: boolean
-            -hasPrevious: boolean
-        }
+' ===== Common Exception Hierarchy =====
+package "com.unicorn.tripgen.common.exception" {
+    abstract class BaseException {
+        -errorCode: ErrorCode
+        -message: String
+        -details: String
+        +BaseException(errorCode: ErrorCode, message: String)
+        +BaseException(errorCode: ErrorCode, message: String, details: String)
+        +getErrorCode(): ErrorCode
+        +getDetails(): String
     }
     
-    package "exception" {
-        abstract class BaseException {
-            -errorCode: String
-            -message: String
-            -cause: Throwable
-            +BaseException(errorCode: String, message: String)
-            +BaseException(errorCode: String, message: String, cause: Throwable)
-        }
-        
-        class BusinessException {
-            +BusinessException(message: String)
-            +BusinessException(errorCode: String, message: String)
-        }
-        
-        class ValidationException {
-            -fieldErrors: Map<String, String>
-            +ValidationException(message: String)
-            +ValidationException(fieldErrors: Map<String, String>)
-            +addFieldError(field: String, message: String): void
-        }
-        
-        class SystemException {
-            +SystemException(message: String)
-            +SystemException(message: String, cause: Throwable)
-        }
-        
-        class ResourceNotFoundException {
-            -resourceType: String
-            -resourceId: String
-            +ResourceNotFoundException(resourceType: String, resourceId: String)
-        }
-        
-        class DuplicateResourceException {
-            -resourceType: String
-            -conflictField: String
-            +DuplicateResourceException(resourceType: String, conflictField: String)
-        }
+    class BusinessException extends BaseException {
+        +BusinessException(errorCode: ErrorCode, message: String)
     }
     
-    package "util" {
-        class DateTimeUtil {
-            +now(): LocalDateTime
-            +format(dateTime: LocalDateTime, pattern: String): String
-            +parse(dateTimeString: String, pattern: String): LocalDateTime
-            +addDays(dateTime: LocalDateTime, days: int): LocalDateTime
-            +isBetween(target: LocalDateTime, start: LocalDateTime, end: LocalDateTime): boolean
-        }
-        
-        class ValidationUtil {
-            +isValidEmail(email: String): boolean
-            +isValidPhoneNumber(phoneNumber: String): boolean
-            +isValidPassword(password: String): boolean
-            +validateRequired(value: Object, fieldName: String): void
-            +validateLength(value: String, min: int, max: int, fieldName: String): void
-        }
-        
-        class StringUtil {
-            +isEmpty(str: String): boolean
-            +isNotEmpty(str: String): boolean
-            +trim(str: String): String
-            +maskEmail(email: String): String
-            +maskPhoneNumber(phoneNumber: String): String
-        }
-        
-        class SecurityUtil {
-            +encryptPassword(password: String): String
-            +verifyPassword(password: String, encryptedPassword: String): boolean
-            +generateToken(userId: String): String
-            +validateToken(token: String): boolean
-            +extractUserId(token: String): String
-        }
+    class ValidationException extends BaseException {
+        +ValidationException(errorCode: ErrorCode, message: String)
     }
     
-    package "config" {
-        interface DatabaseConfig {
-            +getDataSource(): DataSource
-            +getTransactionManager(): PlatformTransactionManager
-        }
-        
-        interface CacheConfig {
-            +getCacheManager(): CacheManager
-            +getRedisTemplate(): RedisTemplate<String, Object>
-        }
-        
-        interface SecurityConfig {
-            +getJwtSecret(): String
-            +getJwtExpirationTime(): long
-            +getPasswordEncoder(): PasswordEncoder
-        }
+    class InfraException extends BaseException {
+        +InfraException(errorCode: ErrorCode, message: String)
     }
     
-    package "constants" {
-        class ApiConstants {
-            +API_VERSION: String = "/api/v1"
-            +USER_API_PATH: String = "/users"
-            +TRIP_API_PATH: String = "/trips" 
-            +LOCATION_API_PATH: String = "/locations"
-            +AI_API_PATH: String = "/ai"
-        }
-        
-        class CacheConstants {
-            +USER_CACHE: String = "users"
-            +TRIP_CACHE: String = "trips"
-            +LOCATION_CACHE: String = "locations"
-            +AI_CACHE: String = "ai"
-            +DEFAULT_TTL: int = 3600
-        }
-        
-        class MessageConstants {
-            +SUCCESS_CREATE: String = "성공적으로 생성되었습니다"
-            +SUCCESS_UPDATE: String = "성공적으로 수정되었습니다"
-            +SUCCESS_DELETE: String = "성공적으로 삭제되었습니다"
-            +ERROR_NOT_FOUND: String = "요청한 리소스를 찾을 수 없습니다"
-            +ERROR_DUPLICATE: String = "이미 존재하는 리소스입니다"
-            +ERROR_VALIDATION: String = "입력값 검증에 실패했습니다"
-        }
+    enum ErrorCode {
+        +USER_NOT_FOUND
+        +INVALID_CREDENTIALS
+        +DUPLICATE_USERNAME
+        +DUPLICATE_EMAIL
+        +VALIDATION_ERROR
+        +UNAUTHORIZED
+        +FORBIDDEN
+        +INTERNAL_SERVER_ERROR
+        +TRIP_NOT_FOUND
+        +LOCATION_NOT_FOUND
+        +AI_SERVICE_ERROR
+        -code: String
+        -message: String
+        +ErrorCode(code: String, message: String)
+        +getCode(): String
+        +getMessage(): String
     }
 }
 
-' 관계 정의
-BaseException <|-- BusinessException
-BaseException <|-- ValidationException
-BaseException <|-- SystemException
-BaseException <|-- ResourceNotFoundException
-BaseException <|-- DuplicateResourceException
+' ===== Common DTO Components =====
+package "com.unicorn.tripgen.common.dto" {
+    class ApiResponse<T> {
+        -success: boolean
+        -message: String
+        -data: T
+        -timestamp: LocalDateTime
+        +ApiResponse()
+        +ApiResponse(success: boolean, message: String, data: T)
+        +success(data: T): ApiResponse<T>
+        +error(message: String): ApiResponse<Void>
+        +getSuccess(): boolean
+        +getMessage(): String
+        +getData(): T
+        +getTimestamp(): LocalDateTime
+    }
+    
+    class PageRequest {
+        -page: int
+        -size: int
+        -sort: String
+        +PageRequest()
+        +PageRequest(page: int, size: int)
+        +PageRequest(page: int, size: int, sort: String)
+        +getPage(): int
+        +getSize(): int
+        +getSort(): String
+    }
+    
+    class PageResponse<T> {
+        -content: List<T>
+        -totalElements: long
+        -totalPages: int
+        -currentPage: int
+        -size: int
+        -hasNext: boolean
+        -hasPrevious: boolean
+        +PageResponse()
+        +PageResponse(content: List<T>, totalElements: long, currentPage: int, size: int)
+        +getContent(): List<T>
+        +getTotalElements(): long
+        +getTotalPages(): int
+        +getCurrentPage(): int
+        +getSize(): int
+        +isHasNext(): boolean
+        +isHasPrevious(): boolean
+    }
+    
+    class SuccessResponse {
+        -message: String
+        -timestamp: LocalDateTime
+        +SuccessResponse()
+        +SuccessResponse(message: String)
+        +getMessage(): String
+        +getTimestamp(): LocalDateTime
+    }
+}
 
-BaseResponse --> ResponseStatus
-PageResponse --> PageRequest
+' ===== Common Entity Base =====
+package "com.unicorn.tripgen.common.entity" {
+    abstract class BaseTimeEntity {
+        -createdAt: LocalDateTime
+        -updatedAt: LocalDateTime
+        +BaseTimeEntity()
+        +getCreatedAt(): LocalDateTime
+        +getUpdatedAt(): LocalDateTime
+        +onPrePersist(): void
+        +onPreUpdate(): void
+    }
+}
+
+' ===== Common Utility =====
+package "com.unicorn.tripgen.common.util" {
+    class PasswordEncoder {
+        +encode(rawPassword: String): String
+        +matches(rawPassword: String, encodedPassword: String): boolean
+    }
+    
+    class JwtTokenProvider {
+        -secretKey: String
+        -tokenValidityInSeconds: long
+        +generateToken(userDetails: UserDetails): String
+        +validateToken(token: String): boolean
+        +getUsernameFromToken(token: String): String
+        +getExpirationDateFromToken(token: String): Date
+    }
+    
+    class ValidationUtils {
+        +isValidEmail(email: String): boolean
+        +isValidUsername(username: String): boolean
+        +isValidPassword(password: String): boolean
+        +isValidPhoneNumber(phoneNumber: String): boolean
+    }
+    
+    class DateTimeUtils {
+        +now(): LocalDateTime
+        +format(dateTime: LocalDateTime, pattern: String): String
+        +parse(dateString: String, pattern: String): LocalDateTime
+    }
+}
+
+' ===== Common Cache Service =====
+package "com.unicorn.tripgen.common.service" {
+    interface CacheService {
+        +put(key: String, value: Object): void
+        +put(key: String, value: Object, ttl: Duration): void
+        +get(key: String, type: Class<T>): T
+        +delete(key: String): void
+        +exists(key: String): boolean
+        +clear(): void
+    }
+    
+    class RedisCacheService implements CacheService {
+        -redisTemplate: RedisTemplate<String, Object>
+        +RedisCacheService(redisTemplate: RedisTemplate<String, Object>)
+        +put(key: String, value: Object): void
+        +put(key: String, value: Object, ttl: Duration): void
+        +get(key: String, type: Class<T>): T
+        +delete(key: String): void
+        +exists(key: String): boolean
+        +clear(): void
+    }
+}
+
+' ===== Security Components =====
+package "com.unicorn.tripgen.common.security" {
+    class SecurityUtils {
+        +getCurrentUserId(): String
+        +getCurrentUsername(): String
+        +hasRole(role: String): boolean
+        +isAuthenticated(): boolean
+    }
+    
+    interface AuthenticationService {
+        +authenticate(username: String, password: String): String
+        +validateToken(token: String): boolean
+        +logout(token: String): void
+    }
+}
+
+' ===== Event Components =====
+package "com.unicorn.tripgen.common.event" {
+    abstract class BaseEvent {
+        -eventId: String
+        -timestamp: LocalDateTime
+        -eventType: String
+        +BaseEvent()
+        +BaseEvent(eventType: String)
+        +getEventId(): String
+        +getTimestamp(): LocalDateTime
+        +getEventType(): String
+    }
+    
+    interface EventPublisher {
+        +publish(event: BaseEvent): void
+    }
+    
+    interface EventHandler<T extends BaseEvent> {
+        +handle(event: T): void
+    }
+}
+
+' ===== Relationships =====
+ApiResponse ..> BaseException : uses
+BusinessException --> ErrorCode : uses
+ValidationException --> ErrorCode : uses
+InfraException --> ErrorCode : uses
+BaseTimeEntity <|-- "all entities" : extends
 
 @enduml

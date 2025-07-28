@@ -1,229 +1,167 @@
 @startuml
 !theme mono
 
-title AI 서비스 간단 요약 클래스 다이어그램
+title AI Service - Simple Class Design (Layered Architecture)
 
-package "com.unicorn.tripgen.ai" {
-    
-    ' === Presentation Layer ===
-    package "controller" {
-        class AIScheduleController {
-            +generateAISchedule()
-            +getGenerationStatus()
-            +getGeneratedSchedule()
-            +regenerateDaySchedule()
-            +cancelGeneration()
-            +analyzeWeatherImpact()
-        }
-        
-        class AIRecommendationController {
-            +generatePlaceRecommendations()
-        }
-    }
-    
-    ' === Business Layer ===
-    package "service" {
-        class ScheduleGenerationServiceImpl {
-            +generateSchedule()
-            +getGenerationStatus()
-            +getGeneratedSchedule()
-            +regenerateSpecificDay()
-            +cancelGeneration()
-            +processGenerationTask()
-        }
-        
-        class AIRecommendationServiceImpl {
-            +generatePlaceRecommendations()
-            +processScheduleRecommendation()
-            +processSearchRecommendation()
-        }
-        
-        class ClaudeAIServiceImpl {
-            +generateOptimizedSchedule()
-            +regenerateDaySchedule()
-            +generateScheduleRecommendation()
-            +generateSearchRecommendation()
-        }
-        
-        class WeatherServiceImpl {
-            +getWeatherForecast()
-            +getWeatherRecommendation()
-            +analyzeWeatherImpact()
-        }
-        
-        class ContextEnrichmentServiceImpl {
-            +analyzeScheduleContext()
-            +analyzeSearchContext()
-            +extractMemberProfiles()
-            +analyzeTimeContext()
-        }
-        
-        class MessageQueueServiceImpl {
-            +publishGenerationTask()
-            +publishScheduleCompleted()
-            +publishPlaceSearchRequest()
-        }
-        
-        class RedisCacheServiceImpl {
-            +get()
-            +set()
-            +invalidate()
-            +checkWeatherCache()
-            +checkPlaceCache()
-        }
-    }
-    
-    ' === Persistence Layer ===
-    package "repository" {
-        class JpaGenerationRequestRepository {
-            +save()
-            +findById()
-            +findByTripId()
-            +updateStatus()
-        }
-        
-        class JpaGeneratedScheduleRepository {
-            +save()
-            +findByRequestId()
-            +updateDaySchedule()
-        }
-        
-        class RedisRecommendationRepository {
-            +save()
-            +findByPlaceId()
-            +findByPlaceIdAndContext()
-        }
-    }
-    
-    ' === Domain Layer ===
-    package "domain" {
-        class GenerationRequest {
-            -requestId: String
-            -tripId: String
-            -status: GenerationStatus
-            -members: List<TripMember>
-            -destinations: List<Destination>
-        }
-        
-        class GeneratedSchedule {
-            -requestId: String
-            -tripId: String
-            -schedules: List<DaySchedule>
-            -metadata: ScheduleMetadata
-        }
-        
-        class DaySchedule {
-            -day: Integer
-            -date: LocalDate
-            -weather: WeatherInfo
-            -places: List<PlaceSchedule>
-        }
-        
-        class PlaceRecommendation {
-            -placeId: String
-            -recommendations: RecommendationContent
-            -generatedAt: LocalDateTime
-        }
-        
-        enum GenerationStatus {
-            PENDING
-            PROCESSING
-            COMPLETED
-            FAILED
-            CANCELLED
-        }
-    }
-    
-    ' === External APIs ===
-    package "client" {
-        class ClaudeApiClientImpl {
-            +generateText()
-            +generateTextWithConfig()
-        }
-        
-        class WeatherApiClientImpl {
-            +getForecast()
-            +getCurrentWeather()
-        }
-    }
-    
-    ' === Utilities ===
-    package "util" {
-        class PromptBuilder {
-            +buildScheduleGenerationPrompt()
-            +buildRecommendationPrompt()
-            +buildRegeneratePrompt()
-        }
-        
-        class ResponseParser {
-            +parseScheduleResponse()
-            +parseRecommendationResponse()
-        }
-    }
+' ===== Controller Layer =====
+package "com.unicorn.tripgen.ai.controller" <<Container>> {
+    class AIScheduleController
+    class AIRecommendationController
+    class AIExceptionHandler
 }
 
-' === 주요 관계 ===
-AIScheduleController --> ScheduleGenerationServiceImpl : uses
-AIRecommendationController --> AIRecommendationServiceImpl : uses
+' ===== Service Layer =====
+package "com.unicorn.tripgen.ai.service" <<Container>> {
+    interface AIScheduleService
+    class AIScheduleServiceImpl
+    interface AIRecommendationService
+    class AIRecommendationServiceImpl
+    interface GenerationStatusService
+    class GenerationStatusServiceImpl
+    interface AIModelService
+    class OpenAIModelService
+    class GeminiModelService
+}
 
-ScheduleGenerationServiceImpl --> JpaGenerationRequestRepository : uses
-ScheduleGenerationServiceImpl --> JpaGeneratedScheduleRepository : uses
-ScheduleGenerationServiceImpl --> ClaudeAIServiceImpl : uses
-ScheduleGenerationServiceImpl --> WeatherServiceImpl : uses
-ScheduleGenerationServiceImpl --> MessageQueueServiceImpl : uses
-ScheduleGenerationServiceImpl --> RedisCacheServiceImpl : uses
+' ===== Repository Layer =====
+package "com.unicorn.tripgen.ai.repository" <<Container>> {
+    interface ScheduleRepository
+    interface GenerationStatusRepository
+    interface RecommendationRepository
+}
 
-AIRecommendationServiceImpl --> RedisRecommendationRepository : uses
-AIRecommendationServiceImpl --> ContextEnrichmentServiceImpl : uses
-AIRecommendationServiceImpl --> ClaudeAIServiceImpl : uses
-AIRecommendationServiceImpl --> RedisCacheServiceImpl : uses
+' ===== Entity Layer =====
+package "com.unicorn.tripgen.ai.entity" <<Container>> {
+    class SchedulePlan
+    class GenerationStatusEntity
+    class PlaceRecommendationEntity
+    enum GenerationStatus
+}
 
-ClaudeAIServiceImpl --> ClaudeApiClientImpl : uses
-ClaudeAIServiceImpl --> PromptBuilder : uses
-ClaudeAIServiceImpl --> ResponseParser : uses
+' ===== DTO Layer =====
+package "com.unicorn.tripgen.ai.dto" <<Container>> {
+    class GenerateScheduleRequestDto
+    class GenerateScheduleResponseDto
+    class GenerationStatusResponseDto
+    class GeneratedScheduleResponseDto
+    class RegenerateScheduleRequestDto
+    class RecommendationRequestDto
+    class RecommendationResponseDto
+    class WeatherImpactRequestDto
+    class WeatherImpactResponseDto
+    
+    ' Supporting DTOs
+    class TripMemberDto
+    class TripDestinationDto
+    class DailyScheduleDto
+    class PlaceScheduleDto
+    class GenerationStepDto
+    class ScheduleMetadataDto
+    class ExistingScheduleDto
+    class UserProfileDto
+    class TripContextDto
+    class PlaceRecommendationDto
+    class RecommendationTipsDto
+    class AlternativePlaceDto
+    class ScheduleForAnalysisDto
+    class AnalysisPlaceDto
+    class WeatherChangeDto
+    class ImpactedDayDto
+    class WeatherDto
+    class TemperatureDto
+    class TransportationDto
+    class ParkingInfoDto
+    class HealthConsiderationDto
+    class OptionalActivitiesDto
+    class WeatherConsiderationDto
+}
 
-WeatherServiceImpl --> WeatherApiClientImpl : uses
-WeatherServiceImpl --> RedisCacheServiceImpl : uses
+' ===== Configuration Layer =====
+package "com.unicorn.tripgen.ai.config" <<Container>> {
+    class AIServiceConfig
+    class AIModelConfig
+    class CacheConfig
+    class AsyncConfig
+}
 
-' === Domain 관계 ===
-GenerationRequest --> GenerationStatus : has
-GeneratedSchedule ||--o{ DaySchedule : contains
-DaySchedule ||--o{ PlaceSchedule : contains
+' ===== Exception Layer =====
+package "com.unicorn.tripgen.ai.exception" <<Container>> {
+    class AIServiceException
+    class AIModelException
+    class GenerationTimeoutException
+    class ScheduleNotFoundException
+    class RecommendationNotFoundException
+}
 
-note top of AIScheduleController
-**Presentation Layer**
-- REST API 엔드포인트 제공
-- 요청/응답 데이터 변환
-- 입력값 검증
-end note
+' ===== Event Layer =====
+package "com.unicorn.tripgen.ai.event" <<Container>> {
+    class ScheduleGenerationStartedEvent
+    class ScheduleGenerationCompletedEvent
+    class ScheduleGenerationFailedEvent
+}
 
-note top of ScheduleGenerationServiceImpl
-**Business Layer**
-- 핵심 비즈니스 로직 처리
-- 외부 서비스 연동 조합
-- 비동기 처리 관리
-- 트랜잭션 관리
-end note
+' ===== Model Layer =====
+package "com.unicorn.tripgen.ai.model" <<Container>> {
+    class DailySchedule
+    class PlaceSchedule
+    class PlaceRecommendation
+    class RecommendationTips
+    class AlternativePlace
+    class Weather
+    class Temperature
+    class Transportation
+    class ParkingInfo
+    class HealthConsideration
+    class OptionalActivities
+    class WeatherConsideration
+}
 
-note top of JpaGenerationRequestRepository
-**Persistence Layer**
-- 데이터베이스 연동
-- 엔티티 CRUD 작업
-- 쿼리 최적화
-end note
+' ===== Layer Relationships =====
+' Interface Implementations
+AIScheduleServiceImpl ..|> AIScheduleService : implements
+AIRecommendationServiceImpl ..|> AIRecommendationService : implements
+GenerationStatusServiceImpl ..|> GenerationStatusService : implements
+OpenAIModelService ..|> AIModelService : implements
+GeminiModelService ..|> AIModelService : implements
 
-note top of GenerationRequest
-**Domain Layer**
-- 핵심 비즈니스 엔티티
-- 도메인 규칙 구현
-- 데이터 무결성 보장
-end note
+' Controller to Service Dependencies
+AIScheduleController --> AIScheduleService : uses
+AIScheduleController --> GenerationStatusService : uses
+AIRecommendationController --> AIRecommendationService : uses
 
-note bottom of ClaudeApiClientImpl
-**External Integration**
-- Claude AI API 연동
-- OpenWeatherMap API 연동
-- 외부 서비스 장애 대응
-end note
+' Service to Repository Dependencies
+AIScheduleServiceImpl --> ScheduleRepository : uses
+AIScheduleServiceImpl --> GenerationStatusRepository : uses
+AIRecommendationServiceImpl --> RecommendationRepository : uses
+GenerationStatusServiceImpl --> GenerationStatusRepository : uses
+
+' Service to Model Dependencies
+AIScheduleServiceImpl --> AIModelService : uses
+AIRecommendationServiceImpl --> AIModelService : uses
+OpenAIModelService --> AIModelConfig : uses
+GeminiModelService --> AIModelConfig : uses
+
+' Entity Inheritance
+SchedulePlan --|> BaseTimeEntity : extends
+GenerationStatusEntity --|> BaseTimeEntity : extends
+PlaceRecommendationEntity --|> BaseTimeEntity : extends
+
+' Exception Inheritance
+AIServiceException --|> BusinessException : extends
+AIModelException --|> InfraException : extends
+GenerationTimeoutException --|> InfraException : extends
+ScheduleNotFoundException --|> BusinessException : extends
+RecommendationNotFoundException --|> BusinessException : extends
+
+' Event Inheritance
+ScheduleGenerationStartedEvent --|> BaseEvent : extends
+ScheduleGenerationCompletedEvent --|> BaseEvent : extends
+ScheduleGenerationFailedEvent --|> BaseEvent : extends
+
+' Configuration Dependencies
+AIServiceConfig --> AIModelConfig : creates
+AIServiceConfig --> OpenAIModelService : creates
+AIServiceConfig --> GeminiModelService : creates
+CacheConfig --> CacheService : creates
 
 @enduml
