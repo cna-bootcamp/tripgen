@@ -1,0 +1,236 @@
+@startuml
+!theme mono
+
+title AI 일정 생성 내부 시퀀스 (UFR-AI-010)
+
+' === 참여자 정의 ===
+participant "Client" as client
+participant "ScheduleGenerationController" as controller
+participant "ScheduleGenerationService" as service
+participant "ClaudeAIService" as aiService
+participant "ScheduleRepository" as repository
+database "Redis Cache<<E>>" as cache
+queue "Message Queue<<E>>" as mq
+
+' === 시나리오 1: 전체 일정 생성 요청 ===
+group 1. 전체 일정 생성 요청 접수
+    client -> controller: POST /schedules/generate\n(generateType: full)
+    note right of controller: 여행 정보, 멤버, 여행지\n일정 생성 요청 수신
+    
+    controller -> service: generateSchedule(request)
+    note right of service: 요청 데이터 검증\n및 처리 시작
+    
+    service -> service: validateRequest(request)
+    note right of service: 필수 데이터 검증:\n- 여행지 목록\n- 멤버 정보\n- 시작일/시간
+    
+    service -> repository: saveGenerationRequest(requestId, request)
+    note right of repository: 요청 정보 저장\n상태: pending
+    
+    service -> mq: publishGenerationTask(requestId, request)
+    note right of mq: 비동기 처리를 위한\n메시지 큐에 작업 발행
+    
+    service --> controller: GenerateScheduleResponse\n(requestId, status: accepted)
+    controller --> client: 202 Accepted\n(requestId, statusUrl, resultUrl)
+end
+
+' === 시나리오 2: 비동기 일정 생성 처리 ===
+group 2. 비동기 일정 생성 처리
+    mq -> service: processGenerationTask(requestId, request)
+    note right of service: 백그라운드에서\n일정 생성 작업 시작
+    
+    service -> repository: updateStatus(requestId, "processing")
+    note right of repository: 상태 업데이트:\nprocessing으로 변경
+    
+    ' === 메시지 데이터 파싱 ===
+    service -> service: parseMessagePayload(request)
+    note right of service: 메시지 페이로드에서 추출:\n- tripId\n- destinations (위치 정보 포함)\n- members (건강상태, 선호도)\n- transportation\n- dates\n- startTime\n- categories\n- specialRequests\n- cachedWeather (있는 경우)\n- cachedPlaces (있는 경우)
+    
+    ' === 날씨 정보 수집 ===
+    group 날씨 정보 수집
+        loop 각 여행지별 날씨 조회
+            service -> cache: checkWeatherCache(location+date)
+            alt 캐시 히트
+                cache --> service: 날씨 정보 반환
+            else 캐시 미스
+                cache --> service: null
+                service -> service: callWeatherAPI(location, dates)
+                note right of service: OpenWeatherMap API 호출\n5일 예보 데이터 수집
+                service -> cache: set("weather_" + location + date, weather, 6h)
+                note right of cache: 날씨 정보 캐싱\nTTL: 6시간
+            end
+        end
+    end
+
+    ' === 주변 장소 정보 수집 ===
+    group 주변 장소 정보 수집
+        loop 각 여행지별, 카테고리별 장소 조회
+            service -> cache: checkPlaceCache(lat+lon+category+radius)
+            alt 캐시 히트
+                cache --> service: 장소 정보 반환
+            else 캐시 미스
+                cache --> service: null
+                service -> mq: publishPlaceSearchRequest\n{destination, category, radius}
+                note right of mq: Location Service에\n장소 검색 요청 발행
+                
+                ' 비동기 처리를 위해 일단 빈 데이터로 진행
+                service -> service: markPlaceDataPending(destination, category)
+            end
+        end
+    end
+    
+    ' === AI 일정 생성 ===
+    service -> aiService: generateOptimizedSchedule(tripData, weather, places)
+    note right of aiService: 수집된 데이터로\n최적화된 일정 생성
+    
+    aiService -> aiService: prepareInputData()
+    note right of aiService: AI 입력 데이터 준비:\n1. 기본 여행 정보\n2. 날씨 예보\n3. 장소 정보 (캐시된 것)\n4. 멤버 프로필
+    
+    aiService -> aiService: buildPrompt(inputData)
+    note right of aiService: 구조화된 프롬프트 생성
+    
+    aiService -> aiService: callClaudeAPI(prompt)
+    note right of aiService: Claude API 호출\n일정 생성 요청
+    
+    aiService -> aiService: parseScheduleResponse(response)
+    note right of aiService: AI 응답 파싱\n및 데이터 구조화
+    
+    aiService --> service: GeneratedSchedule
+    
+    ' === 결과 저장 및 완료 ===
+    service -> repository: saveGeneratedSchedule(requestId, schedule)
+    note right of repository: 생성된 일정\n데이터베이스 저장
+    
+    service -> cache: set("schedule_" + requestId, schedule, 7d)
+    note right of cache: 생성된 일정\n캐시 저장 (7일)
+    
+    service -> repository: updateStatus(requestId, "completed")
+    note right of repository: 상태 업데이트:\ncompleted로 변경
+    
+    service -> mq: publishScheduleCompleted\n{tripId, requestId, status: "completed"}
+    note right of mq: 일정 생성 완료\n이벤트 발행
+end
+
+' === 시나리오 3: 진행 상태 조회 ===
+group 3. 진행 상태 조회
+    client -> controller: GET /schedules/{requestId}/status
+    note right of controller: 일정 생성\n진행 상태 조회
+    
+    controller -> service: getGenerationStatus(requestId)
+    
+    service -> cache: get("status_" + requestId)
+    alt 캐시 히트
+        cache --> service: 캐시된 상태 정보
+    else 캐시 미스
+        service -> repository: getRequestStatus(requestId)
+        repository --> service: StatusInfo
+        service -> cache: set("status_" + requestId, status, 30s)
+    end
+    
+    service --> controller: ScheduleStatusResponse
+    controller --> client: 200 OK\n(status, progress, currentStep)
+end
+
+' === 시나리오 4: 생성된 일정 조회 ===
+group 4. 생성된 일정 조회
+    client -> controller: GET /schedules/{requestId}
+    note right of controller: 완성된 일정\n결과 조회
+    
+    controller -> service: getGeneratedSchedule(requestId)
+    
+    service -> cache: get("schedule_" + requestId)
+    alt 캐시 히트
+        cache --> service: 캐시된 일정 데이터
+    else 캐시 미스
+        service -> repository: getScheduleByRequestId(requestId)
+        repository --> service: GeneratedSchedule
+        service -> cache: set("schedule_" + requestId, schedule, 7d)
+    end
+    
+    service --> controller: GeneratedSchedule
+    controller --> client: 200 OK\n(완성된 일정 데이터)
+end
+
+' === 시나리오 5: Location Service로부터 장소 정보 수신 ===
+group 5. Location Service로부터 장소 정보 수신
+    mq -> service: receivePlaceSearchResult(placeData)
+    note right of mq: Location Service가\n검색 완료한 장소 정보
+    
+    service -> cache: set("place_" + key, placeData, 24h)
+    note right of cache: 장소 정보 캐싱\nTTL: 24시간
+    
+    service -> repository: getCurrentSchedule(requestId)
+    repository --> service: ScheduleData
+    
+    alt 일정이 아직 생성 중
+        service -> service: updateScheduleWithPlaces(schedule, placeData)
+        note right of service: 진행 중인 일정에\n장소 정보 보강
+        
+        service -> repository: updateSchedule(requestId, updatedSchedule)
+    else 일정이 이미 완료됨
+        service -> service: scheduleSupplementUpdate(requestId, placeData)
+        note right of service: 추가 업데이트로\n일정 품질 개선
+    end
+end
+
+' === 시나리오 6: 특정 날짜 재생성 ===
+group 6. 특정 날짜 재생성
+    client -> controller: POST /schedules/generate\n(generateType: specificDay)
+    note right of controller: 특정 날짜만\n재생성 요청
+    
+    controller -> service: regenerateSpecificDay(request)
+    note right of service: 기존 일정 유지하며\n특정 날짜만 재생성
+    
+    service -> repository: getCurrentSchedule(tripId)
+    note right of repository: 현재 전체 일정\n데이터 조회
+    
+    service -> aiService: regenerateDaySchedule(dayNumber, currentSchedule, preferences)
+    note right of aiService: 특정 날짜만\nAI 재생성 요청
+    
+    aiService -> aiService: buildRegeneratePrompt(context)
+    note right of aiService: 기존 일정 컨텍스트\n포함한 프롬프트 구성
+    
+    aiService --> service: UpdatedDaySchedule
+    
+    service -> repository: updateDaySchedule(tripId, dayNumber, newSchedule)
+    note right of repository: 특정 날짜 일정만\n업데이트 저장
+    
+    service -> cache: invalidate("schedule_*_" + tripId)
+    note right of cache: 관련 캐시 무효화
+    
+    service --> controller: UpdatedSchedule
+    controller --> client: 202 Accepted\n(재생성 결과)
+end
+
+' === 시나리오 6: 일정 생성 취소 ===
+group 6. 일정 생성 취소
+    client -> controller: POST /schedules/{requestId}/cancel
+    note right of controller: 진행 중인\n일정 생성 취소
+    
+    controller -> service: cancelGeneration(requestId)
+    
+    service -> repository: getRequestStatus(requestId)
+    alt 이미 완료됨
+        repository --> service: status: completed
+        service --> controller: 409 Conflict\n(이미 완료되어 취소 불가)
+    else 진행 중
+        repository --> service: status: processing
+        service -> repository: updateStatus(requestId, "cancelled")
+        service -> mq: cancelTask(requestId)
+        note right of mq: 백그라운드 작업\n취소 신호 발송
+        service --> controller: 200 OK\n(취소 성공)
+    end
+    
+    controller --> client: 응답 (성공/실패)
+end
+
+note over client, mq
+**주요 특징:**
+1. **비동기 처리**: 장시간 소요되는 AI 일정 생성은 메시지 큐를 통한 비동기 처리
+2. **캐싱 전략**: 여행지별 장소 정보, 날씨 정보, 생성된 일정을 Redis에 캐싱
+3. **진행 상태 추적**: 실시간 상태 조회 및 진행률 표시
+4. **부분 재생성**: 전체 일정 재생성 없이 특정 날짜만 수정 가능
+5. **외부 API 통합**: Claude AI, 날씨 API, 지도 API 등 다중 외부 서비스 연동
+6. **오류 처리**: 각 단계별 오류 상황 대응 및 롤백 처리
+end note
+
+@enduml

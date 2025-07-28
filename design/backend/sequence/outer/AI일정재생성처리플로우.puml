@@ -1,0 +1,135 @@
+@startuml AI일정재생성처리플로우
+!theme mono
+
+title AI일정 재생성 처리 플로우 - 외부 시퀀스 다이어그램
+
+queue "Message Queue" as MQ
+participant "AI Service" as AIService
+participant "Location Service" as LocationService
+database "Redis Cache" as Redis
+participant "Claude API" as ClaudeAPI
+participant "OpenWeatherMap API" as WeatherAPI
+participant "카카오맵/구글맵 API" as MAP
+
+== AI 일정 재생성 처리 ==
+note right of MQ
+Trip Service에서 발행한
+재생성 작업 수신
+end note
+
+MQ -> AIService: 재생성 작업 수신\n{tripId, regenerateType, dayNumber?}
+activate AIService
+
+alt regenerateType == "all"
+    == 전체 일정 재생성 ==
+    
+    AIService -> Redis: 여행 기본 정보 조회\n(tripId)
+    activate Redis
+    Redis -> AIService: 여행 데이터 반환
+    deactivate Redis
+    
+    AIService -> AIService: 전체 일정 재생성\n프롬프트 준비
+    
+    note right of AIService
+    "AI일정생성처리플로우"와
+    동일한 처리 수행
+    (날씨, 장소 정보 수집 포함)
+    end note
+    
+else regenerateType == "day"
+    == 일자별 재생성 ==
+    
+    AIService -> Redis: 전체 일정 및 여행 정보 조회
+    activate Redis
+    Redis -> AIService: 일정 전체 데이터
+    deactivate Redis
+    
+    AIService -> AIService: 재생성 컨텍스트 준비
+    note right of AIService
+    일자별 재생성 고려사항:
+    - 전후 날짜 연결성 유지
+    - 숙소 위치 변경 불가
+    - 이동 경로 최적화
+    - 기존 제약사항 유지
+    end note
+    
+    ' 해당일 날씨 정보 재조회
+    AIService ->> WeatherAPI: 특정일 날씨 조회(Non-blocking)\n{location, date}
+    activate WeatherAPI
+    WeatherAPI -->> AIService: 최신 날씨 정보
+    deactivate WeatherAPI
+    
+    ' 대체 장소 정보 수집 (필요시)
+    AIService ->> LocationService: 대체 장소 검색(Non-blocking)\n{위치, 카테고리, 제약사항}
+    activate LocationService
+    
+    LocationService -> MAP: 주변 장소 재검색
+    activate MAP
+    MAP --> LocationService: 대체 장소 목록
+    deactivate MAP
+    
+    LocationService ->> AIService: 대체 장소 정보
+    deactivate LocationService
+end
+
+AIService -> ClaudeAPI: AI 일정 생성/재생성 요청\n{prompt, context, constraints}
+activate ClaudeAPI
+
+alt regenerateType == "all"
+    note right of ClaudeAPI
+    전체 재생성:
+    - 모든 날짜 새로 계획
+    - 최신 정보 기반
+    - 사용자 특별 요청 반영
+    end note
+else regenerateType == "day"
+    note right of ClaudeAPI
+    일자별 재생성:
+    - 특정일만 재계획
+    - 전후 연결성 고려
+    - 숙소/이동수단 제약
+    - 날씨/장소 변경 반영
+    end note
+end
+
+ClaudeAPI -> AIService: 재생성된 일정
+deactivate ClaudeAPI
+
+alt regenerateType == "day"
+    AIService -> AIService: 전체 일정에 통합
+    
+    ' 전후 날짜와의 이동 경로 재계산
+    loop 영향받는 이동 경로
+        AIService -> LocationService: 경로 재계산\n{출발지, 도착지, 이동수단}
+        activate LocationService
+        LocationService -> MAP: 경로 API 호출
+        activate MAP
+        MAP --> LocationService: 경로 정보
+        deactivate MAP
+        LocationService -> AIService: 경로 정보
+        deactivate LocationService
+    end
+    
+    AIService -> AIService: 이동시간 반영한\n일정 최종 조정
+end
+
+AIService -> Redis: 재생성된 일정 저장\n(tripId, updatedSchedule, TTL: 7d)
+activate Redis
+Redis -> AIService: 저장 완료
+deactivate Redis
+
+AIService -> MQ: 재생성 완료 이벤트 발행\n{tripId, requestId, regenerateType, status: "completed"}
+deactivate AIService
+
+note over MQ, MAP
+재생성 성능 목표:
+- 전체 재생성: 10초 이내
+- 일자별 재생성: 5초 이내
+- 캐시 활용률: 70% 이상
+
+재생성 제한:
+- 전체: 무제한
+- 일자별: 날짜당 5회/일
+end note
+
+@enduml

@@ -1,0 +1,134 @@
+@startuml
+!theme mono
+
+title User Service - 프로필관리 내부 시퀀스
+
+' UFR-USER-030: 프로필 정보 수정 시나리오
+' 기본 정보, 프로필 이미지, 비밀번호 변경
+
+actor User
+participant UserController
+participant ValidationService
+participant UserService
+participant ImageService
+participant PasswordEncoder
+participant EmailService
+participant UserRepository
+database "Redis Cache<<E>>" as RedisCache
+participant "File Storage<<E>>" as FileStorage
+
+== 기본 정보 수정 ==
+User -> UserController: PUT /users/profile
+note right: 이름, 연락처, 이메일 변경
+
+UserController -> ValidationService: validateUpdateRequest()
+note right: 입력값 형식 검증
+
+ValidationService --> UserController: 검증 완료
+
+UserController -> UserService: updateProfile()
+
+UserService -> UserRepository: findById()
+note right: 현재 사용자 정보 조회
+
+UserRepository --> UserService: 사용자 엔티티
+
+alt 이메일 변경
+    UserService -> UserRepository: existsByEmail()
+    note right: 이메일 중복 확인
+    
+    UserRepository --> UserService: false (사용 가능)
+    
+    UserService -> EmailService: sendVerificationEmail()
+    note right: 이메일 재인증 요청
+end
+
+UserService -> UserRepository: save()
+note right: 변경된 정보 저장
+
+UserRepository --> UserService: 업데이트된 사용자
+
+UserService -> RedisCache: updateUserProfile()
+note right: 캐시된 프로필 정보 갱신
+
+UserService --> UserController: 수정 완료
+UserController --> User: 200 OK
+
+== 프로필 이미지 업로드 ==
+User -> UserController: POST /users/profile/image
+note right: 이미지 파일 (최대 5MB)
+
+UserController -> ValidationService: validateImageFile()
+note right: 파일 크기, 형식 검증 (JPG, PNG)
+
+ValidationService --> UserController: 검증 완료
+
+UserController -> ImageService: uploadProfileImage()
+
+ImageService -> ImageService: resizeAndOptimize()
+note right: 이미지 크기 조정 및 최적화
+
+ImageService -> FileStorage: saveImage()
+note right: 이미지 파일 저장
+
+FileStorage --> ImageService: 저장된 파일 URL
+
+ImageService -> UserRepository: updateProfileImageUrl()
+note right: 사용자 프로필 이미지 URL 업데이트
+
+alt 기존 이미지 존재
+    ImageService -> FileStorage: deleteOldImage()
+    note right: 기존 이미지 파일 삭제
+end
+
+ImageService -> RedisCache: updateUserProfile()
+note right: 캐시된 프로필 정보 갱신
+
+ImageService --> UserController: 업로드 완료
+UserController --> User: 200 OK
+
+== 비밀번호 변경 ==
+User -> UserController: PUT /users/password
+note right: 현재 비밀번호, 새 비밀번호
+
+UserController -> ValidationService: validatePasswordChange()
+note right: 비밀번호 규칙 검증
+
+ValidationService --> UserController: 검증 완료
+
+UserController -> UserService: changePassword()
+
+UserService -> UserRepository: findById()
+note right: 현재 사용자 정보 조회
+
+UserRepository --> UserService: 사용자 엔티티
+
+UserService -> PasswordEncoder: matches()
+note right: 현재 비밀번호 확인
+
+alt 현재 비밀번호 불일치
+    PasswordEncoder --> UserService: false
+    UserService --> UserController: 인증 실패
+    UserController --> User: 401 Unauthorized
+else 현재 비밀번호 일치
+    PasswordEncoder --> UserService: true
+    
+    UserService -> PasswordEncoder: encode()
+    note right: 새 비밀번호 암호화
+    
+    PasswordEncoder --> UserService: encodedPassword
+    
+    UserService -> UserRepository: updatePassword()
+    note right: 새 비밀번호 저장
+    
+    UserService -> RedisCache: invalidateAllSessions()
+    note right: 모든 세션 무효화 (보안)
+    
+    UserService -> EmailService: sendPasswordChangeNotification()
+    note right: 비밀번호 변경 알림 이메일
+    
+    UserService --> UserController: 변경 완료
+    UserController --> User: 200 OK
+end
+
+@enduml

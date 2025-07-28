@@ -1,0 +1,225 @@
+@startuml 프로필관리플로우
+!theme mono
+
+title 프로필 관리 플로우 - 외부 시퀀스 다이어그램
+
+actor "Mobile Client" as Client
+participant "API Gateway" as Gateway
+participant "User Service" as UserService
+database "Redis Cache" as Redis
+
+== 프로필 편집 화면 접근 ==
+note left of Client
+대시보드(01) 화면의 프로필 메뉴에서
+"프로필 편집"을 선택하여 접근
+end note
+
+Client -> Gateway: GET /api/v1/users/profile\n(Authorization: Bearer {token})
+activate Gateway
+
+Gateway -> Gateway: JWT 토큰 검증
+
+alt 토큰 유효
+    Gateway -> UserService: 프로필 조회 요청
+    activate UserService
+    
+    UserService -> UserService: 사용자 정보 조회
+    UserService -> Gateway: 200 OK\n{name, email, phone, avatar}
+    deactivate UserService
+    
+    Gateway -> Client: 프로필 정보 반환
+    Client -> Client: 프로필 편집 화면 표시\n(현재 정보 자동 입력)
+else 토큰 무효
+    Gateway -> Client: 401 Unauthorized
+    Client -> Client: 로그인 화면으로 이동
+end
+
+deactivate Gateway
+
+== 기본 정보 수정 ==
+Client -> Client: 정보 수정\n(이름, 연락처)
+Client -> Gateway: PUT /api/v1/users/profile\n{name, phone}\n(Authorization: Bearer {token})
+activate Gateway
+
+Gateway -> UserService: 프로필 업데이트 요청
+activate UserService
+
+UserService -> UserService: 입력값 검증\n- 이름: 2자 이상\n- 연락처: 휴대폰 번호 형식
+
+alt 검증 성공
+    UserService -> UserService: 프로필 정보 업데이트
+    
+    UserService -> Redis: 캐시된 프로필 정보 갱신
+    activate Redis
+    Redis -> UserService: 갱신 완료
+    deactivate Redis
+    
+    UserService -> Gateway: 200 OK\n{message: "프로필이 성공적으로 업데이트되었습니다"}
+    Gateway -> Client: 업데이트 성공
+    Client -> Client: 성공 메시지 표시
+else 검증 실패
+    UserService -> Gateway: 400 Bad Request\n{error: "입력값 오류"}
+    Gateway -> Client: 오류 메시지 표시
+end
+
+deactivate UserService
+deactivate Gateway
+
+== 이메일 변경 (재인증 필요) ==
+Client -> Client: 새 이메일 입력
+Client -> Gateway: POST /api/v1/users/profile/email-change\n{newEmail}\n(Authorization: Bearer {token})
+activate Gateway
+
+Gateway -> UserService: 이메일 변경 요청
+activate UserService
+
+UserService -> UserService: 이메일 형식 검증
+UserService -> UserService: 중복 이메일 확인
+
+alt 검증 통과
+    UserService -> UserService: 인증 코드 생성\n(6자리 랜덤)
+    
+    UserService -> Redis: 인증 코드 저장\n(userId, code, TTL: 10분)
+    activate Redis
+    Redis -> UserService: 저장 완료
+    deactivate Redis
+    
+    UserService -> UserService: 인증 메일 발송\n(새 이메일로)
+    
+    UserService -> Gateway: 200 OK\n{message: "인증 메일이 발송되었습니다"}
+    Gateway -> Client: 인증 요청 안내
+    Client -> Client: 인증 코드 입력 화면 표시
+else 검증 실패
+    UserService -> Gateway: 400 Bad Request\n{error: "이미 사용중인 이메일입니다"}
+    Gateway -> Client: 오류 메시지 표시
+end
+
+deactivate UserService
+deactivate Gateway
+
+== 이메일 인증 확인 ==
+Client -> Client: 인증 코드 입력
+Client -> Gateway: POST /api/v1/users/profile/email-verify\n{code, newEmail}\n(Authorization: Bearer {token})
+activate Gateway
+
+Gateway -> UserService: 인증 코드 확인
+activate UserService
+
+UserService -> Redis: 저장된 인증 코드 조회
+activate Redis
+Redis -> UserService: 인증 코드 반환
+deactivate Redis
+
+alt 인증 성공
+    UserService -> UserService: 이메일 업데이트
+    UserService -> Redis: 캐시 정보 갱신
+    
+    UserService -> Gateway: 200 OK\n{message: "이메일이 변경되었습니다"}
+    Gateway -> Client: 변경 완료
+    Client -> Client: 성공 메시지 표시
+else 인증 실패
+    UserService -> Gateway: 400 Bad Request\n{error: "잘못된 인증 코드입니다"}
+    Gateway -> Client: 오류 메시지 표시
+end
+
+deactivate UserService
+deactivate Gateway
+
+== 비밀번호 변경 ==
+Client -> Client: 비밀번호 변경 양식 입력
+Client -> Gateway: PUT /api/v1/users/profile/password\n{currentPassword, newPassword}\n(Authorization: Bearer {token})
+activate Gateway
+
+Gateway -> UserService: 비밀번호 변경 요청
+activate UserService
+
+UserService -> UserService: 현재 비밀번호 확인
+
+alt 현재 비밀번호 일치
+    UserService -> UserService: 새 비밀번호 규칙 검증\n- 8자 이상\n- 영문/숫자/특수문자 포함
+    
+    alt 규칙 통과
+        UserService -> UserService: 비밀번호 업데이트\n(해시 처리)
+        
+        UserService -> Redis: 모든 세션 무효화\n(보안을 위해)
+        activate Redis
+        Redis -> UserService: 세션 삭제 완료
+        deactivate Redis
+        
+        UserService -> Gateway: 200 OK\n{message: "비밀번호가 변경되었습니다.\n다시 로그인해주세요"}
+        Gateway -> Client: 변경 완료
+        Client -> Client: 로그인 화면으로 이동
+    else 규칙 미충족
+        UserService -> Gateway: 400 Bad Request\n{error: "비밀번호 규칙을 확인해주세요"}
+        Gateway -> Client: 오류 메시지 표시
+    end
+else 현재 비밀번호 불일치
+    UserService -> Gateway: 401 Unauthorized\n{error: "현재 비밀번호가 일치하지 않습니다"}
+    Gateway -> Client: 오류 메시지 표시
+end
+
+deactivate UserService
+deactivate Gateway
+
+== 프로필 이미지 업로드 ==
+Client -> Client: 이미지 선택\n(JPG/PNG, 최대 5MB)
+Client -> Gateway: POST /api/v1/users/profile/image\n(multipart/form-data)\n(Authorization: Bearer {token})
+activate Gateway
+
+Gateway -> UserService: 이미지 업로드
+activate UserService
+
+UserService -> UserService: 파일 검증\n- 형식: JPG, PNG\n- 크기: 최대 5MB
+
+alt 검증 성공
+    UserService -> UserService: 이미지 저장\n(CDN 또는 스토리지)
+    UserService -> UserService: 썸네일 생성
+    
+    UserService -> Redis: 프로필 이미지 URL 캐시
+    activate Redis
+    Redis -> UserService: 캐시 완료
+    deactivate Redis
+    
+    UserService -> Gateway: 200 OK\n{avatarUrl: "https://..."}
+    Gateway -> Client: 업로드 완료
+    Client -> Client: 미리보기 표시
+else 검증 실패
+    UserService -> Gateway: 400 Bad Request\n{error: "지원하지 않는 파일 형식입니다"}
+    Gateway -> Client: 오류 메시지 표시
+end
+
+deactivate UserService
+deactivate Gateway
+
+== 변경사항 저장 확인 ==
+Client -> Client: 저장 버튼 클릭
+Client -> Client: 확인 다이얼로그 표시\n"변경사항을 저장하시겠습니까?"
+
+alt 확인 선택
+    Client -> Client: 저장 처리 진행\n(위의 각 API 호출)
+else 취소 선택
+    Client -> Client: 경고 다이얼로그 표시\n"변경사항이 저장되지 않습니다.\n계속하시겠습니까?"
+    alt 계속 선택
+        Client -> Client: 변경사항 취소\n이전 화면으로 이동
+    else 머무르기 선택
+        Client -> Client: 현재 화면 유지
+    end
+end
+
+note right of Client
+프로필 편집 가능 항목:
+- 기본 정보: 이름, 연락처
+- 이메일 (재인증 필요)
+- 비밀번호 (현재 비밀번호 확인 필수)
+- 프로필 이미지 (JPG/PNG, 최대 5MB)
+end note
+
+note right of UserService
+보안 고려사항:
+- 이메일 변경 시 재인증 필수
+- 비밀번호 변경 시 현재 비밀번호 확인
+- 비밀번호 변경 후 모든 세션 무효화
+- 민감한 정보 변경 시 로그 기록
+end note
+
+@enduml

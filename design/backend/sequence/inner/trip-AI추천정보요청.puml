@@ -1,0 +1,156 @@
+@startuml
+!theme mono
+
+title Trip Service - AI 추천정보 요청 내부 시퀀스 (일정 컨텍스트)
+
+' === 참여자 정의 ===
+actor User
+participant "PlaceDetailView" as client
+participant "RecommendationController" as controller
+participant "RecommendationService" as service
+participant "TripRepository" as tripRepo
+participant "ScheduleRepository" as scheduleRepo
+participant "PlaceService" as placeService
+database "Redis Cache<<E>>" as redis
+queue "Message Queue<<E>>" as mq
+
+' === 시나리오 1: 일정에서 장소 상세 조회 시 AI 추천 요청 ===
+group 일정 컨텍스트 AI 추천 요청
+    User -> client: 일정에서 특정 장소 클릭
+    note right of User: 시간별 상세일정에서\n장소 클릭
+    
+    client -> controller: POST /ai/places/{placeId}/schedule-recommendations
+    note right of client
+    요청 데이터:
+    {
+      "tripId": "trip123",
+      "dayNumber": 2,
+      "timeSlot": "14:00"
+    }
+    end note
+    
+    controller -> service: getScheduleRecommendations(placeId, request)
+    
+    ' === 캐시 확인 ===
+    service -> redis: checkCache("rec_schedule_" + placeId + tripId + dayNumber + timeSlot)
+    alt 캐시 히트
+        redis --> service: 캐시된 추천 정보
+        service --> controller: CachedRecommendations
+        controller --> client: 200 OK (캐시된 결과)
+    else 캐시 미스
+        redis --> service: null
+        
+        ' === 데이터 수집 ===
+        service -> service: collectContextData(tripId, dayNumber, timeSlot)
+        
+        group 병렬 데이터 수집
+            service ->> tripRepo: findTripWithMembers(tripId)
+            service ->> scheduleRepo: findScheduleByTripId(tripId)
+            service ->> placeService: getPlaceDetails(placeId)
+        end
+        
+        tripRepo -->> service: TripWithMembers
+        scheduleRepo -->> service: Schedule
+        placeService -->> service: PlaceDetails
+        
+        service -> service: extractScheduleContext(schedule, dayNumber, timeSlot)
+        note right of service
+        추출 정보:
+        - 이전/다음 일정 장소
+        - 현재 시간대 활동
+        - 당일 방문 장소들
+        - 멤버 건강상태/선호도
+        end note
+        
+        ' === AI 추천 요청 발행 ===
+        service -> service: buildScheduleRecommendationPayload()
+        note right of service
+        페이로드 구성:
+        - placeId: 추천 대상 장소
+        - context: "schedule"
+        - tripContext: {
+            members: [...],
+            currentDay: 2,
+            currentTime: "14:00",
+            previousPlace: {...},
+            nextPlace: {...},
+            visitedPlaces: [...]
+          }
+        - placeInfo: {...}
+        end note
+        
+        service -> mq: AI 추천 생성 요청 발행\n{scheduleRecommendationPayload}
+        
+        service -> redis: setStatus("rec_status_" + requestId, "pending", 60s)
+        
+        service --> controller: RecommendationResponse\n{requestId, status: "processing"}
+        controller --> client: 202 Accepted\n{requestId, pollingUrl}
+    end
+end
+
+' === 시나리오 2: 추천 결과 폴링 ===
+group 추천 결과 폴링
+    client -> controller: GET /ai/recommendations/{requestId}/status
+    
+    controller -> service: getRecommendationStatus(requestId)
+    
+    service -> redis: getStatus("rec_status_" + requestId)
+    alt 처리 중
+        redis --> service: "pending"
+        service --> controller: {status: "processing"}
+        controller --> client: 200 OK (아직 처리 중)
+    else 완료
+        redis --> service: "completed"
+        service -> redis: getResult("rec_result_" + requestId)
+        redis --> service: RecommendationResult
+        
+        service -> redis: cacheRecommendation(cacheKey, result, TTL: 2h)
+        note right of redis: 일정 컨텍스트 추천은\n2시간 캐싱
+        
+        service --> controller: RecommendationResult
+        controller --> client: 200 OK (추천 결과)
+    end
+end
+
+' === 시나리오 3: AI 추천 완료 이벤트 수신 ===
+group AI 추천 완료 이벤트 수신
+    mq -> service: 추천 완료 이벤트 수신\n{requestId, recommendations}
+    
+    service -> service: parseRecommendations(recommendations)
+    note right of service
+    일정 컨텍스트 추천 내용:
+    - 방문 추천 시간
+    - 체류 시간 제안
+    - 이전/다음 장소 연계 팁
+    - 멤버별 맞춤 정보
+    - 시간대별 혼잡도
+    end note
+    
+    service -> redis: setResult("rec_result_" + requestId, recommendations, TTL: 1h)
+    service -> redis: setStatus("rec_status_" + requestId, "completed", TTL: 1h)
+    
+    service -> service: notifyRecommendationReady(requestId)
+    note right of service: WebSocket으로\n클라이언트 알림
+end
+
+' === 시나리오 4: 일정 변경 시 캐시 무효화 ===
+group 일정 변경 시 캐시 무효화
+    mq -> service: 일정 변경 이벤트 수신\n{tripId, dayNumber}
+    
+    service -> redis: invalidatePattern("rec_schedule_*" + tripId + "*" + dayNumber + "*")
+    note right of redis: 해당 여행의 특정 날짜\n모든 추천 캐시 삭제
+    
+    service -> service: logCacheInvalidation(tripId, dayNumber)
+end
+
+note over User, mq
+**주요 특징:**
+1. 일정 컨텍스트 전용 엔드포인트 (/schedule-recommendations)
+2. Trip Service가 필요한 모든 컨텍스트 데이터 수집
+3. 이전/다음 일정을 고려한 추천
+4. 멤버 프로필 기반 맞춤 추천
+5. 2시간 캐싱 (일정이 자주 바뀌지 않음)
+6. 일정 변경 시 자동 캐시 무효화
+end note
+
+@enduml

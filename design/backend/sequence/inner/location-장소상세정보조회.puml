@@ -1,0 +1,162 @@
+@startuml
+!theme mono
+
+title Location 서비스 - 장소상세정보조회 내부 시퀀스 (UFR-LOC-030)
+
+actor Client
+participant PlaceController
+participant PlaceService
+participant BusinessHoursService
+participant LocationRepository
+database "Cache Service<<E>>" as Cache
+participant "Kakao Map API<<E>>" as KakaoMapAPI
+participant "Google Map API<<E>>" as GoogleMapAPI
+participant "AI<<E>>" as AIService
+
+note over PlaceController, AIService
+  장소상세정보조회 시나리오 - 특정 장소의 상세 정보 종합 제공
+  국내: 카카오 기본정보 + 구글 리뷰, 해외: 구글맵 전체 정보
+  AI 추천 정보 및 실시간 영업시간 포함
+end note
+
+Client -> PlaceController: GET /places/{placeId}\n(includeReviews=true, includeAI=true)
+
+activate PlaceController
+
+== 1. 입력 검증 및 기본 설정 ==
+PlaceController -> PlaceController: placeId 검증 및 파라미터 확인
+
+PlaceController -> PlaceService: getPlaceDetails(placeId, includeReviews, includeAI)
+activate PlaceService
+
+== 2. 캐시 확인 및 지역 판별 ==
+PlaceService -> Cache: getCachedPlaceDetails(placeId)
+activate Cache
+Cache --> PlaceService: 캐시된 장소 상세정보 (있으면)
+deactivate Cache
+
+alt 캐시 미스 또는 부분 정보
+  PlaceService -> PlaceService: 장소 지역 판별\n(placeId 패턴 또는 좌표 기반)
+  
+  == 3-A. 국내 장소 정보 수집 ==
+  alt 국내 장소 (Korea)
+    PlaceService -> KakaoMapAPI: 카카오맵 장소 상세정보 API
+    activate KakaoMapAPI
+    KakaoMapAPI --> PlaceService: 기본정보
+    deactivate KakaoMapAPI
+    
+    PlaceService -> GoogleMapAPI: 구글맵 리뷰 API
+    activate GoogleMapAPI
+    GoogleMapAPI --> PlaceService: 리뷰 및 평점 정보
+    deactivate GoogleMapAPI
+    
+    PlaceService -> PlaceService: 국내 장소 데이터 병합
+    
+  == 3-B. 해외 장소 정보 수집 ==
+  else 해외 장소 (International)
+    PlaceService -> GoogleMapAPI: Place Details API\n(place_id, fields=ALL)
+    activate GoogleMapAPI
+    GoogleMapAPI --> PlaceService: 전체 장소 정보\n(basic, contact, reviews, photos, hours 등)
+    deactivate GoogleMapAPI
+  end
+  
+  == 4. 실시간 영업시간 조회 ==
+  PlaceService -> BusinessHoursService: getCurrentBusinessHours(placeId)
+  activate BusinessHoursService
+  
+  BusinessHoursService -> Cache: getCachedBusinessHours(placeId)
+  activate Cache
+  Cache --> BusinessHoursService: 캐시된 영업시간 (있으면)
+  deactivate Cache
+  
+  alt 캐시 미스 또는 만료 (1시간)
+    alt 국내 장소
+      BusinessHoursService -> KakaoMapAPI: 실시간 영업시간 조회
+      activate KakaoMapAPI
+      KakaoMapAPI --> BusinessHoursService: 영업시간 정보\n(isOpen, todayHours, weeklyHours)
+      deactivate KakaoMapAPI
+    else 해외 장소
+      BusinessHoursService -> GoogleMapAPI: Place Details API\n(fields=opening_hours)
+      activate GoogleMapAPI
+      GoogleMapAPI --> BusinessHoursService: 영업시간 정보\n(isOpen, todayHours, weeklyHours)
+      deactivate GoogleMapAPI
+    end
+    
+    BusinessHoursService -> Cache: cacheBusinessHours(placeId, hours, 1hour)
+    activate Cache
+    Cache --> BusinessHoursService: 캐시 저장 완료
+    deactivate Cache
+  end
+  
+  BusinessHoursService --> PlaceService: 실시간 영업시간 정보
+  deactivate BusinessHoursService
+  
+  == 5. AI 추천 정보 생성 (includeAI=true) ==
+  alt includeAI = true
+    PlaceService -> AIService: generatePlaceRecommendation(placeId, userProfile, travelContext)
+    activate AIService
+    
+    AIService -> Cache: getCachedAIRecommendation(placeId, profileHash)
+    activate Cache
+    Cache --> AIService: 캐시된 AI 추천 정보 (있으면)
+    deactivate Cache
+    
+    alt 캐시 미스 또는 만료 (24시간)
+      AIService -> AIService: 사용자 프로파일 분석\n(멤버 구성, 건강상태, 이동수단, 선호도)
+      
+      AIService -> AIService: 여행 컨텍스트 분석\n(여행 날짜, 날씨 정보, 시즌)
+      
+      AIService -> AIService: AI 프롬프트 생성\n(장소 특성 + 사용자 맞춤형)
+      
+      AIService -> AIService: Claude API 호출\n(맞춤형 추천 정보 생성)
+      
+      AIService -> AIService: 응답 구조화\n(추천 이유, 유용한 팁, 방문 정보)
+      
+      AIService -> Cache: cacheAIRecommendation(placeId, profileHash, recommendation, 24hours)
+      activate Cache
+      Cache --> AIService: 캐시 저장 완료
+      deactivate Cache
+    end
+    
+    AIService --> PlaceService: AI 추천 정보\n(reasons[], tips{}, generatedAt)
+    deactivate AIService
+  end
+  
+  == 6. 이미지 정보 수집 ==
+  PlaceService -> PlaceService: 장소 이미지 URL 추출 및 최적화
+  
+  alt 이미지 캐싱 필요
+    PlaceService -> Cache: cacheImageUrls(placeId, imageUrls, 12hours)
+    activate Cache
+    Cache --> PlaceService: 이미지 캐시 저장 완료
+    deactivate Cache
+  end
+  
+  == 7. 최종 데이터 통합 ==
+  PlaceService -> PlaceService: PlaceDetailResponse 구성\n(기본정보 + 영업시간 + AI추천 + 이미지)
+  
+  PlaceService -> Cache: cachePlaceDetails(placeId, completeDetails, 6hours)
+  activate Cache
+  Cache --> PlaceService: 전체 정보 캐시 저장 완료
+  deactivate Cache
+end
+
+PlaceService --> PlaceController: 장소 상세정보\n(PlaceDetailResponse)
+deactivate PlaceService
+
+== 8. 응답 가공 및 반환 ==
+PlaceController -> PlaceController: 응답 데이터 검증 및 로깅\n(누락 필드 확인, 에러 처리)
+
+PlaceController --> Client: 200 OK\n(완전한 장소 상세정보)
+deactivate PlaceController
+
+note over Client, AIService
+  주요 처리 사항:
+  - 지역별 API 전략: 국내(카카오+구글), 해외(구글만)
+  - 병렬 처리: 기본정보와 리뷰 동시 조회로 성능 향상
+  - 캐싱 전략: 전체정보(6시간), 영업시간(1시간), AI추천(24시간)
+  - AI 개인화: 사용자 프로파일 기반 맞춤형 추천 생성
+  - 실시간 정보: 영업시간은 별도 서비스로 실시간 조회
+end note
+
+@enduml

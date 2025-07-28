@@ -1,0 +1,234 @@
+@startuml
+!theme mono
+
+title AI 추천 정보 제공 내부 시퀀스 (UFR-AI-020)
+
+' === 참여자 정의 ===
+queue "Message Queue<<E>>" as mq
+participant "RecommendationService" as service
+participant "PlaceAnalysisService" as placeService
+participant "ContextEnrichmentService" as contextService
+participant "ClaudeAIService" as aiService
+participant "Weather Service<<E>>" as weatherService
+participant "RecommendationRepository" as repository
+database "Redis Cache<<E>>" as cache
+
+' === 시나리오 1: 일정 컨텍스트 추천 요청 처리 ===
+group 1. 일정 컨텍스트 추천 요청 처리
+    mq -> service: 일정 컨텍스트 추천 요청 수신
+    note right of mq
+    Trip Service에서 발행한 메시지:
+    {
+      "requestId": "req123",
+      "placeId": "place456",
+      "context": "schedule",
+      "tripContext": {
+        "tripId": "trip123",
+        "members": [...],
+        "currentDay": 2,
+        "currentTime": "14:00",
+        "previousPlace": {...},
+        "nextPlace": {...},
+        "visitedPlaces": [...]
+      },
+      "placeInfo": {...}
+    }
+    end note
+    
+    service -> service: processScheduleRecommendation(message)
+    
+    ' === 컨텍스트 분석 ===
+    service -> contextService: analyzeScheduleContext(tripContext)
+    contextService -> contextService: extractMemberProfiles(members)
+    note right of contextService
+    멤버 프로필 분석:
+    - 건강상태별 제약
+    - 연령대별 선호
+    - 관심 카테고리
+    end note
+    
+    contextService -> contextService: analyzeTimeContext(currentTime, previousPlace, nextPlace)
+    note right of contextService
+    시간대 컨텍스트:
+    - 이동 시간 고려
+    - 식사 시간 체크
+    - 피로도 누적
+    end note
+    
+    contextService --> service: ScheduleContextAnalysis
+    
+    ' === AI 추천 생성 ===
+    service -> aiService: generateScheduleRecommendation(placeInfo, contextAnalysis)
+    
+    aiService -> aiService: buildSchedulePrompt(context)
+    note right of aiService
+    일정 맞춤 프롬프트:
+    - 이전/다음 장소 연계
+    - 시간대별 최적화
+    - 멤버 특성 반영
+    - 당일 피로도 고려
+    end note
+    
+    aiService -> aiService: callClaudeAPI(prompt)
+    aiService -> aiService: parseScheduleRecommendation(response)
+    
+    aiService --> service: ScheduleRecommendation
+    note right of aiService
+    추천 내용:
+    - 방문 추천 시간
+    - 체류 시간 제안
+    - 이동 경로 팁
+    - 멤버별 주의사항
+    end note
+    
+    ' === 결과 저장 ===
+    service -> repository: saveRecommendation(requestId, recommendation)
+    service -> cache: set("rec_result_" + requestId, recommendation, TTL: 1h)
+    service -> cache: set("rec_status_" + requestId, "completed", TTL: 1h)
+    
+    ' === 캐싱 (일정 컨텍스트용) ===
+    service -> cache: set("rec_schedule_" + placeId + tripId + dayNumber + timeSlot, recommendation, TTL: 2h)
+    note right of cache: 일정 컨텍스트는\n2시간 캐싱
+end
+
+' === 시나리오 2: 검색 컨텍스트 추천 요청 처리 ===
+group 2. 검색 컨텍스트 추천 요청 처리
+    mq -> service: 검색 컨텍스트 추천 요청 수신
+    note right of mq
+    Location Service에서 발행한 메시지:
+    {
+      "requestId": "req456",
+      "placeId": "place789",
+      "context": "search",
+      "searchContext": {
+        "query": "아이와 함께 갈만한 카페",
+        "intent": ["family_friendly", "cafe"],
+        "userLocation": {...},
+        "searchHistory": [...]
+      },
+      "placeInfo": {...},
+      "similarPlaces": [...]
+    }
+    end note
+    
+    service -> service: processSearchRecommendation(message)
+    
+    ' === 검색 의도 분석 ===
+    service -> contextService: analyzeSearchContext(searchContext)
+    
+    contextService -> contextService: analyzeSearchIntent(query, intent)
+    note right of contextService
+    검색 의도 파악:
+    - 키워드 중요도
+    - 암시적 요구사항
+    - 비교 기준 추출
+    end note
+    
+    contextService -> contextService: compareSimilarPlaces(placeInfo, similarPlaces)
+    note right of contextService
+    유사 장소 비교:
+    - 차별화 포인트
+    - 상대적 장점
+    - 가격대 비교
+    end note
+    
+    contextService --> service: SearchContextAnalysis
+    
+    ' === AI 추천 생성 ===
+    service -> aiService: generateSearchRecommendation(placeInfo, contextAnalysis)
+    
+    aiService -> aiService: buildSearchPrompt(context)
+    note right of aiService
+    검색 맞춤 프롬프트:
+    - 검색 의도 매칭
+    - 유사 장소 대비 장점
+    - 특별한 특징 강조
+    - 접근성 정보
+    end note
+    
+    aiService -> aiService: callClaudeAPI(prompt)
+    aiService -> aiService: parseSearchRecommendation(response)
+    
+    aiService --> service: SearchRecommendation
+    note right of aiService
+    추천 내용:
+    - 검색 의도 부합도
+    - 독특한 특징
+    - 방문 최적 시간
+    - 대체 추천 장소
+    end note
+    
+    ' === 결과 저장 ===
+    service -> repository: saveRecommendation(requestId, recommendation)
+    service -> cache: set("rec_result_" + requestId, recommendation, TTL: 1h)
+    service -> cache: set("rec_status_" + requestId, "completed", TTL: 1h)
+    
+    ' === 캐싱 (검색 컨텍스트용) ===
+    service -> cache: set("rec_search_" + placeId + hash(searchQuery), recommendation, TTL: 30m)
+    note right of cache: 검색 컨텍스트는\n30분만 캐싱
+end
+
+' === 시나리오 3: 공통 추천 정보 보강 ===
+group 3. 공통 추천 정보 보강
+    service -> placeService: enrichPlaceInfo(placeId)
+    
+    placeService -> cache: get("place_enriched_" + placeId)
+    alt 캐시 미스
+        placeService -> placeService: analyzeReviews(placeId)
+        note right of placeService: 리뷰 감성 분석
+        
+        placeService -> placeService: extractHighlights(placeInfo)
+        note right of placeService: 주요 특징 추출
+        
+        placeService -> cache: set("place_enriched_" + placeId, enrichedInfo, TTL: 24h)
+    end
+    
+    placeService --> service: EnrichedPlaceInfo
+    
+    ' === 날씨 정보 반영 ===
+    alt 실외 장소인 경우
+        service -> weatherService: getWeatherRecommendation(location, date)
+        weatherService -> weatherService: analyzeWeatherImpact(weatherData, placeType)
+        weatherService --> service: WeatherConsiderations
+        
+        service -> service: adjustRecommendationForWeather(recommendation, weather)
+        note right of service
+        날씨 기반 조정:
+        - 우천 시 대안
+        - 적정 복장
+        - 준비물 제안
+        end note
+    end
+end
+
+' === 시나리오 4: 실시간 업데이트 처리 ===
+group 4. 실시간 정보 업데이트
+    mq -> service: 실시간 업데이트 이벤트
+    note right of mq
+    업데이트 유형:
+    - 장소 운영시간 변경
+    - 임시 휴업
+    - 특별 이벤트
+    end note
+    
+    service -> cache: invalidatePattern("rec_*_" + placeId + "_*")
+    note right of cache: 해당 장소의\n모든 추천 캐시 무효화
+    
+    service -> repository: updatePlaceStatus(placeId, status)
+    
+    alt 긴급 알림 필요
+        service -> service: notifyAffectedUsers(placeId)
+        note right of service: 영향받는 사용자에게\n실시간 알림 전송
+    end
+end
+
+note over mq, cache
+**주요 변경사항:**
+1. **Message Queue 기반**: Trip/Location Service에서 MQ를 통해 비동기 요청
+2. **컨텍스트별 처리**: 일정/검색 컨텍스트별 특화된 추천 로직
+3. **차별화된 캐싱**: 일정(2시간) vs 검색(30분) 캐시 시간 차별화
+4. **실시간 업데이트**: 장소 정보 변경 시 캐시 무효화 및 알림
+5. **의도 기반 추천**: 사용자의 검색 의도나 일정 맥락 깊이 분석
+end note
+
+@enduml

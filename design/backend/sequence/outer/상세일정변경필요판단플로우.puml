@@ -1,0 +1,135 @@
+@startuml 상세일정변경필요판단플로우
+!theme mono
+
+title 상세일정 변경 필요 판단 플로우 - 외부 시퀀스 다이어그램
+
+actor "Mobile Client" as Client
+participant "API Gateway" as Gateway
+participant "Trip Service" as TripService
+participant "AI Service" as AIService
+database "Redis Cache" as Redis
+participant "OpenWeatherMap API" as WeatherAPI
+participant "카카오맵/구글맵 API" as MAP
+
+== 상세일정 변경 필요 판단 (UFR-TRIP-062) ==
+note left of Client
+일정 조회 후 클라이언트에서
+일정 변경 필요 여부 확인
+end note
+
+Client -> Gateway: POST /api/trips/{tripId}/check-schedule-changes\n{currentSchedule}
+activate Gateway
+
+Gateway -> TripService: 일정 변경 필요 확인
+activate TripService
+
+TripService -> Redis: 현재 일정 정보 조회
+activate Redis
+Redis -> TripService: 일정 데이터
+deactivate Redis
+
+' 1. 날씨 변화 확인
+TripService ->> WeatherAPI: 최신 날씨 예보 조회(Non-blocking)\n{locations[], dates[]}
+activate WeatherAPI
+WeatherAPI -->> TripService: 최신 날씨 정보
+deactivate WeatherAPI
+
+TripService -> TripService: 날씨 변화 분석
+note right of TripService
+날씨 변화 판단 기준:
+- 비/눈 예보 추가/제거
+- 극한 기온 변화 (±10도)
+- 태풍/폭설 등 특보
+end note
+
+' 2. 장소 운영 상태 확인
+loop 일정의 각 장소
+    TripService -> MAP: 장소 운영 상태 확인\n{placeId, date, time}
+    activate MAP
+    MAP --> TripService: 운영 상태 정보
+    deactivate MAP
+end
+
+TripService -> TripService: 장소 문제 분석
+note right of TripService
+장소 문제 판단:
+- 영업시간 변경/휴무
+- 임시 휴업
+- 예약 마감
+- 행사로 인한 접근 제한
+end note
+
+' 3. AI 분석 요청
+alt 날씨 변화 또는 장소 문제 발견
+    TripService -> AIService: 일정 변경 필요성 분석 요청\n{schedule, weatherChanges[], placeIssues[]}
+    activate AIService
+    
+    AIService -> AIService: 변경 영향도 분석
+    note right of AIService
+    분석 기준:
+    - 야외/실내 활동 비율
+    - 이동 경로 영향
+    - 대체 장소 필요성
+    - 시간 조정 필요성
+    end note
+    
+    AIService -> TripService: 분석 결과\n{needsChange: true/false,\nreasons[], suggestions[]}
+    deactivate AIService
+    
+    alt needsChange == true
+        TripService -> TripService: 변경 제안 준비
+        
+        TripService -> Gateway: 200 OK\n{needsScheduleChange: true,\nchangeReasons[],\naffectedDays[],\nsuggestions[]}
+    else needsChange == false
+        TripService -> Gateway: 200 OK\n{needsScheduleChange: false,\nminorUpdates[]}
+    end
+else 변화 없음
+    TripService -> Gateway: 200 OK\n{needsScheduleChange: false}
+end
+
+deactivate TripService
+Gateway -> Client: 일정 변경 필요 여부 응답
+deactivate Gateway
+
+' 클라이언트 처리
+alt needsScheduleChange == true
+    Client -> Client: 일정 변경 알림 표시
+    
+    note left of Client
+    "날씨 변화로 인해 2일차 일정
+    재생성을 권장합니다"
+    
+    [일정 재생성] [그대로 진행]
+    end note
+    
+    alt 사용자가 재생성 선택
+        Client -> Client: 일정 재생성 화면으로 이동
+        note left of Client
+        "일정재생성-일자별" 
+        플로우로 진행
+        end note
+    else 사용자가 그대로 진행 선택
+        Client -> Client: 현재 일정 유지
+    end
+else needsScheduleChange == false
+    alt minorUpdates 존재
+        Client -> Client: 마이너 업데이트 표시\n(예: "A장소 영업시간 변경됨")
+    else
+        Client -> Client: 변경사항 없음
+    end
+end
+
+note over Client, MAP
+변경 판단 주기:
+- 자동: 일정 조회 시 1일 1회
+- 수동: 사용자 새로고침 시
+- 여행 시작 D-1: 푸시 알림
+
+주요 변경 기준:
+1. 날씨: 야외활동 불가 수준
+2. 장소: 방문 불가 상태
+3. 이동: 교통 차단/우회 필요
+4. 건강: 멤버 상태 변화 시
+end note
+
+@enduml

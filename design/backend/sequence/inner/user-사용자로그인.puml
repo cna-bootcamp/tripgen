@@ -1,0 +1,113 @@
+@startuml
+!theme mono
+
+title User Service - 사용자로그인 내부 시퀀스
+
+' UFR-USER-020: 사용자 로그인 시나리오
+' 아이디와 비밀번호로 로그인 처리
+
+actor User
+participant UserController
+participant ValidationService
+participant AuthService
+participant PasswordEncoder
+participant JwtTokenService
+participant UserRepository
+database "Redis Cache<<E>>" as RedisCache
+participant SessionService
+
+== 로그인 요청 ==
+User -> UserController: POST /auth/login
+note right: 아이디, 비밀번호, 로그인 유지
+
+UserController -> ValidationService: validateLoginRequest()
+note right: 입력값 기본 검증
+
+ValidationService --> UserController: 검증 완료
+
+UserController -> AuthService: authenticateUser()
+
+AuthService -> RedisCache: getFailureCount()
+note right: 로그인 실패 횟수 확인
+
+RedisCache --> AuthService: 실패 횟수 (예: 0회)
+
+alt 5회 이상 실패
+    AuthService --> UserController: 계정 잠금 오류
+    UserController --> User: 429 Too Many Requests
+else 정상 진행
+    AuthService -> UserRepository: findByUsername()
+    note right: 사용자 정보 조회
+
+    UserRepository --> AuthService: 사용자 엔티티
+
+    AuthService -> PasswordEncoder: matches()
+    note right: 비밀번호 검증
+
+    alt 비밀번호 불일치
+        PasswordEncoder --> AuthService: false
+        AuthService -> RedisCache: incrementFailureCount()
+        note right: 실패 횟수 증가
+        AuthService --> UserController: 인증 실패
+        UserController --> User: 401 Unauthorized
+    else 비밀번호 일치
+        PasswordEncoder --> AuthService: true
+        AuthService -> RedisCache: clearFailureCount()
+        note right: 실패 횟수 초기화
+        
+        AuthService -> JwtTokenService: generateToken()
+        note right: JWT 토큰 생성
+        
+        JwtTokenService --> AuthService: accessToken, refreshToken
+        
+        AuthService -> SessionService: createSession()
+        note right: 세션 생성 (RememberMe 고려)
+        
+        SessionService --> AuthService: 세션 정보
+        
+        AuthService -> RedisCache: cacheUserProfile()
+        note right: 사용자 프로필 캐시
+        
+        AuthService --> UserController: 로그인 성공
+        UserController --> User: 200 OK (토큰 정보)
+    end
+end
+
+== 프로필 조회 ==
+User -> UserController: GET /users/profile
+note right: 헤더에 JWT 토큰 포함
+
+UserController -> JwtTokenService: validateToken()
+
+JwtTokenService --> UserController: 토큰 유효성 확인
+
+UserController -> RedisCache: getUserProfile()
+note right: 캐시에서 프로필 조회
+
+alt 캐시 히트
+    RedisCache --> UserController: 프로필 정보
+else 캐시 미스
+    UserController -> UserRepository: findById()
+    UserRepository --> UserController: 사용자 정보
+    UserController -> RedisCache: cacheUserProfile()
+    note right: 프로필 정보 캐시 저장
+end
+
+UserController --> User: 200 OK (프로필 정보)
+
+== 로그아웃 ==
+User -> UserController: POST /auth/logout
+
+UserController -> JwtTokenService: validateToken()
+
+JwtTokenService --> UserController: 토큰 유효성 확인
+
+UserController -> SessionService: invalidateSession()
+note right: 세션 무효화
+
+UserController -> RedisCache: addToBlacklist()
+note right: 토큰 블랙리스트 등록
+
+UserController --> User: 200 OK
+
+@enduml

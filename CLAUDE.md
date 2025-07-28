@@ -8,41 +8,41 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 아래와 같은 각 멤버가 역할을 나누어 작업합니다. 
 
 ```
-**Product Owner**
-- **책임**: 여행 서비스 기획, 사용자 요구사항 정의, 제품 우선순위 결정
-- **이름/별명**: 이여행/트래블
-- **성별/나이**: 여자/38세
-- **주요경력**: 여행업계 12년, 온라인 여행 플랫폼 기획 및 운영 경험
+Product Owner
+- 책임: 여행 서비스 기획, 사용자 요구사항 정의, 제품 우선순위 결정
+- 이름/별명: 이여행/트래블
+- 성별/나이: 여자/38세
+- 주요경력: 여행업계 12년, 온라인 여행 플랫폼 기획 및 운영 경험
 
-**Tech Lead**  
-- **책임**: 기술 아키텍처 설계, 개발 표준 수립, 기술적 의사결정
-- **이름/별명**: 김개발/테키
-- **성별/나이**: 남자/35세
-- **주요경력**: 클라우드 아키텍처 10년, 마이크로서비스 설계 및 AI 서비스 개발 경험
+Tech Lead  
+- 책임: 기술 아키텍처 설계, 개발 표준 수립, 기술적 의사결정
+- 이름/별명: 김개발/테키
+- 성별/나이: 남자/35세
+- 주요경력: 클라우드 아키텍처 10년, 마이크로서비스 설계 및 AI 서비스 개발 경험
 
-**AI Engineer**
-- **책임**: AI 모델 개발, 여행 일정 생성 알고리즘 구현, 데이터 분석
-- **이름/별명**: 박인공/아이봇
-- **성별/나이**: 남자/32세  
-- **주요경력**: AI/ML 개발 8년, 추천 시스템 및 자연어 처리 전문
+AI Engineer
+- 책임: AI 모델 개발, 여행 일정 생성 알고리즘 구현, 데이터 분석
+- 이름/별명: 박인공/아이봇
+- 성별/나이: 남자/32세  
+- 주요경력: AI/ML 개발 8년, 추천 시스템 및 자연어 처리 전문
 
-**Backend Developer**
-- **책임**: API 개발, 데이터베이스 설계, 서버 개발 및 최적화
-- **이름/별명**: 정백엔드/서버맨
-- **성별/나이**: 남자/29세
-- **주요경력**: 백엔드 개발 6년, RESTful API 및 마이크로서비스 개발 경험
+Backend Developer
+- 책임: API 개발, 데이터베이스 설계, 서버 개발 및 최적화
+- 이름/별명: 정백엔드/서버맨
+- 성별/나이: 남자/29세
+- 주요경력: 백엔드 개발 6년, RESTful API 및 마이크로서비스 개발 경험
 
-**Frontend Developer**
-- **책임**: 사용자 인터페이스 개발, UX/UI 구현, 프론트엔드 최적화
-- **이름/별명**: 최프론트/뷰어
-- **성별/나이**: 여자/27세
-- **주요경력**: 프론트엔드 개발 5년, React/Vue.js 및 모바일 웹 개발 경험
+Frontend Developer
+- 책임: 사용자 인터페이스 개발, UX/UI 구현, 프론트엔드 최적화
+- 이름/별명: 최프론트/뷰어
+- 성별/나이: 여자/27세
+- 주요경력: 프론트엔드 개발 5년, React/Vue.js 및 모바일 웹 개발 경험
 
-**DevOps Engineer**
-- **책임**: 인프라 구축, CI/CD 파이프라인 구성, 모니터링 및 배포 자동화
-- **이름/별명**: 한데브옵스/클라우더
-- **성별/나이**: 남자/33세
-- **주요경력**: DevOps 7년, AWS/Azure 클라우드 및 컨테이너 오케스트레이션 전문
+DevOps Engineer
+- 책임: 인프라 구축, CI/CD 파이프라인 구성, 모니터링 및 배포 자동화
+- 이름/별명: 한데브옵스/클라우더
+- 성별/나이: 남자/33세
+- 주요경력: DevOps 7년, AWS/Azure 클라우드 및 컨테이너 오케스트레이션 전문
 ```
 
 [팀 행동원칙]
@@ -119,15 +119,15 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 [가이드]
 ```
 # Clauding Guide 
-최종 수정일시: 2025-07-27 02:01
+최종 수정일시: 2025-07-27 21:00
 
-## 서비스 기획 가이드 
-- **서비스 기획 프롬프트**
+## 서비스기획 가이드 
+- 서비스기획프롬프트
   - 설명: 유저스토리 작성 등 서비스 기획을 위한 프롬프트 예시  
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/think-prompt.md
   - 파일명: think-prompt.md  
 
-- **서비스 기획 가이드**
+- 서비스기획가이드
   - 설명: 서비스 기획 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/think/think-guide.md
   - 파일명: think-guide.md  
@@ -135,67 +135,67 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 ---
 
 ## 설계 가이드
-- **설계 실행 프롬프트**
+- 설계실행프롬프트
   - 설명: 각 설계 단계 실행을 위한 프롬프트 모음
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/design-prompt.md 
   - 파일명: design-prompt.md
 
-- **공통 설계 원칙**
-  - 설명: 모든 설계 시 적용할 공통 설계 원칙 
+- 공통설계원칙
+  - 설명: 모든 설계 시 적용할 공통설계원칙 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/common-principles.md
   - 파일명: common-principles.md
 
-- **UI/UX 설계 가이드**
+- UI/UX설계가이드
   - 설명: UI/UX 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/uiux-design.md
   - 파일명: uiux-design.md
 
-- **프로토타입 작성 가이드**
+- 프로토타입작성가이드
   - 설명: 프로토타입 작성 방법 안내  
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/uiux-prototype.md
   - 파일명: uiux-prototype.md
   
-- **아키텍처 패턴 선정 가이드**
+- 아키텍처패턴선정 가이드
   - 설명: 클라우드 아키텍처 패턴 선정 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/architecture-patterns.md
   - 파일명: architecture-patterns.md
   
-- **논리 아키텍처 설계 가이드**
+- 논리아키텍처설계가이드
   - 설명: 논리 아키텍처 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/logical-architecture-design.md
   - 파일명: logical-architecture-design.md
 
-- **API 설계 가이드**
+- API설계가이드
   - 설명: API 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/api-design.md
   - 파일명: api-design.md
 
-- **외부 시퀀스 설계 가이드**
+- 외부시퀀스설계가이드
   - 설명: 외부 시퀀스 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/sequence-outer-design.md
   - 파일명: sequence-outer-design.md
 
-- **내부 시퀀스 설계 가이드**
+- 내부시퀀스설계 가이드
   - 설명: 내부 시퀀스 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/sequence-inner-design.md
   - 파일명: sequence-inner-design.md
 
-- **클래스 설계 가이드**
+- 클래스설계가이드
   - 설명: 클래스 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/class-design.md
   - 파일명: class-design.md
 
-- **데이터 설계 가이드**
+- 데이터설계가이드
   - 설명: 데이터 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/data-design.md
   - 파일명: data-design.md
 
-- **High Level 아키텍처 정의 가이드**
+- HighLevel아키텍처정의가이드
   - 설명: 상위수준 아키텍처 정의 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/architecture-highlevel.md
   - 파일명: architecture-highlevel.md
   
-- **물리 아키텍처 설계 가이드**
+- 물리아키텍처설계가이드
   - 설명: 물리 아키텍처 설계 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/design/physical-architecture-design.md
   - 파일명: physical-architecture-design.md
@@ -204,12 +204,12 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 
 ## 개발 가이드
 
-- **데이터베이스 설치 가이드**
+- 데이터베이스설치가이드
   - 설명: 데이터베이스 설치 방법 안내 요청 시 참조 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/build/database-install.md
   - 파일명: database-install.md
 
-- **Message Queue 설치 가이드**
+- MessageQueue설치가이드
   - 설명: Message Queue  설치 방법 안내 요청 시 참조 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/build/mq-install.md
   - 파일명: mq-install.md
@@ -217,50 +217,63 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 ---
 
 ## 참조 문서
-- **프로젝트 지침 템플릿**
+- 프로젝트지침템플릿
   - 설명: 프로젝트 지침인 CLAUDE.md 파일 템플릿 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/instruction-template.md
   - 파일명: instruction-template.md
 
-- **유저스토리 작성 방법**
+- 유저스토리작성방법
   - 설명: 유저스토리 형식과 작성법 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/유저스토리작성방법.md
   - 파일명: userstory-writing.md
 
-- **클라우드 아키텍처 패턴 요약표**
+- 클라우드아키텍처패턴요약표
   - 설명: 클라우드 디자인 패턴 요약표 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/Cloud%20Design%20Patterns(%EA%B0%9C%EC%9A%94).md
   - 파일명: cloud-design-patterns.md
   
-- **High Level 아키텍처 정의서 템플릿**
+- HighLevel아키텍처정의서템플릿
   - 설명: MSA 7대 컴포넌트별로 상위 수준의 아키텍처를 정의한 문서   
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/highlevel-architecture-template.md
   - 파일명: highlevel-architecture-template.md
 
-- **제품별 버전 가이드**
+- 제품별버전가이드
   - 설명: 개발언어, 개발 프레임워크, AI제품 등의 버전 참조를 위한 페이지 링크 제공  
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/제품버전참조.md
   - 파일명: version-link.md
 
-- **백킹 서비스 설치 방법**
-  - 설명: 데이터베이스, Message Queue 등 백킹 서비스 설치 방법 설명  
+- 백킹서비스설치방법
+  - 설명: 데이터베이스, Message Queue 등 백킹서비스설치방법 설명  
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/references/백킹서비스설치방법.md
   - 파일명: backing-service-method.md
 
 ---
 
+## 표준
+- 개발주석표준 
+  - 설명: 개발 주석 표준    
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/standards/standard_comment.md
+  - 파일명: standard_comment.md
+
+- 패키지구조표준 
+  - 설명: 패키지 구조 표준과 설계 아키텍처 패턴(Layered, Clean, Hexagonal)별 예시    
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/standards/standard_package_structure.md
+  - 파일명: standard_package_structure.md
+
+- 테스트코드표준 
+  - 설명: 테스트 코드 작성 표준     
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/standards/standard_testcode.md
+  - 파일명: standard_testcode.md
+ 
+---
+
 ## 기술 도구
-- **PlantUML 문법 검사 가이드**
+- PlantUML문법검사가이드
   - 설명: PlantUML 문법 검사하는 방법 안내 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/plantuml-guide.md
   - 파일명: plantuml-guide.md
 
-- **OpenAPI to CSV 변환 도구**
-  - 설명: OpenAPI 3.0 YAML 파일을 CSV 형식으로 변환하는 도구. openapi-to-csv폴더 하위의 파일 이용함. 
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/openapi-tools.md
-  - 파일명: openapi-tools.md
-
-- **MCP 동기화 도구**
+- MCP동기화도구
   - 설명: Window에서 Cloude Desktop의 MCP설정을 읽어 Claude Code에 MCP 서버를 동기화하는 툴 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/sync-mcp.md
   - 파일명: sync-mcp.md
@@ -269,18 +282,17 @@ AI 기반 여행 상세 일정 생성 서비스 개발
 
   ## 산출물 디렉토리 
 - 유저스토리: design/userstory.md
-- UI/UX 설계서: design/uiux/uiux.md
+- UI/UX설계서: design/uiux/uiux.md
 - 스타일가이드: design/uiux/style-guide.md  
-- UI/UX 설계서: design/uiux/uiux.md
 - 프로토타입: design/uiux/prototype/*.html 
-- 아키텍처패턴: design/pattern/아키텍처패턴.puml
-- 논리아키텍처: design/backend/logical/논리아키텍처.puml
-- API 설계서: design/backend/api/*.yaml
-- 외부시퀀스 설계서: design/backend/sequence/outer/{플로우명}.puml
-- 내부시퀀스 설계서: design/backend/sequence/inner/{service-name}-{flow-name}.puml
-- 클래스 설계서: design/backend/class/{service-name}.puml
-- 데이터 설계서: design/backend/database/*.txt 
-- High Level 아키텍처 정의: design/backend/physical/*.puml
+- 아키텍처패턴: design/pattern/architecture-pattern.md
+- 논리아키텍처: design/backend/logical/*
+- API설계서: design/backend/api/*.yaml
+- 외부시퀀스설계서: design/backend/sequence/outer/{플로우명}.puml
+- 내부시퀀스설계서: design/backend/sequence/inner/{service-name}-{flow-name}.puml
+- 클래스설계서: design/backend/class/{service-name}.puml
+- 데이터설계서: design/backend/database/*
+- HighLevel아키텍처정의서: design/backend/physical/*.puml
 
 ## 프롬프트 약어 
 ## 역할 약어 

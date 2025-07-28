@@ -1,0 +1,184 @@
+@startuml
+!theme mono
+
+title Trip Service - 여행지설정 내부 시퀀스 (프론트엔드 최적화)
+
+' UFR-TRIP-040: 여행지별 일정 설정 시나리오
+' 프론트엔드에서 날짜 계산, 폼 상태 관리, 백엔드는 최종 저장만
+
+actor User
+boundary "Frontend State" as Frontend
+participant TripController
+participant TripService
+participant DestinationService
+participant ValidationService
+participant DateCalculationService
+participant TripRepository
+participant DestinationRepository
+database "Redis Cache<<E>>" as RedisCache
+
+== 1. 화면 초기화 및 데이터 복원 ==
+User -> Frontend: 여행지설정 화면 접근
+
+Frontend -> Frontend: localStorage 데이터 확인
+note right: 자동 저장된 여행지 정보 복원
+
+alt 기존 데이터 존재
+    Frontend -> Frontend: 여행지 목록 복원
+    note right: 시작일, 여행지 목록, 날짜 자동 계산
+else 신규 여행
+    Frontend -> Frontend: 기본값 설정
+    note right: 시작일만 설정된 상태
+end
+
+Frontend -> User: 화면 렌더링 완료
+
+== 2. 여행 시작일 실시간 수정 ==
+User -> Frontend: 시작일 변경 (2025-09-01)
+
+Frontend -> Frontend: 날짜 형식 검증
+note right: 과거일 체크, 형식 확인
+
+Frontend -> Frontend: 전체 여행지 날짜 재계산
+note right: 시작일 기준으로 모든 여행지 날짜 업데이트
+
+Frontend -> Frontend: UI 즉시 반영
+note right: 각 여행지 카드의 날짜 실시간 변경
+
+== 3. 새 여행지 추가 (프론트엔드) ==
+User -> Frontend: "+" 버튼 클릭
+
+Frontend -> Frontend: 인라인 폼 표시
+note right: 새 여행지 추가 폼 즉시 표시
+
+User -> Frontend: 여행지명 입력 "이탈리아 베니스"
+
+Frontend -> Frontend: 실시간 입력 검증
+note right: 20자 이하, 특수문자 제한
+
+User -> Frontend: 숙박일 입력 (2박)
+
+Frontend -> Frontend: 날짜 자동 계산
+note right: 이전 여행지 종료일 + 숙박일 계산
+
+Frontend -> Frontend: 계산 결과 미리보기
+note right: "9월 11일 ~ 9월 13일" 즉시 표시
+
+User -> Frontend: "추가" 버튼 클릭
+
+Frontend -> Frontend: 여행지 배열에 추가
+note right: 로컬 상태에만 저장, 서버 호출 없음
+
+Frontend -> Frontend: 새 카드 즉시 표시
+note right: 애니메이션으로 부드럽게 추가
+
+== 4. 여행지 편집 (인라인) ==
+User -> Frontend: "편집" 버튼 클릭
+
+Frontend -> Frontend: 해당 카드를 편집 모드로 변경
+note right: 인라인으로 폼 필드 표시
+
+User -> Frontend: 숙박일 변경 (3박 → 4박)
+
+Frontend -> Frontend: 실시간 날짜 재계산
+note right: 변경된 여행지 이후 모든 날짜 업데이트
+
+Frontend -> Frontend: UI 즉시 반영
+note right: 후속 여행지들의 날짜 실시간 변경
+
+== 5. 스마트 자동 저장 ==
+Frontend -> Frontend: 변경 사항 감지
+note right: 3초 debounce 적용
+
+Frontend -> Frontend: localStorage 임시 저장
+note right: 브라우저 종료 대비 로컬 백업
+
+== 6. 최종 저장 (서버 호출) ==
+User -> Frontend: "다음 단계" 버튼 클릭
+
+Frontend -> Frontend: 최종 검증
+note right: 최소 1개 여행지, 필수 항목 확인
+
+Frontend -> TripController: POST /trips/{tripId}/destinations/batch
+note right: 전체 여행지 목록 일괄 전송
+
+activate TripController
+TripController -> ValidationService: validateDestinationsBatch()
+activate ValidationService
+
+ValidationService -> ValidationService: 비즈니스 규칙 검증
+note right: 여행지 개수, 날짜 연속성, 숙박일 범위
+
+ValidationService --> TripController: 검증 완료
+deactivate ValidationService
+
+TripController -> TripService: saveTripDestinations()
+activate TripService
+
+TripService -> DateCalculationService: validateDateConsistency()
+activate DateCalculationService
+note right: 서버 사이드 날짜 재검증
+DateCalculationService --> TripService: 날짜 검증 완료
+deactivate DateCalculationService
+
+== 7. 데이터베이스 저장 ==
+TripService -> TripRepository: updateTripStartDate()
+activate TripRepository
+note right: 여행 시작일 업데이트
+TripRepository --> TripService: 업데이트 완료
+deactivate TripRepository
+
+loop 각 여행지 저장
+    TripService -> DestinationRepository: saveDestination()
+    activate DestinationRepository
+    note right: 여행지명, 숙박일, 숙소, 날짜 저장
+    DestinationRepository --> TripService: destinationId 반환
+    deactivate DestinationRepository
+end
+
+TripService -> RedisCache: cacheDestinationData()
+activate RedisCache
+note right: 빠른 조회를 위한 캐시
+RedisCache --> TripService: 캐시 완료
+deactivate RedisCache
+
+TripService --> TripController: 저장 성공 (전체 여행지 목록)
+deactivate TripService
+
+TripController --> Frontend: 201 Created
+deactivate TripController
+
+Frontend -> Frontend: localStorage 임시 데이터 삭제
+note right: 정상 저장 완료로 임시 데이터 정리
+
+Frontend -> User: AI일정생성 화면으로 이동
+
+== 8. 여행지 삭제 (즉시 반영) ==
+User -> Frontend: "삭제" 버튼 클릭
+
+Frontend -> Frontend: 삭제 확인 다이얼로그
+note right: "이 여행지를 삭제하시겠습니까?"
+
+User -> Frontend: 삭제 확인
+
+Frontend -> Frontend: 로컬 배열에서 제거
+note right: 즉시 UI에서 제거
+
+Frontend -> Frontend: 후속 여행지 날짜 재계산
+note right: 삭제된 여행지 이후 모든 날짜 업데이트
+
+== 오류 처리 ==
+alt 서버 저장 실패
+    TripController --> Frontend: 400/500 Error
+    Frontend -> Frontend: 오류 메시지 표시
+    note right: 사용자 친화적 오류 안내
+    Frontend -> Frontend: 임시 데이터 유지
+    note right: 사용자 입력 손실 방지
+else 날짜 검증 실패
+    ValidationService --> TripController: 400 Bad Request
+    TripController --> Frontend: 날짜 오류 정보
+    Frontend -> Frontend: 문제 여행지 하이라이트
+    note right: 구체적인 오류 위치 표시
+end
+
+@enduml

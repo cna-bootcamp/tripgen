@@ -42,6 +42,111 @@
       padding: var(--space-2) var(--space-4);
     }
 
+    /* 일정 변경 알림 영역 */
+    .schedule-change-alert {
+      background: #FEF3C7;
+      border: 1px solid #F59E0B;
+      border-radius: 8px;
+      padding: var(--space-4);
+      margin-bottom: var(--space-6);
+      display: none;
+    }
+
+    .schedule-change-alert.show {
+      display: block;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+    }
+
+    .alert-icon {
+      font-size: var(--text-xl);
+      color: #F59E0B;
+    }
+
+    .alert-title {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      color: var(--gray-800);
+    }
+
+    .alert-content {
+      margin-left: 32px;
+    }
+
+    .alert-message {
+      font-size: var(--text-base);
+      color: var(--gray-700);
+      margin-bottom: var(--space-2);
+    }
+
+    .alert-impact {
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      margin-bottom: var(--space-4);
+    }
+
+    .alert-actions {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+    }
+
+    .alert-actions .btn {
+      padding: var(--space-2) var(--space-4);
+      font-size: var(--text-sm);
+    }
+
+    .btn-regenerate {
+      background: var(--warning);
+      color: white;
+      border: none;
+    }
+
+    .btn-regenerate:hover {
+      background: #D97706;
+    }
+
+    .btn-dismiss {
+      background: white;
+      color: var(--gray-700);
+      border: 1px solid var(--gray-300);
+    }
+
+    .btn-dismiss:hover {
+      background: var(--gray-50);
+    }
+
+    /* 날씨 정보 스타일 */
+    .weather-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      margin-top: var(--space-1);
+    }
+
+    .weather-icon {
+      font-size: var(--text-lg);
+    }
+
     /* 날짜별 탭 네비게이션 */
     .day-tabs {
       display: flex;
@@ -1314,6 +1419,27 @@
         <button class="btn btn-primary" onclick="regenerateItinerary()">
           🔄 일정 재생성
         </button>
+      </div>
+
+      <!-- 일정 변경 알림 영역 -->
+      <div class="schedule-change-alert" id="scheduleChangeAlert">
+        <div class="alert-header">
+          <span class="alert-icon">⚠️</span>
+          <h3 class="alert-title">일정 변경이 필요할 수 있습니다</h3>
+        </div>
+        <div class="alert-content">
+          <div id="alertMessages">
+            <!-- 동적으로 생성되는 알림 메시지 -->
+          </div>
+          <div class="alert-actions">
+            <button class="btn btn-regenerate" onclick="regenerateFromAlert()">
+              일정 재생성
+            </button>
+            <button class="btn btn-dismiss" onclick="dismissAlert()">
+              그대로 진행
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- 날짜별 탭 -->
@@ -2605,6 +2731,91 @@
       // 현재는 유럽가족여행이 '여행중' 상태로 설정
       return 'in-progress'; // 'in-progress', 'completed', 'planning'
     }
+
+    // 일정 변경 알림 관련 함수들
+    let changeAlerts = [];
+    
+    // 일정 변경 필요성 체크 (페이지 로드 시 실행)
+    function checkScheduleChanges() {
+      // 무조건 알림을 표시하도록 수정
+      setTimeout(() => {
+        changeAlerts = [];
+        
+        // 날씨 변화 알림 (항상 표시)
+        changeAlerts.push({
+          type: 'weather',
+          day: 2,
+          message: '2일차에 비 예보가 추가되었습니다',
+          impact: '야외 활동 3곳이 영향받습니다'
+        });
+        
+        // 장소 문제 알림도 추가
+        changeAlerts.push({
+          type: 'place',
+          day: 1,
+          message: '님펜부르크 궁전이 임시 휴관입니다',
+          impact: '대체 장소를 추천해드릴 수 있습니다'
+        });
+        
+        // 알림 표시
+        showScheduleChangeAlert();
+      }, 1000); // 1초 후 표시
+    }
+    
+    // 일정 변경 알림 표시
+    function showScheduleChangeAlert() {
+      const alert = document.getElementById('scheduleChangeAlert');
+      const messagesContainer = document.getElementById('alertMessages');
+      
+      // 알림 메시지 생성
+      messagesContainer.innerHTML = changeAlerts.map(alert => `
+        <div class="alert-message">${alert.message}</div>
+        <div class="alert-impact">${alert.impact}</div>
+      `).join('');
+      
+      // 알림 표시
+      alert.classList.add('show');
+    }
+    
+    // 알림에서 일정 재생성
+    function regenerateFromAlert() {
+      // 영향받는 날짜들 확인
+      const affectedDays = [...new Set(changeAlerts.map(a => a.day))];
+      
+      if (affectedDays.length === 1) {
+        // 특정 날짜만 재생성
+        regenerateDayItinerary(affectedDays[0]);
+      } else {
+        // 전체 재생성
+        regenerateItinerary();
+      }
+    }
+    
+    // 알림 무시
+    function dismissAlert() {
+      const alert = document.getElementById('scheduleChangeAlert');
+      alert.classList.remove('show');
+      
+      // 다음 날까지 다시 표시하지 않도록 설정
+      const now = new Date().getTime();
+      localStorage.setItem('lastScheduleCheck', now.toString());
+      
+      showCustomToast('일정을 그대로 진행합니다', 'info');
+    }
+    
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      initDayTabs();
+      
+      // UFR-TRIP-062: 일정 변경 필요성 체크
+      checkScheduleChanges();
+      
+      // 첫 번째 날짜 탭 활성화
+      const firstTab = document.querySelector('.day-tab');
+      if (firstTab) {
+        firstTab.click();
+      }
+    });
   </script>
 </body>
 </html>

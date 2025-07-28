@@ -1,0 +1,167 @@
+@startuml
+!theme mono
+
+title Location 서비스 - 주변장소검색 내부 시퀀스 (UFR-LOC-010)
+
+actor Client
+participant SearchController
+participant SearchService
+participant PlaceService
+participant LocationRepository
+database "Cache Service<<E>>" as Cache
+participant "Kakao Map API<<E>>" as KakaoMapAPI
+participant "Google Map API<<E>>" as GoogleMapAPI
+participant "AI<<E>>" as AIService
+
+note over SearchController, AIService
+  주변장소검색 시나리오 - 출발지 기준 이동시간 내 장소 검색
+  국내: 카카오맵 기본정보 + 구글 리뷰, 해외: 구글맵만 사용
+end note
+
+Client -> SearchController: GET /search/nearby\n(origin, transportation, timeRange, category, keyword, sort)
+
+activate SearchController
+
+== 1. 입력 검증 및 전처리 ==
+SearchController -> SearchController: 입력 파라미터 검증\n(origin, transportation, timeRange 필수 확인)
+
+SearchController -> PlaceService: geocodeAddress(origin)
+activate PlaceService
+
+PlaceService -> Cache: getCachedGeocode(origin)
+activate Cache
+Cache --> PlaceService: 캐시된 좌표 정보 (있으면)
+deactivate Cache
+
+alt 캐시 미스
+  PlaceService -> PlaceService: 지역 판별 로직\n(한국/해외 구분)
+  
+  alt 국내 주소
+    PlaceService -> KakaoMapAPI: 지오코딩 요청
+    activate KakaoMapAPI
+    KakaoMapAPI --> PlaceService: 좌표 정보 (lat, lng)
+    deactivate KakaoMapAPI
+  else 해외 주소
+    PlaceService -> GoogleMapAPI: Geocoding API 요청
+    activate GoogleMapAPI
+    GoogleMapAPI --> PlaceService: 좌표 정보 (lat, lng)
+    deactivate GoogleMapAPI
+  end
+  
+  PlaceService -> Cache: cacheGeocode(origin, coordinates)
+  activate Cache
+  Cache --> PlaceService: 캐시 저장 완료
+  deactivate Cache
+end
+
+PlaceService --> SearchController: 좌표 정보 (lat, lng)
+deactivate PlaceService
+
+== 2. 주변 장소 검색 ==
+SearchController -> SearchService: searchNearbyPlaces(coordinates, params)
+activate SearchService
+
+SearchService -> Cache: getCachedSearchResults(searchKey)
+note right: searchKey = "lat,lng,transport,timeRange,category"
+activate Cache
+Cache --> SearchService: 캐시된 검색 결과 (있으면)
+deactivate Cache
+
+alt 캐시 미스 또는 만료
+  SearchService -> SearchService: 지역별 API 선택\n(coordinates 기반 판별)
+  
+  alt 국내 검색
+    SearchService -> KakaoMapAPI: 카테고리별 장소 검색\n(keyword search + category filter)
+    activate KakaoMapAPI
+    KakaoMapAPI --> SearchService: 장소 목록 (기본정보, 평점, 주소)
+    deactivate KakaoMapAPI
+    
+    SearchService -> SearchService: 이동시간 계산 요청 준비\n(출발지 → 각 장소별)
+    
+    SearchService -> KakaoMapAPI: 대중교통/자동차/도보 경로 계산\n(origins, destinations, mode)
+    activate KakaoMapAPI
+    KakaoMapAPI --> SearchService: 이동시간 정보 (분)
+    deactivate KakaoMapAPI
+    
+    SearchService -> SearchService: 시간 범위 필터링\n(timeRange 이내 장소만 선별)
+    
+  else 해외 검색
+    SearchService -> GoogleMapAPI: Nearby Search API\n(location, radius, type, keyword)
+    activate GoogleMapAPI
+    GoogleMapAPI --> SearchService: 장소 목록 (기본정보, 평점, 주소)
+    deactivate GoogleMapAPI
+    
+    SearchService -> GoogleMapAPI: Distance Matrix API\n(origins, destinations, mode)
+    activate GoogleMapAPI
+    GoogleMapAPI --> SearchService: 이동시간 정보 (분)
+    deactivate GoogleMapAPI
+    
+    SearchService -> SearchService: 시간 범위 필터링\n(timeRange 이내 장소만 선별)
+  end
+  
+  SearchService -> SearchService: 결과 정렬 및 가공\n(sort 파라미터 적용: time/rating/name/reviews)
+  
+  SearchService -> Cache: cacheSearchResults(searchKey, results, 1h)
+  activate Cache
+  Cache --> SearchService: 캐시 저장 완료
+  deactivate Cache
+end
+
+== 3. 장소 상세정보 보완 (필요시) ==
+alt 카테고리별 추가 정보 필요
+  loop 각 장소별
+    SearchService -> PlaceService: getBasicPlaceInfo(placeId, includeReviews=false)
+    activate PlaceService
+    
+    PlaceService -> Cache: getCachedPlaceInfo(placeId)
+    activate Cache
+    Cache --> PlaceService: 캐시된 장소 정보 (있으면)
+    deactivate Cache
+    
+    alt 캐시 미스
+      alt 국내 장소
+        PlaceService -> KakaoMapAPI: 장소 상세정보 조회
+        activate KakaoMapAPI
+        KakaoMapAPI --> PlaceService: 상세 정보 (카테고리, 주소, 전화번호)
+        deactivate KakaoMapAPI
+      else 해외 장소
+        PlaceService -> GoogleMapAPI: Place Details API
+        activate GoogleMapAPI
+        GoogleMapAPI --> PlaceService: 상세 정보 (카테고리, 주소, 전화번호)
+        deactivate GoogleMapAPI
+      end
+      
+      PlaceService -> Cache: cachePlaceInfo(placeId, info, 6h)
+      activate Cache
+      Cache --> PlaceService: 캐시 저장 완료
+      deactivate Cache
+    end
+    
+    PlaceService --> SearchService: 장소 상세정보
+    deactivate PlaceService
+  end
+end
+
+== 4. 최종 결과 가공 ==
+SearchService -> SearchService: 페이지네이션 적용\n(page, limit 파라미터)
+
+SearchService -> SearchService: 응답 데이터 구성\n(PlaceCard 스키마 형태)
+
+SearchService --> SearchController: 검색 결과 목록\n(SearchResponse)
+deactivate SearchService
+
+== 5. 응답 반환 ==
+SearchController -> SearchController: 응답 데이터 검증 및 로깅
+
+SearchController --> Client: 200 OK\n(totalResults, places[], pagination)
+deactivate SearchController
+
+note over Client, AIService
+  주요 처리 사항:
+  - 지역별 API 전략: 국내(카카오), 해외(구글)
+  - 캐싱 전략: 지오코딩(1일), 검색결과(1시간), 장소정보(6시간)
+  - 이동시간 기반 필터링: Distance Matrix API 활용
+  - 성능 최적화: 병렬 API 호출 및 캐시 우선 조회
+end note
+
+@enduml

@@ -1,0 +1,215 @@
+@startuml 일정조회및수정플로우
+!theme mono
+
+title 일정 조회 및 수정 플로우 - 외부 시퀀스 다이어그램
+
+actor "Mobile Client" as Client
+participant "API Gateway" as Gateway
+participant "Trip Service" as TripService
+participant "AI Service" as AIService
+participant "Location Service" as LocationService
+database "Redis Cache" as Redis
+queue "Message Queue" as MQ
+participant "Claude API" as ClaudeAPI
+participant "OpenWeatherMap API" as WeatherAPI
+participant "카카오맵/구글맵 API" as MAP
+
+== 생성된 일정 조회 (UFR-TRIP-060) ==
+note left of Client
+06-생성된일정조회 화면에서
+일자별 상세 일정 확인
+end note
+
+Client -> Gateway: GET /api/trips/{tripId}/schedules
+activate Gateway
+
+Gateway -> TripService: 일정 조회 요청
+activate TripService
+
+TripService -> Redis: 생성된 일정 조회\n(tripId, schedule)
+activate Redis
+
+alt 캐시 히트
+    Redis -> TripService: 일정 데이터 반환
+    deactivate Redis
+    
+    TripService -> TripService: 일자별 데이터 구조화
+    
+else 캐시 미스
+    Redis -> TripService: 캐시 미스
+    deactivate Redis
+    TripService -> TripService: DB에서 일정 조회
+end
+
+TripService -> Gateway: 일정 기본 데이터 반환\n{days[], places[], routes[]}
+deactivate TripService
+
+Gateway -> Client: 200 OK\n일자별 기본 일정 (즉시 응답)
+deactivate Gateway
+
+Client -> Client: 일자별 탭 UI 렌더링\n(기본 정보만 표시)
+
+note left of Client
+일정 변경이 필요한지 판단:
+"상세일정변경필요판단플로우"
+(UFR-TRIP-062) 참조
+end note
+
+== 일정 재생성 - 전체 (UFR-TRIP-070) ==
+note left of Client
+상단 "일정 재생성" 버튼 클릭
+전체 일정을 다시 생성
+end note
+
+Client -> Gateway: POST /api/trips/{tripId}/regenerate-all\n{startTime, specialRequests}
+activate Gateway
+
+Gateway -> TripService: 전체 일정 재생성 요청
+activate TripService
+
+TripService -> Redis: 기존 여행 정보 조회\n(basicInfo, destinations)
+activate Redis
+Redis -> TripService: 여행 데이터 반환
+deactivate Redis
+
+TripService -> MQ: AI 재생성 작업 발행\n{tripId, regenerateType: "all"}
+activate MQ
+MQ -> TripService: 작업 큐잉 완료
+deactivate MQ
+
+TripService -> Gateway: 202 Accepted\n{requestId, status: "재생성중"}
+deactivate TripService
+
+Gateway -> Client: 재생성 요청 접수
+deactivate Gateway
+
+Client -> Client: AI일정생성 화면으로 이동\n(진행률 표시)
+
+note left of Client
+AI 재생성 처리는
+"AI일정생성처리플로우"
+참조
+end note
+
+== 일정 재생성 - 일자별 (UFR-TRIP-070) ==
+note left of Client
+특정 날짜 탭의
+"다시 생성" 버튼 클릭
+end note
+
+Client -> Gateway: POST /api/trips/{tripId}/regenerate-day\n{dayNumber, specialRequests}
+activate Gateway
+
+Gateway -> TripService: 일자별 재생성 요청
+activate TripService
+
+TripService -> Redis: 해당일 일정 정보 조회
+activate Redis
+Redis -> TripService: 일정 데이터 반환
+deactivate Redis
+
+TripService -> TripService: 재생성 제한 확인\n(날짜별 최대 5회)
+
+alt 재생성 가능
+    TripService -> MQ: AI 일자 재생성 작업 발행\n{tripId, dayNumber, regenerateType: "day"}
+    activate MQ
+    MQ -> TripService: 작업 큐잉 완료
+    deactivate MQ
+    
+    TripService -> Gateway: 202 Accepted\n{requestId}
+else 재생성 한도 초과
+    TripService -> Gateway: 429 Too Many Requests\n{message: "일일 재생성 한도 초과"}
+end
+
+deactivate TripService
+Gateway -> Client: 재생성 응답
+deactivate Gateway
+
+alt 재생성 가능
+    Client -> Client: 로딩 인디케이터 표시
+    note left of Client
+    AI 일자별 재생성 처리는
+    "AI일정생성처리플로우"에서
+    regenerateType: "day" 참조
+    end note
+end
+
+== 진행바 네비게이션 (UFR-TRIP-090) ==
+note left of Client
+상단 진행바를 통해
+이전 단계로 이동
+end note
+
+Client -> Client: 진행바에서 "여행지설정" 클릭
+
+Client -> Gateway: GET /api/trips/{tripId}/validation/navigation\n{targetStep: "destinations"}
+activate Gateway
+
+Gateway -> TripService: 네비게이션 가능 여부 확인
+activate TripService
+
+TripService -> Redis: 여행 상태 확인\n(completedSteps[])
+activate Redis
+Redis -> TripService: 상태 정보 반환
+deactivate Redis
+
+TripService -> TripService: 이동 가능 여부 판단\n(필수 정보 완료 상태)
+
+TripService -> Gateway: 200 OK\n{canNavigate: true, savedData}
+deactivate TripService
+
+Gateway -> Client: 네비게이션 가능 확인
+deactivate Gateway
+
+Client -> Client: 여행지설정 화면으로 이동\n(저장된 데이터 로드)
+
+== 일정 내보내기 (UFR-TRIP-100) ==
+note left of Client
+"내보내기" 버튼 클릭
+PDF 또는 이미지 선택
+end note
+
+Client -> Gateway: POST /api/trips/{tripId}/export\n{format: "pdf", options}
+activate Gateway
+
+Gateway -> TripService: 내보내기 요청
+activate TripService
+
+TripService -> Redis: 전체 일정 데이터 조회
+activate Redis
+Redis -> TripService: 일정 데이터 반환
+deactivate Redis
+
+loop 각 장소별 정보 수집
+    TripService -> LocationService: 장소 정보 조회\n(내보내기용 정적 지도 포함)
+    activate LocationService
+    LocationService -> TripService: 장소 정보 + 지도 이미지
+    deactivate LocationService
+end
+
+TripService -> TripService: 문서 생성\n(PDF/이미지 렌더링)
+
+alt PDF 형식
+    TripService -> TripService: A4 레이아웃 생성\n날짜별 페이지 구분
+else 이미지 형식
+    TripService -> TripService: 모바일 비율 이미지 생성\n일자별 개별 파일
+end
+
+TripService -> Gateway: 200 OK\n{downloadUrl, fileName}
+deactivate TripService
+
+Gateway -> Client: 다운로드 URL 제공
+deactivate Gateway
+
+Client -> Client: 파일 다운로드 시작\n(여행명_YYYYMMDD.pdf)
+
+note over Client, ClaudeAPI
+주요 성능 지표:
+- 일정 조회: 즉시 응답 (캐시 활용)
+- 전체 재생성: 5초 이내 (비동기)
+- 일자별 재생성: 3초 이내 (비동기)
+- 내보내기: 2초 이내 (동기)
+- 캐시 TTL: 일정 7일, 장소 24시간
+end note
+
+@enduml

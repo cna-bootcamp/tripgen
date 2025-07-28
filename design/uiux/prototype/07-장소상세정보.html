@@ -464,6 +464,160 @@
             white-space: nowrap;
             border-width: 0;
         }
+
+        /* 리뷰 스타일 추가 */
+        .rating-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--space-6);
+            border-radius: 16px;
+            margin-bottom: var(--space-6);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .rating-summary-content {
+            display: flex;
+            align-items: center;
+            gap: var(--space-6);
+        }
+
+        .rating-number {
+            font-size: 3rem;
+            font-weight: var(--font-bold);
+            color: var(--primary-blue);
+            line-height: 1;
+        }
+
+        .rating-details {
+            flex: 1;
+        }
+
+        .stars-container {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 2px;
+        }
+
+        .star-rating .star {
+            font-size: 24px;
+            color: #FFD700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .star-rating .star.empty {
+            color: #e0e0e0;
+        }
+
+        .review-count {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+            font-weight: var(--font-medium);
+        }
+
+        .review-item {
+            background: white;
+            padding: var(--space-5);
+            border-radius: 12px;
+            margin-bottom: var(--space-4);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid var(--gray-100);
+        }
+
+        .review-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-3);
+        }
+
+        .reviewer-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .reviewer-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-blue-light);
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-semibold);
+            font-size: var(--text-sm);
+        }
+
+        .reviewer-name {
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+        }
+
+        .review-date {
+            font-size: var(--text-sm);
+            color: var(--gray-500);
+        }
+
+        .review-rating {
+            display: flex;
+            gap: 1px;
+            margin-bottom: var(--space-2);
+        }
+
+        .review-rating .star {
+            font-size: 16px;
+            color: #FFD700;
+        }
+
+        .review-rating .star.empty {
+            color: #e0e0e0;
+        }
+
+        .review-text {
+            color: var(--gray-700);
+            line-height: 1.6;
+            font-size: var(--text-base);
+        }
+
+        .load-more-btn {
+            width: 100%;
+            padding: var(--space-4);
+            background: white;
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            color: var(--gray-600);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+        }
+
+        .load-more-btn:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .load-more-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -606,15 +760,6 @@
                         </div>
 
                     </div>
-                    
-                    <!-- 유용한 정보/Tip -->
-                    <div class="info-card" style="margin-top: 20px;">
-                        <h3>💡 유용한 정보/Tip</h3>
-                        <div style="color: #4b5563; line-height: 1.8;">
-                            시계탑 공연 시간: 11시, 12시, 17시 (3-10월 21시)<br>
-                            매일 정각에 43개의 종이 울리며 실물 크기의 인형들이 중세 기사 토너먼트와 쿠퍼들의 춤을 재현합니다.
-                        </div>
-                    </div>
                 </div>
 
                 <!-- AI 추천 이유 -->
@@ -624,13 +769,58 @@
                             <h3 class="card-title">🤖 AI 추천 이유</h3>
                         </div>
                         <div class="card-body">
-                            <p>마리엔플라츠는 뮌헨의 심장부로, 중세부터 시장과 축제가 열렸던 역사적인 광장입니다. 
-               신시청사의 글로켄슈필(시계탑 공연)은 세계적으로 유명하며, 고딕 양식의 아름다운 건축물과 
-               함께 뮌헨의 전통과 현대가 조화를 이루는 대표적인 관광명소입니다.</p>
+                            <div style="margin-bottom: var(--space-4);">
+                                <h4 style="color: var(--gray-700); font-size: var(--text-base); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">추천 이유</h4>
+                                <p style="color: var(--gray-600); line-height: 1.6; margin-bottom: 0;">마리엔플라츠는 뮌헨의 심장부로, 중세부터 시장과 축제가 열렸던 역사적인 광장입니다. 고틱 양식의 아름다운 건축물과 함께 뮌헨의 전통과 현대가 조화를 이루는 대표적인 관광명소입니다.</p>
+                            </div>
                             
-                            <p><strong>추천 방문 시간:</strong> 오전 11시 (시계탑 공연 시간)<br>
-               <strong>소요 시간:</strong> 1-2시간 (주변 상점가 포함)<br>
-               <strong>베스트 포토 스팟:</strong> 신시청사 정면, 성모 마리아 기둥 앞</p>
+                            <div style="background: var(--gray-50); padding: var(--space-4); border-radius: 8px;">
+                                <h4 style="color: var(--gray-700); font-size: var(--text-base); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">유용한 정보/팁</h4>
+                                <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-2);">
+                                    <li style="display: flex; align-items: flex-start; gap: var(--space-2);">
+                                        <span style="color: var(--gray-500);">•</span>
+                                        <div>
+                                            <strong style="color: var(--gray-700);">장소 설명:</strong>
+                                            <span style="color: var(--gray-600);">신시청사의 글로켄슈필(시계탑 공연)은 세계적으로 유명하며, 매일 정각에 43개의 종이 울립니다</span>
+                                        </div>
+                                    </li>
+                                    <li style="display: flex; align-items: flex-start; gap: var(--space-2);">
+                                        <span style="color: var(--gray-500);">•</span>
+                                        <div>
+                                            <strong style="color: var(--gray-700);">특별 이벤트:</strong>
+                                            <span style="color: var(--gray-600);">시계탑 공연 시간 - 11시, 12시, 17시 (3-10월 21시 추가)</span>
+                                        </div>
+                                    </li>
+                                    <li style="display: flex; align-items: flex-start; gap: var(--space-2);">
+                                        <span style="color: var(--gray-500);">•</span>
+                                        <div>
+                                            <strong style="color: var(--gray-700);">추천 방문 시간:</strong>
+                                            <span style="color: var(--gray-600);">오전 11시 (시계탑 공연 시간)</span>
+                                        </div>
+                                    </li>
+                                    <li style="display: flex; align-items: flex-start; gap: var(--space-2);">
+                                        <span style="color: var(--gray-500);">•</span>
+                                        <div>
+                                            <strong style="color: var(--gray-700);">소요 시간:</strong>
+                                            <span style="color: var(--gray-600);">약 1시간 30분 (주변 상점가 포함 시 2시간)</span>
+                                        </div>
+                                    </li>
+                                    <li style="display: flex; align-items: flex-start; gap: var(--space-2);">
+                                        <span style="color: var(--gray-500);">•</span>
+                                        <div>
+                                            <strong style="color: var(--gray-700);">베스트 포토 스팟:</strong>
+                                            <span style="color: var(--gray-600);">신시청사 정면, 성모 마리아 기둥 앞</span>
+                                        </div>
+                                    </li>
+                                    <li style="display: flex; align-items: flex-start; gap: var(--space-2);">
+                                        <span style="color: var(--gray-500);">•</span>
+                                        <div>
+                                            <strong style="color: var(--gray-700);">유용한 팁:</strong>
+                                            <span style="color: var(--gray-600);">편한 신발 착용, 우천 시 우산 필수</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -642,68 +832,36 @@
                             <h3 class="card-title">⭐ 리뷰 및 평점</h3>
                         </div>
                         <div class="card-body">
-                            <div class="rating-summary mb-6 p-4 border rounded-lg">
-                                <div class="flex items-center gap-4">
-                                    <div class="text-4xl font-bold text-primary-blue">4.2</div>
-                                    <div>
-                                        <div class="stars mb-1">
-                                            <span class="star">★</span>
-                                            <span class="star">★</span>
-                                            <span class="star">★</span>
-                                            <span class="star">★</span>
-                                            <span class="star empty">☆</span>
+                            <div class="rating-summary">
+                                <div class="rating-summary-content">
+                                    <div class="rating-number">4.2</div>
+                                    <div class="rating-details">
+                                        <div class="stars-container">
+                                            <div class="star-rating">
+                                                <span class="star">★</span>
+                                                <span class="star">★</span>
+                                                <span class="star">★</span>
+                                                <span class="star">★</span>
+                                                <span class="star empty">☆</span>
+                                            </div>
                                         </div>
-                                        <div class="text-sm text-gray-500">15,432개 리뷰 기준</div>
+                                        <div class="review-count">15,432개의 리뷰</div>
+                                        <div style="margin-top: 8px; font-size: 12px; color: #666;">
+                                            * 구글 리뷰 기준 (최대 5개까지 표시)
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="review-list">
-                                <div class="review-item mb-6 p-4 border rounded-lg">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div class="font-semibold">김여행 님</div>
-                                        <div class="text-sm text-gray-500">2024.01.15</div>
-                                    </div>
-                                    <div class="stars mb-2">
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                    </div>
-                                    <p class="text-gray-700">뮌헨의 상징적인 장소예요! 시계탑 공연이 정말 인상적이었습니다. 
-                   특히 11시 공연 때는 많은 관광객들이 모여서 함께 보는 재미가 있어요. 
-                   주변 카페에서 뮌헨 맥주도 꼭 드셔보세요!</p>
-                                </div>
-
-                                <div class="review-item mb-6 p-4 border rounded-lg">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div class="font-semibold">park_travel</div>
-                                        <div class="text-sm text-gray-500">2024.01.10</div>
-                                    </div>
-                                    <div class="stars mb-2">
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star">★</span>
-                                        <span class="star empty">☆</span>
-                                    </div>
-                                    <p class="text-gray-700">광장이 넓어서 좋고 건축물들이 정말 아름다워요. 다만 관광 성수기에는 사람이 많으니 
-                   이른 시간에 방문하시는 걸 추천해요. 신시청사 엘리베이터로 올라가면 뮌헨 전망도 볼 수 있어요!</p>
-                                </div>
+                                <!-- 초기 리뷰는 JS로 동적으로 로드됩니다 -->
                             </div>
                             
-                            <!-- 로딩 스피너 -->
-                            <div id="reviewLoader" class="text-center py-4" style="display: none;">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="sr-only">리뷰 로딩 중...</span>
-                                </div>
-                            </div>
-                            
-                            <!-- 더 이상 리뷰가 없을 때 메시지 -->
-                            <div id="noMoreReviews" class="text-center py-4 text-gray-500" style="display: none;">
-                                모든 리뷰를 불러왔습니다.
-                            </div>
+                            <!-- 더보기 버튼 (구글맵 리뷰로 이동) -->
+                            <button class="load-more-btn" id="loadMoreBtn" onclick="loadMoreReviews()">
+                                <span>구글맵에서 더 많은 리뷰 보기</span>
+                                <span>→</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -776,102 +934,71 @@
             window.open(mapsUrl, '_blank');
         }
         
-        // 추가 리뷰 데이터 (실제로는 API에서 가져와야 함)
-        const additionalReviews = [
+        // 초기 리뷰 데이터 (Google Places API 형식)
+        const initialReviews = [
             {
-                name: '이여행',
-                date: '2024.01.08',
+                authorName: '이여행',
+                time: 1736294400, // 2024.01.08 Unix timestamp
+                relativeTimeDescription: '5일 전',
                 rating: 5,
-                text: '독일 여행의 시작점으로 완벽했어요! 아침 일찍 가면 사람이 적어서 사진 찍기 좋고, 주변에 맛집도 많아요.'
+                text: '독일 여행의 시작점으로 완벽했어요! 아침 일찍 가면 사람이 적어서 사진 찍기 좋고, 주변에 맛집도 많아요.',
+                language: 'ko'
             },
             {
-                name: 'travel_lover',
-                date: '2024.01.05',
+                authorName: 'travel_lover',
+                time: 1736035200, // 2024.01.05 Unix timestamp
+                relativeTimeDescription: '1주일 전',
                 rating: 4,
-                text: '유럽 여행에서 꼭 들러야 할 곳! 시계탑 인형극이 정말 신기했어요. 다만 주말에는 정말 붐비니 평일 방문 추천!'
+                text: '유럽 여행에서 꼭 들러야 할 곳! 시계탑 인형극이 정말 신기했어요. 다만 주말에는 정말 붐비니 평일 방문 추천!',
+                language: 'ko'
             },
             {
-                name: '독일매니아',
-                date: '2023.12.28',
+                authorName: '독일매니아',
+                time: 1703721600, // 2023.12.28 Unix timestamp
+                relativeTimeDescription: '2주 전',
                 rating: 5,
-                text: '크리스마스 마켓 시즌에 갔는데 정말 환상적이었습니다! 글뤼바인과 함께 즐기는 야경이 최고예요.'
-            },
-            {
-                name: 'europe_trip',
-                date: '2023.12.20',
-                rating: 4,
-                text: '역사적인 건물들과 현대적인 상점들이 조화롭게 어우러진 곳. 구시가지 투어의 출발점으로 추천!'
+                text: '크리스마스 마켓 시즌에 갔는데 정말 환상적이었습니다! 글뤼바인과 함께 즐기는 야경이 최고예요.',
+                language: 'ko'
             }
         ];
         
         let currentReviewIndex = 0;
         let isLoading = false;
         
-        // 리뷰 추가 함수
+        // 더보기 클릭 시 구글맵으로 이동
         function loadMoreReviews() {
-            if (isLoading || currentReviewIndex >= additionalReviews.length) return;
+            const placeName = '마리엔플라츠 시계탑';
+            // 구글맵 리뷰 페이지로 이동
+            const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(placeName)}/@48.1373932,11.5732598,17z`;
+            window.open(googleMapsUrl, '_blank');
+        }
+        
+        // 페이지 로드 시 초기 리뷰 표시
+        document.addEventListener('DOMContentLoaded', function() {
+            const reviewList = document.querySelector('.review-list');
             
-            isLoading = true;
-            const loader = document.getElementById('reviewLoader');
-            loader.style.display = 'block';
-            
-            // 실제 API 호출을 시뮬레이션
-            setTimeout(() => {
-                const reviewList = document.querySelector('.review-list');
-                const reviewsToAdd = additionalReviews.slice(currentReviewIndex, currentReviewIndex + 2);
-                
-                reviewsToAdd.forEach(review => {
-                    const reviewHtml = `
-                        <div class="review-item mb-6 p-4 border rounded-lg" style="opacity: 0; transition: opacity 0.5s;">
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="font-semibold">${review.name}</div>
-                                <div class="text-sm text-gray-500">${review.date}</div>
+            // 초기 리뷰 렌더링 (최대 5개)
+            initialReviews.forEach(review => {
+                const firstLetter = review.authorName.charAt(0).toUpperCase();
+                const reviewHtml = `
+                    <div class="review-item">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div class="reviewer-avatar">${firstLetter}</div>
+                                <div class="reviewer-name">${review.authorName}</div>
                             </div>
-                            <div class="stars mb-2">
-                                ${[...Array(5)].map((_, i) => 
-                                    `<span class="star${i < review.rating ? '' : ' empty'}">${i < review.rating ? '★' : '☆'}</span>`
-                                ).join('')}
-                            </div>
-                            <p class="text-gray-700">${review.text}</p>
+                            <div class="review-date">${review.relativeTimeDescription}</div>
                         </div>
-                    `;
-                    reviewList.insertAdjacentHTML('beforeend', reviewHtml);
-                });
-                
-                // 페이드인 효과
-                setTimeout(() => {
-                    const newReviews = reviewList.querySelectorAll('.review-item[style*="opacity: 0"]');
-                    newReviews.forEach(review => {
-                        review.style.opacity = '1';
-                    });
-                }, 100);
-                
-                currentReviewIndex += reviewsToAdd.length;
-                loader.style.display = 'none';
-                isLoading = false;
-                
-                // 모든 리뷰를 불러왔을 때
-                if (currentReviewIndex >= additionalReviews.length) {
-                    document.getElementById('noMoreReviews').style.display = 'block';
-                }
-            }, 800); // 로딩 시뮬레이션
-        }
-        
-        // 스크롤 이벤트 핸들러
-        function handleScroll() {
-            const scrollPosition = window.innerHeight + window.scrollY;
-            const threshold = document.body.offsetHeight - 200; // 하단 200px 전에 로드
-            
-            if (scrollPosition >= threshold && !isLoading) {
-                loadMoreReviews();
-            }
-        }
-        
-        // 스크롤 이벤트 등록 (디바운스 적용)
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(handleScroll, 100);
+                        <div class="review-rating">
+                            ${[...Array(5)].map((_, i) => 
+                                `<span class="star${i < review.rating ? '' : ' empty'}">${i < review.rating ? '★' : '☆'}</span>`
+                            ).join('')}
+                        </div>
+                        <p class="review-text">${review.text}</p>
+                    </div>
+                `;
+                reviewList.insertAdjacentHTML('beforeend', reviewHtml);
+            });
         });
     </script>
 </body>

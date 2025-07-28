@@ -1,0 +1,139 @@
+@startuml 여행상태관리플로우
+!theme mono
+
+title 여행 상태 관리 플로우
+' 유저스토리: UFR-TRIP-010(주요서비스 배너), UFR-TRIP-020(상태별 여행 목록)
+' 대시보드에서 여행 상태별 목록 조회 및 자동 상태 전환
+
+participant "Mobile Client" as Client
+participant "API Gateway" as Gateway
+participant "Trip Service" as Trip
+participant "Redis Cache" as Cache
+
+== 대시보드 진입 및 여행 목록 조회 ==
+
+Client -> Gateway: GET /dashboard\n[헤더: Authorization Bearer token]
+note left: 사용자가 대시보드 화면에 진입
+
+Gateway -> Gateway: 토큰 검증
+Gateway -> Trip: GET /trips/summary\n[userId: user123]
+
+Trip -> Cache: GET trips:user123:summary
+alt 캐시 히트
+    Cache --> Trip: 캐시된 여행 요약 정보
+else 캐시 미스
+    Trip -> Trip: DB에서 여행 목록 조회
+    Trip -> Trip: 여행 상태 자동 갱신 체크
+    note right
+        상태 자동 전환 로직:
+        - 시작일 도래 시: 계획중 → 여행중
+        - 종료일 경과 시: 여행중 → 추억중
+    end note
+    
+    loop 각 여행별 상태 확인
+        alt 오늘 >= 시작일 AND 상태 = '계획중'
+            Trip -> Trip: 상태를 '여행중'으로 변경
+            Trip -> Trip: 진행률 계산 (경과일/전체일)
+        else 오늘 > 종료일 AND 상태 = '여행중'
+            Trip -> Trip: 상태를 '추억중'으로 변경
+            Trip -> Trip: 진행률을 100%로 설정
+        end
+    end
+    
+    Trip -> Cache: SET trips:user123:summary\n[TTL: 300초]
+    note right: 5분간 캐시 유지
+end
+
+Trip -> Trip: 상태별 그룹화 및 정렬
+note right
+    - 여행중: 진행률 기준 정렬
+    - 계획중: 시작일 기준 정렬  
+    - 추억중: 종료일 기준 최신순
+    - 각 섹션 최대 3개
+end note
+
+Trip --> Gateway: 여행 요약 정보 응답
+note right
+    {
+      "banners": [{
+        "type": "새여행계획",
+        "title": "새 여행 계획하기",
+        "description": "AI가 만드는 맞춤 여행 일정"
+      }, {
+        "type": "주변장소검색",
+        "title": "주변 장소 검색",
+        "description": "내 주변 맛집, 관광지 찾기"
+      }],
+      "trips": {
+        "traveling": [{
+          "id": "trip001",
+          "name": "도쿄 여행",
+          "period": "2025-07-25 ~ 2025-07-30",
+          "status": "여행중",
+          "progress": 60,
+          "badge": "D+3",
+          "image": "auto-generated-tokyo.jpg"
+        }],
+        "planning": [{
+          "id": "trip002", 
+          "name": "제주도 여행",
+          "period": "2025-08-10 ~ 2025-08-13",
+          "status": "계획중",
+          "stage": "여행지설정",
+          "progress": 50,
+          "image": "auto-generated-jeju.jpg"
+        }],
+        "memories": [{
+          "id": "trip003",
+          "name": "부산 여행",
+          "period": "2025-07-01 ~ 2025-07-03",
+          "status": "추억중",
+          "image": "auto-generated-busan.jpg"
+        }]
+      }
+    }
+end note
+
+Gateway --> Client: 대시보드 데이터 응답
+
+== 특정 여행 카드 클릭 ==
+
+Client -> Gateway: GET /trips/{tripId}/schedule\n[tripId: trip001]
+note left: 여행 카드를 클릭하여\n상세 일정 화면으로 이동
+
+Gateway -> Trip: GET /trips/{tripId}/schedule
+
+Trip -> Cache: GET trips:trip001:schedule
+alt 캐시 히트
+    Cache --> Trip: 캐시된 일정 정보
+else 캐시 미스
+    Trip -> Trip: DB에서 상세 일정 조회
+    Trip -> Cache: SET trips:trip001:schedule\n[TTL: 3600초]
+    note right: 1시간 캐시 유지
+end
+
+Trip --> Gateway: 상세 일정 응답
+Gateway --> Client: 일정 상세 화면 데이터
+
+== 주요 서비스 배너 클릭 ==
+
+alt 새 여행 계획하기 배너 클릭
+    Client -> Client: 기본설정 화면으로 이동
+    note left: 클라이언트 측 라우팅
+else 주변 장소 검색 배너 클릭  
+    Client -> Client: 주변장소검색 화면으로 이동
+    note left: 클라이언트 측 라우팅
+end
+
+== 주기적 상태 갱신 (백그라운드) ==
+
+note over Trip
+    스케줄러가 매일 00:00에 실행하여
+    모든 여행의 상태를 일괄 갱신
+end note
+
+Trip -> Trip: 일일 배치 작업 실행
+Trip -> Cache: DELETE trips:*:summary
+note right: 모든 사용자의 캐시 무효화\n다음 조회 시 새로운 상태 반영
+
+@enduml

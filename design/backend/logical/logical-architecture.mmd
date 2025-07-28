@@ -1,0 +1,105 @@
+graph TB
+    %% TripGen 논리 아키텍처 - Flow 번호별 구별
+    
+    %% Client Layer
+    subgraph "Client Layer"
+        Mobile["모바일 클라이언트"]
+    end
+    
+    %% Gateway Layer
+    subgraph "Gateway Layer"
+        Gateway["API Gateway<br/>• 인증/인가<br/>• 라우팅<br/>• 로드밸런싱"]
+    end
+    
+    %% Service Layer
+    subgraph "Service Layer"
+        UserSvc["User Service<br/>• 사용자 인증<br/>• 프로필 관리<br/>• 세션 관리"]
+        TripSvc["Trip Service<br/>• 여행 관리<br/>• 멤버 설정<br/>• 일정 조회"]
+        AISvc["AI Service<br/>• 일정 생성<br/>• AI 추천정보 제공<br/>• 날씨 반영"]
+        LocationSvc["Location Service<br/>• 장소 검색<br/>• 장소 상세 정보<br/>• 리뷰 통합"]
+    end
+    
+    %% Data Layer
+    subgraph "Data Layer"
+        Cache["Redis Cache<br/>• 세션 정보<br/>• 장소 데이터<br/>• AI 결과"]
+        Queue["Message Queue<br/>• AI 작업 큐<br/>• Priority Queue<br/>• Location 비동기"]
+    end
+    
+    %% External APIs
+    subgraph "External APIs"
+        Claude["Claude API"]
+        Kakao["카카오맵 API"]
+        Google["구글맵 API"]
+        Weather["날씨 API"]
+    end
+    
+    %% 클라이언트-게이트웨이 통신
+    Mobile -->|"[Client]요청"| Gateway
+    
+    %% 게이트웨이-서비스 동기 호출
+    Gateway -->|"[GW]인증/프로필"| UserSvc
+    Gateway -->|"[GW]여행 관리"| TripSvc
+    Gateway -->|"[GW]장소 검색"| LocationSvc
+    
+    %% 서비스간 비동기 메시지
+    TripSvc -.->|"[Trip]AI 일정 생성 요청"| Queue
+    Queue -.->|"[Queue]작업 전달"| AISvc
+    LocationSvc -.->|"[Loc]AI 추천정보 요청"| Queue
+    Queue -.->|"[Queue]추천 작업 전달"| AISvc
+    
+    %% 캐시 접근
+    AISvc -.->|"[AI]장소 정보 조회<br/>(Cache-Aside)"| Cache
+    UserSvc -.->|"[User]세션 관리"| Cache
+    TripSvc -.->|"[Trip]여행 정보 캐싱"| Cache
+    LocationSvc -.->|"[Loc]장소 캐싱"| Cache
+    
+    %% 폴백/대체 흐름
+    AISvc -.->|"[AI]장소 요청<br/>(Async Fallback)"| Queue
+    Queue -.->|"[Queue]장소 처리 전달"| LocationSvc
+    
+    %% 외부 API 호출
+    AISvc -->|"[AI]일정 생성<br/>[AI]추천정보 요청"| Claude
+    LocationSvc -->|"[Loc]장소 검색"| Kakao
+    LocationSvc -->|"[Loc]상세정보/리뷰"| Google
+    LocationSvc -->|"[Loc]날씨 조회"| Weather
+    
+    %% 스타일링
+    classDef client fill:#BFDBFE,stroke:#3B82F6,stroke-width:2px
+    classDef gateway fill:#2E86AB,stroke:#1E3A8A,stroke-width:2px,color:#fff
+    classDef user fill:#4ECDC4,stroke:#14B8A6,stroke-width:2px
+    classDef trip fill:#F18F01,stroke:#F97316,stroke-width:2px
+    classDef ai fill:#10B981,stroke:#059669,stroke-width:2px
+    classDef location fill:#8B5CF6,stroke:#7C3AED,stroke-width:2px,color:#fff
+    classDef cache fill:#F59E0B,stroke:#F97316,stroke-width:2px
+    classDef queue fill:#EC4899,stroke:#DB2777,stroke-width:2px
+    classDef external fill:#E5E7EB,stroke:#9CA3AF,stroke-width:2px
+    
+    class Mobile client
+    class Gateway gateway
+    class UserSvc user
+    class TripSvc trip
+    class AISvc ai
+    class LocationSvc location
+    class Cache cache
+    class Queue queue
+    class Claude,Kakao,Google,Weather external
+    
+    %% 서비스 약어 범례
+    subgraph "서비스 약어"
+        direction LR
+        S1["[Client]: 모바일 클라이언트"]
+        S2["[GW]: API Gateway"]
+        S3["[User]: User Service"]
+        S4["[Trip]: Trip Service"]
+        S5["[AI]: AI Service"]
+        S6["[Loc]: Location Service"]
+        S7["[Queue]: Message Queue"]
+    end
+    
+    style S1 fill:#FEF3C7,stroke:#F59E0B
+    style S2 fill:#FEF3C7,stroke:#F59E0B
+    style S3 fill:#FEF3C7,stroke:#F59E0B
+    style S4 fill:#FEF3C7,stroke:#F59E0B
+    style S5 fill:#FEF3C7,stroke:#F59E0B
+    style S6 fill:#FEF3C7,stroke:#F59E0B
+    style S7 fill:#FEF3C7,stroke:#F59E0B

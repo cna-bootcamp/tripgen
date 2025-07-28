@@ -1,0 +1,155 @@
+@startuml
+!theme mono
+
+title User Service - 사용자등록 내부 시퀀스 (프론트엔드 최적화)
+
+' UFR-USER-010: 사용자 회원가입 시나리오
+' 프론트엔드에서 실시간 검증, 백엔드는 비즈니스 검증만 처리
+
+actor User
+boundary "Frontend State" as Frontend
+participant UserController
+participant ValidationService
+participant UserService
+participant PasswordEncoder
+participant UserRepository
+database "Redis Cache<<E>>" as RedisCache
+
+== 1. 실시간 입력 및 검증 (프론트엔드) ==
+User -> Frontend: 회원가입 화면 접근
+
+Frontend -> User: 폼 렌더링 완료
+
+User -> Frontend: 이름 입력 "김철수"
+
+Frontend -> Frontend: 실시간 형식 검증
+note right: 2자 이상 한글/영문 확인, 즉시 피드백
+
+User -> Frontend: 이메일 입력 "kim@example.com"
+
+Frontend -> Frontend: 이메일 형식 검증
+note right: 정규식 검증, 실시간 UI 피드백
+
+== 2. 실시간 중복 확인 (Debounced) ==
+User -> Frontend: 아이디 입력 "kimcs123"
+
+Frontend -> Frontend: 기본 형식 검증
+note right: 5자 이상 영문/숫자 확인
+
+Frontend -> Frontend: debounce 타이머 시작
+note right: 500ms 대기 후 중복 확인
+
+Frontend -> UserController: GET /auth/check-username?username=kimcs123
+note right: debounce 완료 후 호출
+
+activate UserController
+UserController -> RedisCache: getCachedUsernameCheck()
+activate RedisCache
+RedisCache --> UserController: 캐시 미스
+deactivate RedisCache
+
+UserController -> UserRepository: existsByUsername()
+activate UserRepository
+UserRepository --> UserController: false (사용 가능)
+deactivate UserRepository
+
+UserController -> RedisCache: cacheUsernameCheck()
+activate RedisCache
+note right: 5분간 캐시
+RedisCache --> UserController: 캐시 완료
+deactivate RedisCache
+
+UserController --> Frontend: 200 OK (available: true)
+deactivate UserController
+
+Frontend -> Frontend: 사용 가능 UI 표시
+note right: 녹색 체크 아이콘 표시
+
+== 3. 비밀번호 실시간 검증 ==
+User -> Frontend: 비밀번호 입력
+
+Frontend -> Frontend: 실시간 강도 확인
+note right: 8자 이상, 특수문자 포함 확인
+
+Frontend -> Frontend: 비밀번호 강도 표시
+note right: 약함/보통/강함 시각적 표시
+
+User -> Frontend: 비밀번호 확인 입력
+
+Frontend -> Frontend: 일치 여부 확인
+note right: 실시간 일치/불일치 표시
+
+== 4. 최종 회원가입 처리 ==
+User -> Frontend: 회원가입 버튼 클릭
+
+Frontend -> Frontend: 최종 검증
+note right: 모든 필드 완성도, 약관 동의 확인
+
+Frontend -> UserController: POST /auth/signup
+note right: 검증 완료된 데이터만 전송
+
+activate UserController
+UserController -> ValidationService: validateSignupRequest()
+activate ValidationService
+
+ValidationService -> ValidationService: 비즈니스 규칙 재검증
+note right: 서버 사이드 보안 검증
+
+ValidationService --> UserController: 검증 완료
+deactivate ValidationService
+
+UserController -> UserService: createUser()
+activate UserService
+
+== 5. 서버 중복 확인 (최종) ==
+UserService -> UserRepository: existsByUsername()
+activate UserRepository
+UserRepository --> UserService: false (사용 가능)
+deactivate UserRepository
+
+UserService -> UserRepository: existsByEmail()
+activate UserRepository
+UserRepository --> UserService: false (사용 가능)
+deactivate UserRepository
+
+== 6. 사용자 생성 ==
+UserService -> PasswordEncoder: encode()
+activate PasswordEncoder
+PasswordEncoder --> UserService: encodedPassword
+deactivate PasswordEncoder
+
+UserService -> UserRepository: save()
+activate UserRepository
+UserRepository --> UserService: 저장된 사용자
+deactivate UserRepository
+
+UserService -> RedisCache: setUserProfile()
+activate RedisCache
+note right: 프로필 캐시 저장
+RedisCache --> UserService: 캐시 완료
+deactivate RedisCache
+
+UserService --> UserController: 회원가입 성공
+deactivate UserService
+
+UserController --> Frontend: 201 Created
+deactivate UserController
+
+Frontend -> Frontend: 성공 메시지 표시
+note right: "회원가입이 완료되었습니다"
+
+Frontend -> User: 로그인 화면으로 이동
+
+== 오류 처리 ==
+alt 중복 계정 존재
+    UserService --> UserController: 409 Conflict
+    UserController --> Frontend: 409 Conflict
+    Frontend -> Frontend: 구체적 오류 메시지 표시
+    note right: "이미 사용 중인 아이디입니다"
+else 서버 오류
+    UserController --> Frontend: 500 Internal Server Error
+    Frontend -> Frontend: 사용자 친화적 오류 안내
+    note right: "잠시 후 다시 시도해주세요"
+end
+
+@enduml

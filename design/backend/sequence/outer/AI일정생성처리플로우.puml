@@ -1,0 +1,248 @@
+@startuml AI일정생성처리플로우
+!theme mono
+
+title AI일정생성 처리 플로우 - 외부 시퀀스 다이어그램
+
+queue "Message Queue" as MQ
+participant "AI Service" as AIService
+participant "Location Service" as LocationService
+database "Redis Cache" as Redis
+participant "Claude API" as ClaudeAPI
+participant "OpenWeatherMap API" as WeatherAPI
+participant "카카오맵/구글맵 API" as MAP
+
+== AI일정생성 처리 (UFR-AI-010) ==
+note right of MQ
+Message Queue에서 작업 수신
+메시지 페이로드:
+- tripId: 여행 식별자
+- destinations: [{
+    name: 여행지명,
+    lat: 위도,
+    lon: 경도,
+    stayDays: 체류일수
+  }]
+- members: [{
+    memberId: 멤버ID,
+    healthStatus: 건강상태(제한/주의/양호/우수),
+    age: 연령,
+    preferences: [선호카테고리]
+  }]
+- transportation: 이동수단(대중교통/자동차)
+- startDate/endDate: 여행 시작/종료 일시
+- startTime: 일일 시작시간 (예: "09:00")
+- categories: [음식점, 관광지, 쇼핑, 체험]
+- specialRequests: 특별 요청사항
+- cachedWeather: 캐시된 날씨 정보 (있는 경우)
+- cachedPlaces: 캐시된 장소 정보 (있는 경우)
+end note
+
+MQ -> AIService: 일정 생성 작업 수신\n{tripId, destinations, members, transportation, dates, startTime, categories, specialRequests, cachedWeather, cachedPlaces}
+activate AIService
+
+AIService -> AIService: 입력 데이터 파싱\n(메시지 페이로드 분석)
+
+' 날씨 정보 수집 (AI Service가 직접 수행)
+group 날씨 정보 수집
+    loop 각 여행지별 날씨 조회
+        alt cachedWeather에 해당 정보 있음
+            AIService -> AIService: 캐시된 날씨 정보 사용
+        else cachedWeather에 정보 없음
+            AIService -> Redis: 날씨 정보 캐시 확인\n(location+date 키)
+            activate Redis
+            
+            alt 캐시 히트
+                Redis -> AIService: 날씨 정보 반환
+                deactivate Redis
+            else 캐시 미스
+                Redis -> AIService: 캐시 미스
+                deactivate Redis
+                
+                AIService -> WeatherAPI: 날씨 예보 조회\n{lat, lon, days}
+                activate WeatherAPI
+                WeatherAPI --> AIService: 날씨 정보
+                deactivate WeatherAPI
+                
+                AIService -> Redis: 날씨 정보 캐싱\n(location+date 키, TTL: 6h)
+            end
+        end
+    end
+end
+
+' 주변 장소 정보 수집 (AI Service가 주도)
+group 주변 장소 정보 수집
+    loop 각 여행지별, 카테고리별 장소 조회
+        alt cachedPlaces에 해당 정보 있음
+            AIService -> AIService: 캐시된 장소 정보 사용
+        else cachedPlaces에 정보 없음
+            AIService -> Redis: 주변 장소 정보 캐시 확인\n(위/경도+카테고리+반경 키)
+            activate Redis
+            
+            alt 캐시 히트
+                Redis -> AIService: 주변 장소 정보 반환
+                deactivate Redis
+            else 캐시 미스
+                Redis -> AIService: 캐시 미스
+                deactivate Redis
+                
+                AIService -> MQ: 장소 정보 요청 이벤트 발행\n{destination, category, radius}
+                note right of AIService
+                비동기 이벤트 발행
+                Location Service가 독립적으로 처리
+                초기 일정은 캐시된 정보로 생성
+                end note
+            end
+        end
+    end
+end
+
+AIService -> AIService: 캐시된 장소 정보로\n초기 일정 구성
+
+' Location Service 비동기 처리
+LocationService -> MQ: 장소 정보 요청 이벤트 수신
+activate LocationService
+
+LocationService -> MAP: 외부 API 호출\n(카카오맵/구글맵)
+activate MAP
+MAP --> LocationService: 장소 검색 결과
+deactivate MAP
+
+LocationService -> Redis: 주변 장소 정보 캐싱\n(위/경도+카테고리+반경 키, data, TTL: 24h)
+LocationService -> MQ: 장소 정보 응답 이벤트 발행\n{destination, places}
+deactivate LocationService
+
+' AI Service가 추가 장소 정보 수신
+opt 추가 장소 정보 도착 시
+    MQ -> AIService: 장소 정보 응답 이벤트 수신
+    AIService -> AIService: 일정 보완/최적화
+end
+
+AIService -> ClaudeAPI: AI 일정 생성 요청\n{prompt, context}
+activate ClaudeAPI
+
+note right of ClaudeAPI
+**AI 일정 생성을 위한 입력 데이터**
+
+1. 기본 여행 정보:
+   - 여행 기간 (시작/종료 일시)
+   - 일일 시작시간 (예: 09:00)
+   - 여행지 목록 및 체류 일수
+   - 이동 수단
+
+2. 주변 장소 정보 (캐시/API):
+   - 카테고리별 장소 목록
+   - 위치 (위도/경도)
+   - 영업시간
+   - 평점/리뷰
+   - 특징 (실내/실외 등)
+
+3. 멤버 프로필:
+   - 건강상태 (제한/주의/양호/우수)
+   - 연령대
+   - 선호 카테고리
+   - 이동 제약사항
+
+4. 날씨 예보 (AI Service 수집):
+   - 일자별 날씨 상태
+   - 최고/최저 기온
+   - 강수 확률
+   - 미세먼지 수준
+
+5. 사용자 특별 요청사항:
+   - 특별 고려사항 (예: 아이들이 좋아할 만한 장소)
+
+건강상태별 일정 제약:
+- 제한: 하루 2-3곳, 휴식 3회
+- 주의: 하루 4-5곳, 휴식 2회
+- 양호/우수: 하루 5-7곳
+
+특수 고려사항:
+- 우천 시 실내 장소 우선
+- 이동 거리 최적화
+- 영업시간 내 방문 보장
+- 사용자 특별 요청 반영
+end note
+
+ClaudeAPI -> AIService: AI 생성 결과\n(일자별 시간대별 일정)
+deactivate ClaudeAPI
+
+AIService -> AIService: 응답 파싱 및 구조화
+
+' 장소 간 이동 경로 계산 (비동기)
+AIService -> MQ: 경로 계산 요청 이벤트 발행\n{routes: [{from, to, mode}], tripId}
+note right of AIService
+일정 내 모든 경로를
+한 번에 비동기 요청
+end note
+
+' Location Service 경로 계산 처리
+LocationService -> MQ: 경로 계산 요청 이벤트 수신
+activate LocationService
+
+loop 각 경로별 처리
+    LocationService -> Redis: 경로 캐시 확인\n(출발+도착+이동수단 키)
+    activate Redis
+    
+    alt 캐시 히트
+        Redis -> LocationService: 경로 정보 반환
+        deactivate Redis
+    else 캐시 미스
+        Redis -> LocationService: 캐시 미스
+        deactivate Redis
+        
+        LocationService -> MAP: 경로 API 호출\n(카카오모빌리티/구글맵)
+        activate MAP
+        MAP --> LocationService: 경로 정보\n(거리, 시간, 경유지)
+        deactivate MAP
+        
+        LocationService -> Redis: 경로 정보 캐싱\n(TTL: 168h)
+    end
+end
+
+LocationService -> MQ: 경로 계산 완료 이벤트 발행\n{tripId, routes}
+deactivate LocationService
+
+' AI Service가 경로 정보 수신
+opt 경로 정보 도착 시
+    MQ -> AIService: 경로 계산 완료 이벤트 수신
+    AIService -> AIService: 이동시간 반영한\n일정 최적화
+end
+
+AIService -> Redis: 생성된 일정 저장\n(tripId, schedule, status: "draft", TTL: 7d)
+activate Redis
+Redis -> AIService: 저장 완료
+deactivate Redis
+
+AIService -> MQ: 일정 생성 완료 이벤트 발행\n{tripId, status: "completed", hasLocationData: false}
+deactivate AIService
+
+== 최종 일정 업데이트 (비동기) ==
+note over AIService
+장소 정보와 경로 정보가
+모두 도착하면 최종 일정 업데이트
+end note
+
+AIService -> MQ: 모든 비동기 응답 수신 대기
+activate AIService
+
+alt 모든 정보 수신 완료
+    AIService -> Redis: 최종 일정 업데이트\n(tripId, finalSchedule, status: "completed")
+    AIService -> MQ: 최종 일정 완료 이벤트 발행\n{tripId, status: "finalized"}
+end
+
+deactivate AIService
+
+note over MQ, MAP
+전체 처리 목표:
+- AI 일정 생성: 5초 이내
+- 경로 계산 포함: 10초 이내
+- 캐시 히트율: 80% 이상
+- 동시 처리: 최소 10건
+
+경로 최적화:
+- 이동 거리 최소화
+- 이동 시간 고려한 일정 조정
+- 교통 상황 반영 (실시간)
+end note
+
+@enduml

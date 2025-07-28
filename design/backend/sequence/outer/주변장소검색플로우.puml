@@ -1,0 +1,171 @@
+@startuml 주변장소검색플로우
+!theme mono
+
+title 주변장소검색플로우 - 외부 시퀀스 다이어그램
+
+participant "Mobile Client" as MC
+participant "API Gateway" as GW
+participant "Location Service" as LS
+participant "AI Service" as AI
+participant "Redis Cache" as RC
+participant "Message Queue" as MQ
+participant "카카오맵/구글맵 API" as MAP
+participant "Claude API" as CLAUDE
+
+== 주변장소검색 ==
+note over MC: 09-주변장소검색 화면
+
+MC -> GW: POST /api/v1/locations/search/nearby\n(출발지, 이동수단, 시간범위, 카테고리)
+activate GW
+
+GW -> LS: 주변 장소 검색 요청\n(인증 토큰 포함)
+activate LS
+
+' 주변 장소 정보 캐시 확인
+LS -> RC: 주변 장소 정보 캐시 확인\n(위/경도+카테고리+반경 키)
+activate RC
+RC --> LS: 캐시 결과
+deactivate RC
+
+alt 캐시 히트
+    LS --> GW: 캐시된 검색 결과
+    GW --> MC: 200 OK\n(주변 장소 목록)
+else 캐시 미스
+    ' 외부 API 호출
+    LS -> MAP: 주변 장소 검색 API 호출\n(좌표, 반경, 카테고리)
+    activate MAP
+    MAP --> LS: 주변 장소 목록 결과
+    deactivate MAP
+    
+    ' 결과 캐싱
+    LS -> RC: 주변 장소 정보 저장\n(TTL: 1시간)
+    activate RC
+    RC --> LS: 저장 완료
+    deactivate RC
+    
+    ' 응답 반환
+    LS --> GW: 주변 장소 정보 반환
+    deactivate LS
+    GW --> MC: 200 OK\n(주변 장소 목록)
+end
+
+deactivate GW
+
+== 장소카드표시 ==
+note over MC: UFR-LOC-020\n장소 카드 형태로 표시
+MC -> MC: 장소 카드 렌더링\n(장소명, 이동시간, 평점, 주소)
+
+== 장소상세정보 조회 ==
+note over MC: 사용자가 장소 카드의\n상세정보 버튼 클릭
+
+MC -> GW: GET /api/v1/locations/{placeId}
+activate GW
+
+GW -> LS: 장소 상세정보 요청
+activate LS
+
+' 기본 정보 캐시 확인
+LS -> RC: 캐시 조회\n(location:place:{placeId})
+activate RC
+RC --> LS: 캐시 결과
+deactivate RC
+
+alt 캐시 히트
+    LS --> LS: 캐시된 장소 정보 사용
+else 캐시 미스
+    ' 외부 API 호출
+    LS -> MAP: 장소 상세정보 API 호출
+    activate MAP
+    MAP --> LS: 장소 상세정보
+    deactivate MAP
+    
+    ' 캐싱
+    LS -> RC: 장소 정보 저장\n(TTL: 6시간)
+    activate RC
+    RC --> LS: 저장 완료
+    deactivate RC
+end
+
+' 영업시간 실시간 조회
+LS -> MAP: 영업시간 API 호출
+activate MAP
+MAP --> LS: 현재 영업 상태
+deactivate MAP
+
+' 기본 정보로 먼저 응답
+LS --> GW: 장소 상세정보\n(AI 추천정보 제외)
+deactivate LS
+GW --> MC: 200 OK\n(기본 장소 정보)
+deactivate GW
+
+== AI 추천정보 비동기 생성 ==
+note over LS: UFR-AI-020\nAI 추천정보 요청
+
+LS -> MQ: 주변 장소 정보 요청(비동기)\n(placeId, 사용자 프로파일)
+activate MQ
+MQ --> LS: 요청 수락
+deactivate MQ
+
+MQ -> AI: 메시지 전달
+activate AI
+
+' AI 추천정보 캐시 확인
+AI -> RC: 캐시 조회\n(ai:recommendation:{placeId}:{userProfile})
+activate RC
+RC --> AI: 캐시 결과
+deactivate RC
+
+alt 캐시 히트
+    AI -> MQ: 캐시된 추천정보 전송
+else 캐시 미스
+    ' Claude API 호출
+    AI -> CLAUDE: AI 추천정보 생성 요청\n(장소정보, 사용자 프로파일)
+    activate CLAUDE
+    CLAUDE --> AI: AI 생성 결과\n(추천 이유, 유용한 팁)
+    deactivate CLAUDE
+    
+    ' 결과 캐싱
+    AI -> RC: AI 추천정보 저장\n(TTL: 2시간)
+    activate RC
+    RC --> AI: 저장 완료
+    deactivate RC
+    
+    AI -> MQ: AI 추천정보 전송
+end
+
+deactivate AI
+
+' 클라이언트에서 AI 추천정보 별도 조회
+MC -> GW: GET /api/v1/locations/{placeId}/ai-recommendations
+activate GW
+GW -> LS: AI 추천정보 조회
+activate LS
+
+LS -> RC: 캐시 조회\n(ai:recommendation:{placeId}:{userProfile})
+activate RC
+RC --> LS: AI 추천정보
+deactivate RC
+
+LS --> GW: AI 추천정보
+deactivate LS
+GW --> MC: 200 OK\n(AI 추천 이유, 유용한 팁)
+deactivate GW
+
+note over MC: 장소 상세정보 화면에\nAI 추천정보 섹션 업데이트
+
+== 선택적 플로우 ==
+group 키워드 검색 (UFR-LOC-010)
+    MC -> GW: POST /api/v1/locations/search/keyword\n(키워드, 출발지, 옵션)
+    GW -> LS: 키워드 검색 요청
+    LS -> MAP: 키워드 검색 API
+    MAP --> LS: 검색 결과
+    LS --> GW: 검색 결과
+    GW --> MC: 200 OK
+end
+
+group 카테고리 필터링 (클라이언트)
+    note over MC: 검색 결과 중\n특정 카테고리만 필터링
+    MC -> MC: 카테고리 필터 적용\n(전체/관광지/맛집/빨래방)
+end
+
+@enduml

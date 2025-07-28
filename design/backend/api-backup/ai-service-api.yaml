@@ -1,0 +1,781 @@
+openapi: 3.0.0
+info:
+  title: AI Service API
+  description: TripGen AI 일정 생성 및 추천 서비스
+  version: 1.0.0
+  contact:
+    name: 박인공
+    email: ai@tripgen.com
+
+servers:
+  - url: http://localhost:8003/api/v1/ai
+    description: Local server
+  - url: https://api.tripgen.com/api/v1/ai
+    description: Production server
+  - url: https://virtserver.swaggerhub.com/tripgen/ai-service/1.0.0
+    description: SwaggerHub Mock API
+
+paths:
+  /schedules/generate:
+    post:
+      x-user-story: UFR-AI-010
+      x-controller: ScheduleGenerationController
+      tags:
+        - Schedule Generation
+      summary: AI 일정 생성 (전체 또는 특정 날짜)
+      description: 여행 정보를 기반으로 AI가 최적화된 일정 생성. generateType에 따라 전체 일정 또는 특정 날짜 재생성
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateScheduleRequest'
+      responses:
+        '202':
+          description: 생성/재생성 요청 접수됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateScheduleResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 서비스 일시적 불가
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /schedules/{requestId}/status:
+    get:
+      x-user-story: UFR-AI-010
+      x-controller: ScheduleGenerationController
+      tags:
+        - Schedule Generation
+      summary: 일정 생성 진행 상태 조회
+      description: AI 일정 생성 진행 상황 실시간 확인
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 생성 요청 ID
+      responses:
+        '200':
+          description: 진행 상태
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleStatusResponse'
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events 스트림
+        '404':
+          description: 요청 ID를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /schedules/{requestId}:
+    get:
+      x-user-story: UFR-AI-010
+      x-controller: ScheduleGenerationController
+      tags:
+        - Schedule Generation
+      summary: 생성된 일정 조회
+      description: AI가 생성한 일정 결과 조회
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 생성 요청 ID
+      responses:
+        '200':
+          description: 생성된 일정
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedSchedule'
+        '404':
+          description: 요청 ID를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /schedules/{requestId}/cancel:
+    post:
+      x-user-story: UFR-AI-010
+      x-controller: ScheduleGenerationController
+      tags:
+        - Schedule Generation
+      summary: 일정 생성 취소
+      description: 진행 중인 일정 생성 요청 취소
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 생성 요청 ID
+      responses:
+        '200':
+          description: 취소 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: 요청 ID를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 이미 완료되어 취소할 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /places/{placeId}/recommendations:
+    post:
+      x-user-story: UFR-AI-020
+      x-controller: RecommendationController
+      tags:
+        - Recommendations
+      summary: AI 추천 정보 생성
+      description: 장소에 대한 맞춤형 AI 추천 정보 생성
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 장소 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRequest'
+      responses:
+        '200':
+          description: 추천 정보 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    GenerateScheduleRequest:
+      type: object
+      required:
+        - tripId
+        - tripName
+        - transportation
+        - members
+        - generateType
+      properties:
+        generateType:
+          type: string
+          enum: [full, specificDay]
+          description: "생성 유형 (full: 전체 일정, specificDay: 특정 날짜)"
+        tripId:
+          type: string
+          description: 여행 ID
+        tripName:
+          type: string
+          description: 여행명
+        startDate:
+          type: string
+          format: date
+          description: "여행 시작일 (generateType이 'full'일 때 필수)"
+        startTime:
+          type: object
+          description: "여행 시작 시간 (generateType이 'full'일 때 필수)"
+          properties:
+            hour:
+              type: integer
+              minimum: 0
+              maximum: 23
+            minute:
+              type: integer
+              enum: [0, 10, 20, 30, 40, 50]
+        transportation:
+          type: string
+          enum: [public, car]
+          description: 이동수단
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          minItems: 1
+        destinations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Destination'
+          description: "여행지 목록 (generateType이 'full'일 때 필수)"
+        dayNumber:
+          type: integer
+          description: "재생성할 특정 날짜 (generateType이 'specificDay'일 때 필수)"
+          minimum: 1
+        totalDays:
+          type: integer
+          description: "전체 여행 일수 (generateType이 'specificDay'일 때 필수)"
+        currentSchedule:
+          type: object
+          description: "현재 일정 (generateType이 'specificDay'일 때 필수)"
+          properties:
+            days:
+              type: array
+              items:
+                $ref: '#/components/schemas/DaySchedule'
+        specialRequests:
+          type: string
+          maxLength: 500
+          description: 특별 요청사항
+        regeneratePreferences:
+          type: object
+          description: "재생성 옵션 (generateType이 'specificDay'일 때 사용)"
+          properties:
+            reason:
+              type: string
+              description: 재생성 이유
+            avoidPlaces:
+              type: array
+              items:
+                type: string
+              description: 제외할 장소 ID
+            mustIncludePlaces:
+              type: array
+              items:
+                type: string
+              description: 필수 포함 장소 ID
+            timeConstraints:
+              type: object
+              properties:
+                startTime:
+                  type: string
+                  format: time
+                endTime:
+                  type: string
+                  format: time
+
+    Member:
+      type: object
+      required:
+        - name
+        - age
+        - gender
+        - healthStatus
+      properties:
+        name:
+          type: string
+          example: "홍길동"
+        age:
+          type: integer
+          example: 35
+        gender:
+          type: string
+          enum: [male, female, other]
+        healthStatus:
+          type: string
+          enum: [excellent, good, caution, limited]
+          description: 건강상태 (우수/양호/주의/제한)
+        preferences:
+          type: array
+          items:
+            type: string
+            enum: [sightseeing, shopping, culture, nature, sports, rest]
+
+    Destination:
+      type: object
+      required:
+        - name
+        - nights
+        - startDate
+        - endDate
+      properties:
+        name:
+          type: string
+          example: "뮌헨"
+        nights:
+          type: integer
+          example: 3
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        accommodation:
+          type: object
+          properties:
+            name:
+              type: string
+            checkInTime:
+              type: string
+              format: time
+            checkOutTime:
+              type: string
+              format: time
+            location:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+
+    GenerateScheduleResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+          description: 생성 요청 추적 ID
+        tripId:
+          type: string
+          description: 여행 ID
+        status:
+          type: string
+          enum: [accepted, processing]
+        message:
+          type: string
+          example: "일정 생성 요청이 접수되었습니다"
+        estimatedTime:
+          type: integer
+          description: 예상 소요 시간 (초)
+          example: 5
+        statusUrl:
+          type: string
+          description: 상태 확인 URL
+          example: "/schedules/{requestId}/status"
+        resultUrl:
+          type: string
+          description: 결과 조회 URL
+          example: "/schedules/{requestId}"
+
+    ScheduleStatusResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, cancelled]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 진행률 (%)
+        currentStep:
+          type: string
+          description: 현재 처리 단계
+          example: "장소 정보 수집 중..."
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [pending, processing, completed]
+        estimatedTime:
+          type: integer
+          description: 예상 남은 시간 (초)
+        completedAt:
+          type: string
+          format: date-time
+          description: 완료 시간
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    GeneratedSchedule:
+      type: object
+      properties:
+        requestId:
+          type: string
+        tripId:
+          type: string
+        tripName:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        processingTime:
+          type: integer
+          description: 처리 소요 시간 (초)
+        totalDays:
+          type: integer
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/DaySchedule'
+        metadata:
+          type: object
+          properties:
+            totalPlaces:
+              type: integer
+            totalDistance:
+              type: number
+              description: 총 이동 거리 (km)
+            totalDuration:
+              type: integer
+              description: 총 소요 시간 (분)
+            healthConsiderations:
+              type: array
+              items:
+                type: string
+              description: 적용된 건강 고려사항
+
+    DaySchedule:
+      type: object
+      properties:
+        dayNumber:
+          type: integer
+        date:
+          type: string
+          format: date
+        city:
+          type: string
+        weather:
+          $ref: '#/components/schemas/WeatherInfo'
+        places:
+          type: array
+          items:
+            $ref: '#/components/schemas/Place'
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Route'
+        summary:
+          type: object
+          properties:
+            totalPlaces:
+              type: integer
+            totalDistance:
+              type: number
+            restPoints:
+              type: integer
+              description: 휴식 포인트 수
+
+    WeatherInfo:
+      type: object
+      properties:
+        condition:
+          type: string
+          enum: [sunny, cloudy, rainy, snowy, stormy]
+        temperature:
+          type: object
+          properties:
+            high:
+              type: number
+            low:
+              type: number
+        icon:
+          type: string
+        humidity:
+          type: number
+        precipitation:
+          type: number
+        windSpeed:
+          type: number
+        airQuality:
+          type: string
+          enum: [good, moderate, unhealthy, hazardous]
+        uvIndex:
+          type: integer
+          minimum: 0
+          maximum: 11
+
+    Place:
+      type: object
+      properties:
+        placeId:
+          type: string
+        placeName:
+          type: string
+        category:
+          type: string
+          enum: [restaurant, attraction, shopping, rest, accommodation]
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+            address:
+              type: string
+        timeSlot:
+          type: object
+          properties:
+            startTime:
+              type: string
+              format: time
+            endTime:
+              type: string
+              format: time
+            duration:
+              type: integer
+              description: 체류 시간 (분)
+        accessibility:
+          type: object
+          properties:
+            wheelchairAccessible:
+              type: boolean
+            elevator:
+              type: boolean
+            restArea:
+              type: boolean
+            parkingAvailable:
+              type: boolean
+        healthTags:
+          type: array
+          items:
+            type: string
+          example: ["휴식포인트", "실내활동", "평탄한길"]
+        alternatives:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [weather, health, preference]
+              suggestion:
+                type: string
+
+    Route:
+      type: object
+      properties:
+        fromPlaceId:
+          type: string
+        toPlaceId:
+          type: string
+        transportation:
+          type: string
+          enum: [walk, car, public]
+        duration:
+          type: integer
+          description: 이동 시간 (분)
+        distance:
+          type: number
+          description: 거리 (km)
+        details:
+          type: object
+          properties:
+            path:
+              type: string
+              description: 구체적 경로 설명
+            calories:
+              type: number
+              description: 도보 시 칼로리 소모량
+            transitInfo:
+              type: string
+              description: 대중교통 상세 정보
+            parkingInfo:
+              type: string
+              description: 주차장 정보
+              properties:
+                parkingInfo:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      distance:
+                        type: number
+                      cost:
+                        type: string
+                      availability:
+                        type: string
+                tollFees:
+                  type: number
+        polyline:
+          type: string
+          description: 인코딩된 경로 폴리라인
+
+    # RegenerateDayRequest 스키마는 GenerateScheduleRequest로 통합되어 삭제됨
+
+    RecommendationRequest:
+      type: object
+      required:
+        - placeInfo
+        - userProfile
+        - tripContext
+      properties:
+        placeInfo:
+          type: object
+          properties:
+            name:
+              type: string
+            category:
+              type: string
+            location:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+        userProfile:
+          type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/Member'
+            transportation:
+              type: string
+              enum: [public, car]
+        tripContext:
+          type: object
+          properties:
+            visitDate:
+              type: string
+              format: date
+            visitTime:
+              type: string
+              format: time
+            previousPlace:
+              type: string
+            nextPlace:
+              type: string
+            dayNumber:
+              type: integer
+            weather:
+              $ref: '#/components/schemas/WeatherInfo'
+
+    RecommendationResponse:
+      type: object
+      properties:
+        placeId:
+          type: string
+        recommendations:
+          type: object
+          properties:
+            reasons:
+              type: array
+              items:
+                type: object
+                properties:
+                  category:
+                    type: string
+                    enum: [member_fit, health_consideration, transportation, preference_match]
+                  reason:
+                    type: string
+                  priority:
+                    type: string
+                    enum: [high, medium, low]
+              description: 추천 이유 목록
+            tips:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: 장소 설명
+                specialEvents:
+                  type: array
+                  items:
+                    type: string
+                  description: 특별 이벤트
+                bestVisitTime:
+                  type: string
+                  description: 추천 방문 시간
+                estimatedDuration:
+                  type: string
+                  description: 예상 소요 시간
+                photoSpots:
+                  type: array
+                  items:
+                    type: string
+                  description: 베스트 포토 스팟
+                practicalTips:
+                  type: array
+                  items:
+                    type: string
+                  description: 실용적인 팁
+                weatherPreparation:
+                  type: array
+                  items:
+                    type: string
+                  description: 날씨별 준비사항
+                nearbyAlternatives:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      distance:
+                        type: string
+                      reason:
+                        type: string
+                  description: 근처 대체 장소
+        generatedAt:
+          type: string
+          format: date-time
+        cacheExpiry:
+          type: string
+          format: date-time
+          description: 캐시 만료 시간
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "AI_SERVICE_ERROR"
+            message:
+              type: string
+              example: "AI 서비스가 일시적으로 불가능합니다"
+            details:
+              type: object
+
+tags:
+  - name: Schedule Generation
+    description: AI 일정 생성 관련 API
+  - name: Recommendations
+    description: AI 추천 정보 생성 API

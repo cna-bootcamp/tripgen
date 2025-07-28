@@ -1,0 +1,163 @@
+@startuml
+!theme mono
+
+title Trip Service - 일정 재생성 요청 내부 시퀀스
+
+' === 참여자 정의 ===
+actor User
+participant "ScheduleController" as controller
+participant "ScheduleService" as service
+participant "ScheduleValidator" as validator
+participant "ScheduleRepository" as scheduleRepo
+database "Redis Cache<<E>>" as redis
+queue "Message Queue<<E>>" as mq
+
+' === 시나리오 1: 전체 일정 재생성 요청 ===
+group 전체 일정 재생성 요청
+    User -> controller: POST /trips/{tripId}/schedule/regenerate
+    note right of User
+    요청 페이로드:
+    {
+      "regenerateType": "full",
+      "startTime": "09:00",
+      "specialRequests": "변경된 요청사항"
+    }
+    end note
+    
+    controller -> validator: validateRegenerateRequest(tripId, request)
+    note right of validator: 요청 유효성 검증\n- 여행 존재 여부\n- 권한 확인\n- 기존 일정 존재 확인
+    
+    validator -> scheduleRepo: findByTripId(tripId)
+    alt 일정이 없음
+        scheduleRepo --> validator: null
+        validator --> controller: NotFoundException("일정이 존재하지 않습니다")
+        controller --> User: 404 Not Found
+    else 기존 일정 존재
+        scheduleRepo --> validator: ExistingSchedule
+        validator --> controller: ValidationSuccess
+    end
+    
+    controller -> service: regenerateFullSchedule(tripId, request)
+    
+    service -> scheduleRepo: archiveCurrentSchedule(tripId)
+    note right of scheduleRepo: 기존 일정 아카이브\n이력 관리용
+    
+    service -> redis: clearScheduleCache(tripId)
+    note right of redis: 기존 캐시 삭제
+    
+    service -> service: prepareRegeneratePayload(tripId, request)
+    note right of service
+    기존 일정생성요청과 동일한 페이로드 구성
+    추가로 regeneration 플래그 포함
+    end note
+    
+    service -> mq: 일정 재생성 작업 발행\n{payload, regenerateType: "full"}
+    
+    service --> controller: ScheduleRegenerationResponse
+    controller --> User: 202 Accepted
+end
+
+' === 시나리오 2: 특정일 재생성 요청 ===
+group 특정일 재생성 요청
+    User -> controller: POST /trips/{tripId}/schedule/regenerate
+    note right of User
+    요청 페이로드:
+    {
+      "regenerateType": "specificDay",
+      "dayNumber": 2,
+      "preferences": {
+        "categories": ["관광지", "체험"],
+        "specialRequests": "날씨가 좋으니 야외활동 위주로"
+      }
+    }
+    end note
+    
+    controller -> validator: validateRegenerateRequest(tripId, request)
+    
+    validator -> scheduleRepo: findByTripId(tripId)
+    validator -> validator: validateDayNumber(schedule, dayNumber)
+    note right of validator: 요청한 날짜가\n여행 기간 내인지 확인
+    
+    alt 유효하지 않은 날짜
+        validator --> controller: BadRequestException("유효하지 않은 날짜입니다")
+        controller --> User: 400 Bad Request
+    else 유효한 날짜
+        validator --> controller: ValidationSuccess
+    end
+    
+    controller -> service: regenerateSpecificDay(tripId, request)
+    
+    service -> scheduleRepo: getCurrentSchedule(tripId)
+    scheduleRepo --> service: CurrentSchedule
+    
+    service -> service: extractDayContext(schedule, dayNumber)
+    note right of service
+    해당 날짜의 컨텍스트 추출:
+    - 여행지 위치
+    - 전후 일정
+    - 이동 경로
+    end note
+    
+    service -> redis: partialCacheClear(tripId, dayNumber)
+    note right of redis: 해당 날짜 캐시만 삭제
+    
+    service -> mq: 특정일 재생성 작업 발행\n{payload, regenerateType: "specificDay", dayNumber: 2}
+    
+    service --> controller: DayRegenerationResponse
+    controller --> User: 202 Accepted
+end
+
+' === 시나리오 3: 재생성 진행 상태 조회 ===
+group 재생성 진행 상태 조회
+    User -> controller: GET /trips/{tripId}/schedule/regeneration/status
+    
+    controller -> service: getRegenerationStatus(tripId)
+    
+    service -> redis: getRegenerationStatus(tripId)
+    redis --> service: 재생성 상태 정보
+    
+    alt 재생성 진행 중
+        service --> controller: RegenerationStatusResponse\n(status: "processing", progress: 60%)
+    else 재생성 완료
+        service --> controller: RegenerationStatusResponse\n(status: "completed", newScheduleId: "xxx")
+    else 재생성 실패
+        service --> controller: RegenerationStatusResponse\n(status: "failed", error: "error message")
+    end
+    
+    controller --> User: 200 OK (재생성 상태)
+end
+
+' === 시나리오 4: 재생성 완료 이벤트 수신 ===
+group 재생성 완료 이벤트 수신
+    mq -> service: 재생성 완료 이벤트 수신\n{tripId, regenerationType, status: "completed"}
+    
+    alt 전체 재생성
+        service -> redis: 새 일정 조회
+        redis --> service: RegeneratedSchedule
+        
+        service -> scheduleRepo: replaceSchedule(tripId, newSchedule)
+        note right of scheduleRepo: 전체 일정 교체
+    else 특정일 재생성
+        service -> redis: 수정된 날짜 일정 조회
+        redis --> service: UpdatedDaySchedule
+        
+        service -> scheduleRepo: updateDaySchedule(tripId, dayNumber, daySchedule)
+        note right of scheduleRepo: 특정 날짜만 업데이트
+    end
+    
+    service -> service: notifyRegenerationComplete(tripId)
+    note right of service: WebSocket/Push 알림
+end
+
+note over User, mq
+**주요 특징:**
+1. 전체 재생성과 특정일 재생성 지원
+2. 기존 일정 아카이브 (이력 관리)
+3. 캐시 관리 (전체/부분 삭제)
+4. Message Queue를 통한 비동기 처리
+5. AI Service가 실제 재생성 작업 수행
+6. 진행 상태 실시간 조회 가능
+7. 표준화된 상태 값 사용: pending, processing, completed, failed
+end note
+
+@enduml

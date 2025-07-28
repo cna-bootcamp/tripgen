@@ -1,0 +1,188 @@
+@startuml
+!theme mono
+
+title Location Service - AI 추천정보 요청 내부 시퀀스 (검색 컨텍스트)
+
+' === 참여자 정의 ===
+actor User
+participant "PlaceDetailView" as client
+participant "PlaceRecommendationController" as controller
+participant "PlaceRecommendationService" as service
+participant "PlaceRepository" as placeRepo
+participant "SearchHistoryService" as searchHistory
+database "Redis Cache<<E>>" as redis
+queue "Message Queue<<E>>" as mq
+
+' === 시나리오 1: 검색 결과에서 장소 상세 조회 시 AI 추천 요청 ===
+group 검색 컨텍스트 AI 추천 요청
+    User -> client: 검색 결과에서 특정 장소 클릭
+    note right of User: 주변장소 검색 결과에서\n장소 클릭
+    
+    client -> controller: POST /ai/places/{placeId}/search-recommendations
+    note right of client
+    요청 데이터:
+    {
+      "searchQuery": "아이와 함께 갈만한 카페",
+      "userLocation": {
+        "lat": 37.5665,
+        "lon": 126.9780
+      }
+    }
+    end note
+    
+    controller -> service: getSearchRecommendations(placeId, request)
+    
+    ' === 캐시 확인 ===
+    service -> redis: checkCache("rec_search_" + placeId + hash(searchQuery))
+    alt 캐시 히트
+        redis --> service: 캐시된 추천 정보
+        service --> controller: CachedRecommendations
+        controller --> client: 200 OK (캐시된 결과)
+    else 캐시 미스
+        redis --> service: null
+        
+        ' === 데이터 수집 ===
+        service -> placeRepo: findPlaceWithDetails(placeId)
+        placeRepo --> service: PlaceWithDetails
+        
+        service -> searchHistory: getRecentSearchContext(userSession)
+        searchHistory --> service: SearchContext
+        note right of searchHistory
+        검색 컨텍스트:
+        - 최근 검색어들
+        - 선택한 카테고리
+        - 필터 조건
+        end note
+        
+        service -> service: analyzeSearchIntent(searchQuery)
+        note right of service
+        검색 의도 분석:
+        - "아이와 함께" → 가족 친화적
+        - "카페" → 음료/디저트
+        - 키워드 추출 및 분류
+        end note
+        
+        ' === 유사 장소 조회 ===
+        service -> placeRepo: findSimilarPlaces(placeId, category, location, limit: 5)
+        placeRepo --> service: List<SimilarPlace>
+        
+        ' === AI 추천 요청 발행 ===
+        service -> service: buildSearchRecommendationPayload()
+        note right of service
+        페이로드 구성:
+        - placeId: 추천 대상 장소
+        - context: "search"
+        - searchContext: {
+            query: "아이와 함께 갈만한 카페",
+            intent: ["family_friendly", "cafe"],
+            userLocation: {...},
+            searchHistory: [...]
+          }
+        - placeInfo: {...}
+        - similarPlaces: [...]
+        end note
+        
+        service -> mq: AI 추천 생성 요청 발행\n{searchRecommendationPayload}
+        
+        service -> redis: setStatus("rec_status_" + requestId, "pending", 60s)
+        
+        service --> controller: RecommendationResponse\n{requestId, status: "processing"}
+        controller --> client: 202 Accepted\n{requestId, pollingUrl}
+    end
+end
+
+' === 시나리오 2: 추천 결과 실시간 조회 (WebSocket) ===
+group 추천 결과 실시간 수신
+    client -> controller: WebSocket 연결\n/ws/recommendations/{requestId}
+    
+    controller -> service: subscribeToRecommendation(requestId, wsSession)
+    
+    service -> redis: addSubscriber("rec_subscribers_" + requestId, wsSession)
+    
+    note over client, service: WebSocket 연결 유지
+end
+
+' === 시나리오 3: AI 추천 완료 이벤트 수신 ===
+group AI 추천 완료 이벤트 수신
+    mq -> service: 추천 완료 이벤트 수신\n{requestId, recommendations}
+    
+    service -> service: parseRecommendations(recommendations)
+    note right of service
+    검색 컨텍스트 추천 내용:
+    - 검색 의도 매칭도
+    - 유사 장소와의 비교
+    - 특별한 특징/차별점
+    - 방문 최적 시간대
+    - 주변 연계 장소
+    end note
+    
+    service -> redis: setResult("rec_result_" + requestId, recommendations, TTL: 30m)
+    note right of redis: 검색 추천은\n30분만 캐싱
+    
+    service -> redis: setStatus("rec_status_" + requestId, "completed", TTL: 30m)
+    
+    ' === WebSocket 알림 ===
+    service -> redis: getSubscribers("rec_subscribers_" + requestId)
+    redis --> service: List<WsSession>
+    
+    loop 각 구독자에게 전송
+        service -> client: WebSocket 메시지 전송\n{recommendations}
+    end
+    
+    service -> redis: cacheRecommendation(cacheKey, recommendations, TTL: 30m)
+end
+
+' === 시나리오 4: 배치 추천 요청 (여러 장소) ===
+group 배치 추천 요청
+    client -> controller: POST /ai/places/batch-recommendations
+    note right of client
+    요청 데이터:
+    {
+      "placeIds": ["place1", "place2", "place3"],
+      "searchQuery": "제주도 맛집",
+      "userLocation": {...}
+    }
+    end note
+    
+    controller -> service: getBatchRecommendations(placeIds, request)
+    
+    service -> service: checkBatchLimit(placeIds)
+    note right of service: 최대 5개까지만 허용
+    
+    loop 각 장소별 처리
+        service -> redis: checkCache("rec_search_" + placeId + hash(searchQuery))
+        alt 캐시 미스
+            service -> mq: 개별 추천 요청 발행
+        end
+    end
+    
+    service --> controller: BatchRecommendationResponse\n{batchId, placeStatuses}
+    controller --> client: 202 Accepted (배치 처리 시작)
+end
+
+' === 시나리오 5: 인기 검색어 기반 사전 캐싱 ===
+group 인기 검색어 기반 사전 캐싱
+    mq -> service: 인기 검색어 분석 이벤트\n{popularQueries}
+    
+    service -> placeRepo: findPopularPlacesByQueries(popularQueries)
+    placeRepo --> service: List<PopularPlace>
+    
+    loop 인기 장소 + 인기 검색어 조합
+        service -> service: generatePreemptiveRecommendation(place, query)
+        service -> mq: AI 추천 생성 요청 (낮은 우선순위)
+    end
+    
+    note right of service: 사용자 요청 전에\n미리 추천 생성
+end
+
+note over User, mq
+**주요 특징:**
+1. 검색 컨텍스트 전용 엔드포인트 (/search-recommendations)
+2. 검색 의도 분석 및 유사 장소 비교
+3. 짧은 캐시 시간 (30분) - 검색은 동적
+4. WebSocket 실시간 응답 지원
+5. 배치 처리로 여러 장소 동시 추천
+6. 인기 검색어 기반 사전 캐싱
+end note
+
+@enduml

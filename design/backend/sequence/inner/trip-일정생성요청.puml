@@ -1,0 +1,241 @@
+@startuml
+!theme mono
+
+title Trip Service - 일정 생성 요청 내부 시퀀스
+
+' === 참여자 정의 ===
+actor User
+participant "ScheduleController" as controller
+participant "ScheduleService" as service
+participant "TripService" as tripService
+participant "MemberService" as memberService
+participant "ScheduleValidator" as validator
+participant "ScheduleRepository" as scheduleRepo
+participant "TripRepository" as tripRepo
+database "Redis Cache<<E>>" as redis
+queue "Message Queue<<E>>" as mq
+
+' === 시나리오 1: 초기 일정 생성 요청 ===
+group 초기 일정 생성 요청
+    User -> controller: POST /trips/{tripId}/schedule/generate
+    note right of User
+    요청 페이로드:
+    {
+      "startTime": "09:00",
+      "specialRequests": "아이들이 좋아할 만한 장소 위주로 추천해주세요"
+    }
+    end note
+    
+    controller -> validator: validateGenerateRequest(tripId, request)
+    note right of validator: 요청 유효성 검증\n- 여행 존재 여부\n- 권한 확인\n- 일정 중복 생성 방지
+    
+    validator -> tripRepo: findById(tripId)
+    tripRepo --> validator: Trip
+    
+    validator -> scheduleRepo: existsByTripId(tripId)
+    alt 기존 일정 존재
+        scheduleRepo --> validator: true
+        validator --> controller: ConflictException("일정이 이미 존재합니다")
+        controller --> User: 409 Conflict
+    else 신규 생성 가능
+        scheduleRepo --> validator: false
+        validator --> controller: ValidationSuccess
+    end
+    
+    controller -> service: generateSchedule(tripId, request)
+end
+
+' === 시나리오 2: 일정 생성 데이터 준비 ===
+group 일정 생성 데이터 준비
+    service -> tripService: getTripDetails(tripId)
+    note right of tripService: 여행 기본정보 조회
+    
+    tripService -> tripRepo: findTripWithDestinations(tripId)
+    tripRepo --> tripService: TripWithDestinations
+    
+    tripService --> service: TripDetails
+    note right of service
+    조회된 데이터:
+    - 여행 기간 (startDate, endDate)
+    - 여행지 목록 (이름, 위도/경도, 체류일수)
+    - 이동수단 정보
+    - 선택된 카테고리 목록
+    end note
+    
+    service -> memberService: getTripMembers(tripId)
+    note right of memberService: 여행 멤버 정보 조회
+    
+    memberService -> tripRepo: findMembersByTripId(tripId)
+    tripRepo --> memberService: List<TripMember>
+    
+    memberService -> memberService: enrichMemberProfiles(members)
+    note right of memberService
+    멤버별 프로필 보강:
+    - 건강상태 (제한/주의/양호/우수)
+    - 연령대
+    - 선호 카테고리
+    end note
+    
+    memberService --> service: List<EnrichedMember>
+end
+
+' === 시나리오 3: 날씨 정보 수집 ===
+group 날씨 정보 수집 (병렬 처리)
+    service -> service: prepareWeatherRequests(destinations, dates)
+    note right of service: 여행지별, 날짜별\n날씨 요청 준비
+    
+    loop 각 여행지별 날씨 조회
+        service -> redis: checkWeatherCache(location+date)
+        alt 캐시 히트
+            redis --> service: 캐시된 날씨 정보
+        else 캐시 미스
+            redis --> service: null
+            service ->> service: scheduleWeatherFetch(location, date)
+            note right of service: 날씨 정보는 AI Service가\n비동기로 수집 예정
+        end
+    end
+    
+    service -> service: aggregateWeatherData()
+    note right of service: 캐시된 날씨 정보만\n우선 수집
+end
+
+' === 시나리오 4: 주변 장소 정보 수집 ===
+group 주변 장소 정보 수집 (병렬 처리)
+    service -> service: preparePlaceRequests(destinations, categories)
+    note right of service: 여행지별, 카테고리별\n장소 요청 준비
+    
+    loop 각 여행지별 장소 조회
+        service -> redis: checkPlaceCache(lat+lon+category+radius)
+        alt 캐시 히트
+            redis --> service: 캐시된 장소 정보
+        else 캐시 미스
+            redis --> service: null
+            service ->> service: schedulePlaceFetch(destination, category)
+            note right of service: 장소 정보는 AI Service가\nLocation Service를 통해\n비동기로 수집 예정
+        end
+    end
+    
+    service -> service: aggregatePlaceData()
+    note right of service: 캐시된 장소 정보만\n우선 수집
+end
+
+' === 시나리오 5: 메시지 페이로드 구성 ===
+group 메시지 페이로드 구성
+    service -> service: buildCompletePayload(tripDetails, members, weather, places, request)
+    note right of service
+    AI Service로 발행할 완전한 메시지 페이로드:
+    - tripId: 여행 식별자
+    - destinations: [{
+        name: 여행지명,
+        lat: 위도,
+        lon: 경도,
+        stayDays: 체류일수
+      }]
+    - members: [{
+        memberId: 멤버ID,
+        healthStatus: 건강상태(제한/주의/양호/우수),
+        age: 연령,
+        preferences: [선호카테고리]
+      }]
+    - transportation: 이동수단(대중교통/자동차)
+    - startDate/endDate: 여행 시작/종료 일시
+    - startTime: 일일 시작시간 (사용자 입력, 예: "09:00")
+    - categories: [음식점, 관광지, 쇼핑, 체험]
+    - specialRequests: 특별 요청사항 (사용자 입력)
+    - cachedWeather: 캐시된 날씨 정보 (있는 경우)
+    - cachedPlaces: 캐시된 장소 정보 (있는 경우)
+    end note
+end
+
+' === 시나리오 6: 비동기 일정 생성 작업 발행 ===
+group 비동기 일정 생성 작업 발행
+    service -> redis: setScheduleStatus(tripId, "pending", TTL: 7d)
+    note right of redis: 상태 정보 캐싱
+    
+    service -> mq: 일정 생성 작업 발행\n{완전한 페이로드}
+    note right of mq
+    Message Queue로 작업 발행
+    AI Service가 처리할 메시지
+    캐시된 날씨/장소 정보 포함
+    end note
+    
+    service --> controller: ScheduleGenerationResponse
+    note right of service
+    응답 데이터:
+    {
+      "tripId": "xxx",
+      "status": "pending",
+      "message": "일정 생성이 시작되었습니다"
+    }
+    end note
+    
+    controller --> User: 202 Accepted
+end
+
+' === 시나리오 7: 일정 생성 진행 상태 조회 ===
+group 일정 생성 진행 상태 조회
+    User -> controller: GET /trips/{tripId}/schedule/status
+    
+    controller -> service: getScheduleStatus(tripId)
+    
+    service -> redis: getScheduleStatus(tripId)
+    redis --> service: 현재 상태 정보
+    
+    service --> controller: ScheduleStatusResponse
+    note right of service
+    상태는 AI Service가 업데이트:
+    - pending: 대기 중
+    - processing: 처리 중
+    - completed: 완료
+    - failed: 실패
+    end note
+    
+    controller --> User: 200 OK (진행 상태)
+end
+
+' === 시나리오 8: 일정 생성 완료 이벤트 수신 ===
+group 일정 생성 완료 이벤트 수신
+    mq -> service: 일정 생성 완료 이벤트 수신\n{tripId, status: "completed", hasLocationData: false}
+    note right of mq: AI Service에서 발행한\n완료 이벤트
+    
+    service -> redis: 생성된 일정 조회\n(tripId, schedule, status: "completed")
+    note right of redis: AI Service가 저장한\n완료된 일정 조회
+    
+    redis --> service: 생성된 일정 데이터
+    
+    service -> scheduleRepo: saveSchedule(tripId, schedule)
+    note right of scheduleRepo: 생성된 일정\n데이터베이스 저장
+    
+    service -> service: notifyScheduleReady(tripId)
+    note right of service: WebSocket/Push 알림
+end
+
+' === 시나리오 9: 일정 생성 실패 이벤트 수신 ===
+group 일정 생성 실패 이벤트 수신
+    mq -> service: 일정 생성 실패 이벤트 수신\n{tripId, status: "failed", error: "error message"}
+    note right of mq
+    AI Service에서 발생한
+    오류로 인한 실패
+    end note
+    
+    service -> redis: 상태 업데이트\n(tripId, status: "failed")
+    redis --> service: 상태 업데이트 완료
+    
+    service -> scheduleRepo: updateScheduleStatus(tripId, "failed")
+    note right of scheduleRepo: 실패 상태 저장
+    
+    service -> service: notifyScheduleFailed(tripId, error)
+end
+
+note over User, mq
+**AI일정생성처리플로우와의 정합성:**
+1. Message Queue를 통한 비동기 처리
+2. AI Service가 주도하는 상태 관리 (Redis)
+3. 표준화된 상태 값 사용: pending, processing, completed, failed
+4. 이벤트 기반 완료 통지
+5. 캐시 우선 전략 (TTL 7일)
+6. 클라이언트는 tripId, startTime, specialRequests만 전송
+7. 나머지 정보는 서버에서 조회하여 페이로드 구성
+end note
+
+@enduml

@@ -1,0 +1,167 @@
+@startuml 여행계획생성플로우
+!theme mono
+
+title 여행 계획 생성 플로우 - 외부 시퀀스 다이어그램
+
+actor "Mobile Client" as Client
+participant "API Gateway" as Gateway
+participant "Trip Service" as TripService
+participant "AI Service" as AIService
+participant "Location Service" as LocationService
+database "Redis Cache" as Redis
+queue "Message Queue" as MQ
+participant "Claude API" as ClaudeAPI
+participant "OpenWeatherMap API" as WeatherAPI
+
+== 기본설정 (UFR-TRIP-030) ==
+note left of Client
+02-기본설정 화면에서
+여행명, 멤버 정보,
+이동수단을 입력
+프론트엔드에서 LocalStorage 자동저장
+end note
+
+Client -> Client: LocalStorage 자동저장\n{tripBasicInfo: {여행명, 멤버정보, 이동수단}}
+note right: 3초 debounce 적용\n브라우저 종료 시에도 데이터 보존
+
+Client -> Gateway: POST /api/v1/trips/basic-info\n{여행명, 멤버정보, 이동수단}
+note left: "다음 단계" 버튼 클릭 시에만 서버 전송
+activate Gateway
+
+Gateway -> TripService: 기본정보 저장 요청
+activate TripService
+
+TripService -> TripService: 입력 데이터 검증\n(필수 항목 확인)
+TripService -> Redis: 최종 저장\n(tripId, basicInfo)
+activate Redis
+Redis -> TripService: 저장 완료
+deactivate Redis
+
+TripService -> Gateway: 200 OK\n{tripId, status: "기본설정완료"}
+deactivate TripService
+
+Gateway -> Client: 기본설정 저장 완료
+deactivate Gateway
+
+Client -> Client: LocalStorage 임시 데이터 삭제\n여행지설정 화면으로 이동
+
+== 여행지설정 (UFR-TRIP-040) ==
+note left of Client
+03-여행지설정 화면에서
+여행 시작일과
+여행지별 숙박 정보 입력
+실시간 날짜 계산 및 LocalStorage 자동저장
+end note
+
+Client -> Client: LocalStorage 자동저장\n{tripDestinations: {시작일, 여행지목록[]}}
+note right: 여행지 추가/편집/삭제 시 즉시 저장\n날짜는 프론트엔드에서 실시간 계산
+
+Client -> Gateway: POST /api/v1/trips/{tripId}/destinations/batch\n{시작일, 여행지목록[]}
+note left: "다음 단계" 버튼 클릭 시에만 서버 전송
+activate Gateway
+
+Gateway -> TripService: 여행지 정보 일괄 저장
+activate TripService
+
+TripService -> TripService: 날짜 연속성 재검증\n(서버 사이드 검증)
+TripService -> Redis: 여행지 정보 업데이트\n(tripId, destinations)
+activate Redis
+Redis -> TripService: 업데이트 완료
+deactivate Redis
+
+TripService -> Gateway: 200 OK\n{status: "여행지설정완료"}
+deactivate TripService
+
+Gateway -> Client: 여행지 설정 완료
+deactivate Gateway
+
+Client -> Client: LocalStorage 임시 데이터 삭제\nAI일정생성 화면으로 이동
+
+== AI일정생성 요청 (UFR-TRIP-050) ==
+note left of Client
+05-AI일정생성 화면에서
+여행 시작시간과
+특별 요청사항 입력
+LocalStorage에서 여행 정보 복원
+end note
+
+Client -> Client: LocalStorage에서 여행 정보 복원\n기존 입력값 자동 완성
+note right: 이전 단계에서 저장된 데이터 활용\n사용자 편의성 향상
+
+Client -> Gateway: POST /api/v1/trips/{tripId}/schedules/generate\n{startTime, specialRequests}
+activate Gateway
+
+Gateway -> TripService: AI 일정 생성 요청
+activate TripService
+
+TripService -> Redis: 전체 여행 정보 조회\n(basicInfo + destinations)
+activate Redis
+Redis -> TripService: 여행 데이터 반환
+deactivate Redis
+
+TripService -> MQ: AI 일정 생성 작업 발행\n{tripId, travelData, requestId}
+activate MQ
+MQ -> TripService: 작업 큐잉 완료
+deactivate MQ
+
+TripService -> Gateway: 202 Accepted\n{requestId, status: "pending"}
+deactivate TripService
+
+Gateway -> Client: 생성 요청 접수\n(진행률 확인 URL 제공)
+deactivate Gateway
+
+note over Client, WeatherAPI
+AI일정생성 처리는 'AI일정생성처리플로우.puml' 참조
+end note
+
+== 진행 상황 확인 ==
+loop 진행률 폴링
+    Client -> Gateway: GET /api/v1/trips/{tripId}/schedules/generation-status/{requestId}
+    activate Gateway
+    
+    Gateway -> TripService: 진행 상태 조회
+    activate TripService
+    
+    TripService -> Redis: 생성 상태 확인\n(requestId)
+    activate Redis
+    Redis -> TripService: 진행률 정보
+    deactivate Redis
+    
+    TripService -> Gateway: 진행 상태 반환
+    deactivate TripService
+    
+    Gateway -> Client: {progress: 80%, message: "경로 최적화 중"}
+    deactivate Gateway
+    
+    Client -> Client: 진행률 UI 업데이트
+end
+
+== 생성 완료 알림 ==
+MQ -> TripService: 생성 완료 이벤트 수신
+activate TripService
+
+TripService -> Redis: 생성 상태 업데이트\n(requestId, status: "completed")
+TripService -> TripService: 여행 상태 업데이트\n(status: "계획완료")
+deactivate TripService
+
+Client -> Gateway: GET /api/trips/{tripId}/generation-status/{requestId}
+activate Gateway
+Gateway -> TripService: 최종 상태 확인
+activate TripService
+TripService -> Gateway: {status: "completed", scheduleId}
+deactivate TripService
+Gateway -> Client: 생성 완료\n{redirectUrl: "/schedules/{tripId}"}
+deactivate Gateway
+
+Client -> Client: 생성된일정조회 화면으로 이동
+
+note over Client, ClaudeAPI
+전체 플로우 예상 시간:
+- 기본설정 + 여행지설정: 즉시 응답 (LocalStorage 활용)
+- AI 일정 생성 요청: 비동기 처리
+- AI 일정 생성 완료: 5초 이내 목표
+- 자동저장: LocalStorage (오프라인 지원)
+- 캐시 히트율 목표: 80% 이상
+end note
+
+@enduml
