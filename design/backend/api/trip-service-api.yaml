@@ -194,6 +194,51 @@ paths:
       security:
         - bearerAuth: []
 
+  /trips/{tripId}/basic-info:
+    put:
+      summary: 여행 기본정보 일괄 저장
+      description: 여행명, 이동수단, 멤버 정보를 한꺼번에 저장합니다
+      operationId: updateTripBasicInfo
+      x-user-story: UFR-TRIP-030
+      x-controller: TripController
+      tags:
+        - trips
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTripBasicInfoRequest'
+            example:
+              tripName: "독일 뮌헨 여행"
+              transportMode: "car"
+              members:
+                - name: "김철수"
+                  age: 35
+                  gender: "male"
+                  healthStatus: "good"
+                  preferences: ["sightseeing", "culture"]
+                - name: "이영희"
+                  age: 32
+                  gender: "female"
+                  healthStatus: "excellent"
+                  preferences: ["shopping", "culture"]
+      responses:
+        '200':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripBasicInfoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
+
   /trips/{tripId}/members:
     get:
       summary: 여행 멤버 목록 조회
@@ -295,6 +340,49 @@ paths:
       responses:
         '204':
           description: 삭제 성공
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+        - bearerAuth: []
+
+  /trips/{tripId}/destinations/batch:
+    put:
+      summary: 여행지 정보 일괄 저장
+      description: 여행지 정보를 한꺼번에 저장합니다 (기존 여행지는 모두 교체됩니다)
+      operationId: updateTripDestinationsBatch
+      x-user-story: UFR-TRIP-040
+      x-controller: DestinationController
+      tags:
+        - destinations
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDestinationsBatchRequest'
+            example:
+              destinations:
+                - destinationName: "뮌헨"
+                  nights: 3
+                  accommodation: "뮌헨 센트럴 호텔"
+                  checkInTime: "15:00"
+                  checkOutTime: "11:00"
+                - destinationName: "하이델베르크"
+                  nights: 2
+                  accommodation: "하이델베르크 올드타운 호텔"
+                  checkInTime: "14:00"
+                  checkOutTime: "11:00"
+      responses:
+        '200':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationsBatchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
       security:
@@ -931,6 +1019,45 @@ components:
           items:
             type: string
 
+    UpdateTripBasicInfoRequest:
+      type: object
+      required:
+        - tripName
+        - transportMode
+        - members
+      properties:
+        tripName:
+          type: string
+          maxLength: 16
+          description: 여행명
+        transportMode:
+          type: string
+          enum: [public, car]
+          description: 이동수단
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateMemberRequest'
+          minItems: 1
+          description: 멤버 목록 (기존 멤버는 모두 교체됩니다)
+
+    TripBasicInfoResponse:
+      type: object
+      properties:
+        tripId:
+          type: string
+        tripName:
+          type: string
+        transportMode:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberResponse'
+        updatedAt:
+          type: string
+          format: date-time
+
     CreateDestinationRequest:
       type: object
       required:
@@ -1001,6 +1128,42 @@ components:
         order:
           type: integer
           description: 방문 순서
+
+    UpdateDestinationsBatchRequest:
+      type: object
+      required:
+        - destinations
+      properties:
+        destinations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateDestinationRequest'
+          minItems: 1
+          description: 여행지 목록 (기존 여행지는 모두 교체됩니다)
+
+    DestinationsBatchResponse:
+      type: object
+      properties:
+        tripId:
+          type: string
+        destinations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DestinationResponse'
+        totalDays:
+          type: integer
+          description: 총 여행 일수
+        startDate:
+          type: string
+          format: date
+          description: 여행 시작일
+        endDate:
+          type: string
+          format: date
+          description: 여행 종료일
+        updatedAt:
+          type: string
+          format: date-time
 
     GenerateScheduleRequest:
       type: object

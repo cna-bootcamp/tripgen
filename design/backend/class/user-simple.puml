@@ -1,0 +1,105 @@
+@startuml
+!theme mono
+
+title User Service - 클래스 설계 (요약)
+
+' 패키지 정의
+package "com.tripgen.user.presentation.controller" {
+    class UserController
+}
+
+package "com.tripgen.user.application.service" {
+    class UserService
+    class AuthService
+    class ValidationService
+    class JwtTokenService
+    class SessionService
+    class ImageService
+    class EmailService
+}
+
+package "com.tripgen.user.domain.model" {
+    class User
+    enum UserStatus
+    class AuthResult
+    class TokenPair
+    class SessionInfo
+    class ValidationResult
+    enum PasswordStrength
+}
+
+package "com.tripgen.user.domain.repository" {
+    interface UserRepository
+}
+
+package "com.tripgen.user.infrastructure.persistence" {
+    class UserRepositoryImpl implements UserRepository
+}
+
+package "com.tripgen.user.infrastructure.storage" {
+    interface FileStorageService
+    class S3StorageService implements FileStorageService
+}
+
+package "com.tripgen.user.infrastructure.security" {
+    interface PasswordEncoder
+    class BCryptPasswordEncoder implements PasswordEncoder
+}
+
+package "com.tripgen.user.infrastructure.cache" {
+    interface CacheManager
+    class RedisCacheManager implements CacheManager
+}
+
+package "com.tripgen.user.presentation.dto.request" {
+    class RegisterRequest
+    class LoginRequest
+    class UpdateProfileRequest
+    class ChangePasswordRequest
+}
+
+package "com.tripgen.user.presentation.dto.response" {
+    class RegisterResponse
+    class LoginResponse
+    class UserProfile
+}
+
+package "com.tripgen.user.common.exception" {
+    class UserNotFoundException extends RuntimeException
+    class DuplicateUserException extends RuntimeException
+    class InvalidCredentialsException extends RuntimeException
+    class AccountLockedException extends RuntimeException
+}
+
+' 관계 정의
+UserController --> UserService
+UserController --> AuthService
+UserController --> ValidationService
+UserController --> ImageService
+UserController --> JwtTokenService
+
+UserService --> UserRepository
+UserService --> PasswordEncoder
+UserService --> EmailService
+UserService --> CacheManager
+
+AuthService --> UserRepository
+AuthService --> PasswordEncoder
+AuthService --> JwtTokenService
+AuthService --> SessionService
+AuthService --> CacheManager
+
+ImageService --> FileStorageService
+ImageService --> UserRepository
+
+SessionService --> CacheManager
+
+User --> UserStatus
+
+AuthResult --> User
+AuthResult --> TokenPair
+AuthResult --> SessionInfo
+
+ValidationResult --> PasswordStrength
+
+@enduml

@@ -1,0 +1,110 @@
+@startuml
+!theme mono
+
+title Location Service - 클래스 설계 (요약)
+
+' 패키지 정의
+package "com.tripgen.location.presentation.controller" {
+    class LocationController
+}
+
+package "com.tripgen.location.application.service" {
+    class LocationSearchService
+    class PlaceDetailService
+    class BusinessHoursService
+    class RecommendationService
+    class ValidationService
+    class TransportCalculator
+    class ReviewService
+}
+
+package "com.tripgen.location.domain.model" {
+    class Place
+    class Location
+    class PlaceDetails extends Place
+    class BusinessHours
+    class AIRecommendation
+    class Review
+    enum PlaceCategory
+    enum TransportMode
+    enum Region
+}
+
+package "com.tripgen.location.domain.repository" {
+    interface LocationRepository
+    interface RecommendationRepository
+    interface ReviewRepository
+}
+
+package "com.tripgen.location.infrastructure.client" {
+    interface GoogleMapsClient
+    class GoogleMapsClientImpl implements GoogleMapsClient
+    interface GooglePlacesClient
+    interface GoogleDirectionsClient
+    interface AIServiceClient
+}
+
+package "com.tripgen.location.infrastructure.persistence" {
+    class LocationRepositoryImpl implements LocationRepository
+    class RecommendationRepositoryImpl implements RecommendationRepository
+}
+
+package "com.tripgen.location.infrastructure.cache" {
+    interface CacheManager
+    class RedisCacheManager implements CacheManager
+}
+
+package "com.tripgen.location.presentation.dto.request" {
+    class NearbySearchRequest
+}
+
+package "com.tripgen.location.presentation.dto.response" {
+    class NearbySearchResponse
+    class KeywordSearchResponse
+    class PlaceCard
+}
+
+package "com.tripgen.location.common.exception" {
+    class PlaceNotFoundException extends RuntimeException
+    class InvalidLocationException extends RuntimeException
+    class ExternalAPIException extends RuntimeException
+}
+
+' 관계 정의
+LocationController --> LocationSearchService
+LocationController --> PlaceDetailService
+LocationController --> BusinessHoursService
+LocationController --> RecommendationService
+LocationController --> ValidationService
+
+LocationSearchService --> LocationRepository
+LocationSearchService --> GoogleMapsClient
+LocationSearchService --> CacheManager
+LocationSearchService --> TransportCalculator
+
+PlaceDetailService --> LocationRepository
+PlaceDetailService --> GooglePlacesClient
+PlaceDetailService --> ReviewService
+PlaceDetailService --> CacheManager
+
+BusinessHoursService --> GooglePlacesClient
+BusinessHoursService --> CacheManager
+
+RecommendationService --> RecommendationRepository
+RecommendationService --> AIServiceClient
+RecommendationService --> CacheManager
+
+TransportCalculator --> GoogleDirectionsClient
+
+ReviewService --> ReviewRepository
+
+Place --> Location
+Place --> PlaceCategory
+
+PlaceDetails --> BusinessHours
+PlaceDetails --> AIRecommendation
+PlaceDetails --> Review
+
+Location --> Region
+
+@enduml

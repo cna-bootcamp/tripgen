@@ -1,0 +1,176 @@
+@startuml
+!theme mono
+
+title 공통 기반 컴포넌트 클래스 다이어그램
+
+package "com.unicorn.tripgen.common" {
+    
+    package "dto" {
+        class BaseResponse<T> {
+            -status: ResponseStatus
+            -message: String
+            -data: T
+            -timestamp: LocalDateTime
+            +success(data: T): BaseResponse<T>
+            +success(data: T, message: String): BaseResponse<T>
+            +error(message: String): BaseResponse<T>
+            +error(status: ResponseStatus, message: String): BaseResponse<T>
+        }
+        
+        enum ResponseStatus {
+            SUCCESS
+            ERROR
+            WARNING
+            INFO
+        }
+        
+        class PageRequest {
+            -page: int
+            -size: int
+            -sort: String
+            -direction: String
+            +of(page: int, size: int): PageRequest
+            +of(page: int, size: int, sort: String): PageRequest
+        }
+        
+        class PageResponse<T> {
+            -content: List<T>
+            -totalElements: long
+            -totalPages: int
+            -currentPage: int
+            -size: int
+            -hasNext: boolean
+            -hasPrevious: boolean
+        }
+    }
+    
+    package "exception" {
+        abstract class BaseException {
+            -errorCode: String
+            -message: String
+            -cause: Throwable
+            +BaseException(errorCode: String, message: String)
+            +BaseException(errorCode: String, message: String, cause: Throwable)
+        }
+        
+        class BusinessException {
+            +BusinessException(message: String)
+            +BusinessException(errorCode: String, message: String)
+        }
+        
+        class ValidationException {
+            -fieldErrors: Map<String, String>
+            +ValidationException(message: String)
+            +ValidationException(fieldErrors: Map<String, String>)
+            +addFieldError(field: String, message: String): void
+        }
+        
+        class SystemException {
+            +SystemException(message: String)
+            +SystemException(message: String, cause: Throwable)
+        }
+        
+        class ResourceNotFoundException {
+            -resourceType: String
+            -resourceId: String
+            +ResourceNotFoundException(resourceType: String, resourceId: String)
+        }
+        
+        class DuplicateResourceException {
+            -resourceType: String
+            -conflictField: String
+            +DuplicateResourceException(resourceType: String, conflictField: String)
+        }
+    }
+    
+    package "util" {
+        class DateTimeUtil {
+            +now(): LocalDateTime
+            +format(dateTime: LocalDateTime, pattern: String): String
+            +parse(dateTimeString: String, pattern: String): LocalDateTime
+            +addDays(dateTime: LocalDateTime, days: int): LocalDateTime
+            +isBetween(target: LocalDateTime, start: LocalDateTime, end: LocalDateTime): boolean
+        }
+        
+        class ValidationUtil {
+            +isValidEmail(email: String): boolean
+            +isValidPhoneNumber(phoneNumber: String): boolean
+            +isValidPassword(password: String): boolean
+            +validateRequired(value: Object, fieldName: String): void
+            +validateLength(value: String, min: int, max: int, fieldName: String): void
+        }
+        
+        class StringUtil {
+            +isEmpty(str: String): boolean
+            +isNotEmpty(str: String): boolean
+            +trim(str: String): String
+            +maskEmail(email: String): String
+            +maskPhoneNumber(phoneNumber: String): String
+        }
+        
+        class SecurityUtil {
+            +encryptPassword(password: String): String
+            +verifyPassword(password: String, encryptedPassword: String): boolean
+            +generateToken(userId: String): String
+            +validateToken(token: String): boolean
+            +extractUserId(token: String): String
+        }
+    }
+    
+    package "config" {
+        interface DatabaseConfig {
+            +getDataSource(): DataSource
+            +getTransactionManager(): PlatformTransactionManager
+        }
+        
+        interface CacheConfig {
+            +getCacheManager(): CacheManager
+            +getRedisTemplate(): RedisTemplate<String, Object>
+        }
+        
+        interface SecurityConfig {
+            +getJwtSecret(): String
+            +getJwtExpirationTime(): long
+            +getPasswordEncoder(): PasswordEncoder
+        }
+    }
+    
+    package "constants" {
+        class ApiConstants {
+            +API_VERSION: String = "/api/v1"
+            +USER_API_PATH: String = "/users"
+            +TRIP_API_PATH: String = "/trips" 
+            +LOCATION_API_PATH: String = "/locations"
+            +AI_API_PATH: String = "/ai"
+        }
+        
+        class CacheConstants {
+            +USER_CACHE: String = "users"
+            +TRIP_CACHE: String = "trips"
+            +LOCATION_CACHE: String = "locations"
+            +AI_CACHE: String = "ai"
+            +DEFAULT_TTL: int = 3600
+        }
+        
+        class MessageConstants {
+            +SUCCESS_CREATE: String = "성공적으로 생성되었습니다"
+            +SUCCESS_UPDATE: String = "성공적으로 수정되었습니다"
+            +SUCCESS_DELETE: String = "성공적으로 삭제되었습니다"
+            +ERROR_NOT_FOUND: String = "요청한 리소스를 찾을 수 없습니다"
+            +ERROR_DUPLICATE: String = "이미 존재하는 리소스입니다"
+            +ERROR_VALIDATION: String = "입력값 검증에 실패했습니다"
+        }
+    }
+}
+
+' 관계 정의
+BaseException <|-- BusinessException
+BaseException <|-- ValidationException
+BaseException <|-- SystemException
+BaseException <|-- ResourceNotFoundException
+BaseException <|-- DuplicateResourceException
+
+BaseResponse --> ResponseStatus
+PageResponse --> PageRequest
+
+@enduml

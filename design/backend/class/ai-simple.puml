@@ -1,0 +1,229 @@
+@startuml
+!theme mono
+
+title AI 서비스 간단 요약 클래스 다이어그램
+
+package "com.unicorn.tripgen.ai" {
+    
+    ' === Presentation Layer ===
+    package "controller" {
+        class AIScheduleController {
+            +generateAISchedule()
+            +getGenerationStatus()
+            +getGeneratedSchedule()
+            +regenerateDaySchedule()
+            +cancelGeneration()
+            +analyzeWeatherImpact()
+        }
+        
+        class AIRecommendationController {
+            +generatePlaceRecommendations()
+        }
+    }
+    
+    ' === Business Layer ===
+    package "service" {
+        class ScheduleGenerationServiceImpl {
+            +generateSchedule()
+            +getGenerationStatus()
+            +getGeneratedSchedule()
+            +regenerateSpecificDay()
+            +cancelGeneration()
+            +processGenerationTask()
+        }
+        
+        class AIRecommendationServiceImpl {
+            +generatePlaceRecommendations()
+            +processScheduleRecommendation()
+            +processSearchRecommendation()
+        }
+        
+        class ClaudeAIServiceImpl {
+            +generateOptimizedSchedule()
+            +regenerateDaySchedule()
+            +generateScheduleRecommendation()
+            +generateSearchRecommendation()
+        }
+        
+        class WeatherServiceImpl {
+            +getWeatherForecast()
+            +getWeatherRecommendation()
+            +analyzeWeatherImpact()
+        }
+        
+        class ContextEnrichmentServiceImpl {
+            +analyzeScheduleContext()
+            +analyzeSearchContext()
+            +extractMemberProfiles()
+            +analyzeTimeContext()
+        }
+        
+        class MessageQueueServiceImpl {
+            +publishGenerationTask()
+            +publishScheduleCompleted()
+            +publishPlaceSearchRequest()
+        }
+        
+        class RedisCacheServiceImpl {
+            +get()
+            +set()
+            +invalidate()
+            +checkWeatherCache()
+            +checkPlaceCache()
+        }
+    }
+    
+    ' === Persistence Layer ===
+    package "repository" {
+        class JpaGenerationRequestRepository {
+            +save()
+            +findById()
+            +findByTripId()
+            +updateStatus()
+        }
+        
+        class JpaGeneratedScheduleRepository {
+            +save()
+            +findByRequestId()
+            +updateDaySchedule()
+        }
+        
+        class RedisRecommendationRepository {
+            +save()
+            +findByPlaceId()
+            +findByPlaceIdAndContext()
+        }
+    }
+    
+    ' === Domain Layer ===
+    package "domain" {
+        class GenerationRequest {
+            -requestId: String
+            -tripId: String
+            -status: GenerationStatus
+            -members: List<TripMember>
+            -destinations: List<Destination>
+        }
+        
+        class GeneratedSchedule {
+            -requestId: String
+            -tripId: String
+            -schedules: List<DaySchedule>
+            -metadata: ScheduleMetadata
+        }
+        
+        class DaySchedule {
+            -day: Integer
+            -date: LocalDate
+            -weather: WeatherInfo
+            -places: List<PlaceSchedule>
+        }
+        
+        class PlaceRecommendation {
+            -placeId: String
+            -recommendations: RecommendationContent
+            -generatedAt: LocalDateTime
+        }
+        
+        enum GenerationStatus {
+            PENDING
+            PROCESSING
+            COMPLETED
+            FAILED
+            CANCELLED
+        }
+    }
+    
+    ' === External APIs ===
+    package "client" {
+        class ClaudeApiClientImpl {
+            +generateText()
+            +generateTextWithConfig()
+        }
+        
+        class WeatherApiClientImpl {
+            +getForecast()
+            +getCurrentWeather()
+        }
+    }
+    
+    ' === Utilities ===
+    package "util" {
+        class PromptBuilder {
+            +buildScheduleGenerationPrompt()
+            +buildRecommendationPrompt()
+            +buildRegeneratePrompt()
+        }
+        
+        class ResponseParser {
+            +parseScheduleResponse()
+            +parseRecommendationResponse()
+        }
+    }
+}
+
+' === 주요 관계 ===
+AIScheduleController --> ScheduleGenerationServiceImpl : uses
+AIRecommendationController --> AIRecommendationServiceImpl : uses
+
+ScheduleGenerationServiceImpl --> JpaGenerationRequestRepository : uses
+ScheduleGenerationServiceImpl --> JpaGeneratedScheduleRepository : uses
+ScheduleGenerationServiceImpl --> ClaudeAIServiceImpl : uses
+ScheduleGenerationServiceImpl --> WeatherServiceImpl : uses
+ScheduleGenerationServiceImpl --> MessageQueueServiceImpl : uses
+ScheduleGenerationServiceImpl --> RedisCacheServiceImpl : uses
+
+AIRecommendationServiceImpl --> RedisRecommendationRepository : uses
+AIRecommendationServiceImpl --> ContextEnrichmentServiceImpl : uses
+AIRecommendationServiceImpl --> ClaudeAIServiceImpl : uses
+AIRecommendationServiceImpl --> RedisCacheServiceImpl : uses
+
+ClaudeAIServiceImpl --> ClaudeApiClientImpl : uses
+ClaudeAIServiceImpl --> PromptBuilder : uses
+ClaudeAIServiceImpl --> ResponseParser : uses
+
+WeatherServiceImpl --> WeatherApiClientImpl : uses
+WeatherServiceImpl --> RedisCacheServiceImpl : uses
+
+' === Domain 관계 ===
+GenerationRequest --> GenerationStatus : has
+GeneratedSchedule ||--o{ DaySchedule : contains
+DaySchedule ||--o{ PlaceSchedule : contains
+
+note top of AIScheduleController
+**Presentation Layer**
+- REST API 엔드포인트 제공
+- 요청/응답 데이터 변환
+- 입력값 검증
+end note
+
+note top of ScheduleGenerationServiceImpl
+**Business Layer**
+- 핵심 비즈니스 로직 처리
+- 외부 서비스 연동 조합
+- 비동기 처리 관리
+- 트랜잭션 관리
+end note
+
+note top of JpaGenerationRequestRepository
+**Persistence Layer**
+- 데이터베이스 연동
+- 엔티티 CRUD 작업
+- 쿼리 최적화
+end note
+
+note top of GenerationRequest
+**Domain Layer**
+- 핵심 비즈니스 엔티티
+- 도메인 규칙 구현
+- 데이터 무결성 보장
+end note
+
+note bottom of ClaudeApiClientImpl
+**External Integration**
+- Claude AI API 연동
+- OpenWeatherMap API 연동
+- 외부 서비스 장애 대응
+end note
+
+@enduml

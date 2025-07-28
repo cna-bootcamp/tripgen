@@ -1,0 +1,232 @@
+@startuml
+!theme mono
+
+title Trip Service - Clean Architecture 간단 요약 다이어그램
+
+' ===============================
+' Clean Architecture Layer 구조
+' ===============================
+
+package "Interface Layer" {
+    class TripController {
+        +createTrip()
+        +getTripList()
+        +updateTripBasicInfo()
+    }
+    
+    class MemberController {
+        +addMember()
+        +updateMember()
+        +deleteMember()
+    }
+    
+    class DestinationController {
+        +addDestination()
+        +updateDestination()
+        +updateDestinationsBatch()
+    }
+    
+    class ScheduleController {
+        +generateSchedule()
+        +getSchedules()
+        +updateDaySchedule()
+        +exportSchedule()
+    }
+}
+
+package "Application Layer" {
+    class TripApplicationService {
+        +createTrip()
+        +getTripDetail()
+        +updateTripBasicInfo()
+    }
+    
+    class MemberApplicationService {
+        +addMember()
+        +updateMember()
+        +deleteMember()
+    }
+    
+    class DestinationApplicationService {
+        +addDestination()
+        +updateDestination()
+        +updateDestinationsBatch()
+    }
+    
+    class ScheduleApplicationService {
+        +generateSchedule()
+        +getSchedules()
+        +updateDaySchedule()
+        +exportSchedule()
+    }
+}
+
+package "Domain Layer" {
+    class Trip <<Entity>> {
+        -tripId: TripId
+        -tripName: String
+        -transportMode: TransportMode
+        -status: TripStatus
+        +updateBasicInfo()
+        +addMember()
+        +addDestination()
+        +canGenerateSchedule()
+    }
+    
+    class Member <<Entity>> {
+        -memberId: MemberId
+        -name: String
+        -age: int
+        -gender: Gender
+        -healthStatus: HealthStatus
+        +updateInfo()
+        +canParticipateActivity()
+    }
+    
+    class Destination <<Entity>> {
+        -destinationId: DestinationId
+        -destinationName: String
+        -nights: int
+        -accommodation: String
+        +updateInfo()
+        +calculateStayPeriod()
+    }
+    
+    class Schedule <<Entity>> {
+        -scheduleId: ScheduleId
+        -tripId: TripId
+        -day: int
+        -date: LocalDate
+        -places: List<Place>
+        +addPlace()
+        +updatePlaceOrder()
+    }
+    
+    class TripDomainService <<Service>> {
+        +validateTripCreation()
+        +calculateTripDates()
+        +canStartScheduleGeneration()
+    }
+    
+    interface TripRepository <<Repository Interface>> {
+        +save()
+        +findById()
+        +findByUserId()
+    }
+    
+    interface ScheduleRepository <<Repository Interface>> {
+        +save()
+        +findByTripId()
+        +deleteByTripId()
+    }
+}
+
+package "Infrastructure Layer" {
+    class JpaTripRepository {
+        +save()
+        +findById()
+        +findByUserId()
+    }
+    
+    class JpaScheduleRepository {
+        +save()
+        +findByTripId()
+        +deleteByTripId()
+    }
+    
+    class MessageQueueScheduleGenerationAdapter {
+        +requestScheduleGeneration()
+        +getGenerationStatus()
+    }
+    
+    class RestLocationServiceAdapter {
+        +searchPlaces()
+        +getPlaceDetails()
+    }
+    
+    class RedisCacheService {
+        +get()
+        +put()
+        +evict()
+    }
+    
+    class WebSocketNotificationAdapter {
+        +sendScheduleReadyNotification()
+        +sendScheduleFailedNotification()
+    }
+}
+
+' ===============================
+' Clean Architecture 의존성 규칙
+' ===============================
+
+' Interface → Application
+TripController --> TripApplicationService
+MemberController --> MemberApplicationService
+DestinationController --> DestinationApplicationService
+ScheduleController --> ScheduleApplicationService
+
+' Application → Domain
+TripApplicationService --> Trip
+TripApplicationService --> TripDomainService
+TripApplicationService --> TripRepository
+MemberApplicationService --> Trip
+MemberApplicationService --> Member
+DestinationApplicationService --> Trip
+DestinationApplicationService --> Destination
+ScheduleApplicationService --> Schedule
+ScheduleApplicationService --> ScheduleRepository
+
+' Domain Entities Relationships
+Trip ||--o{ Member : contains
+Trip ||--o{ Destination : contains
+Trip ||--o{ Schedule : has
+
+' Infrastructure → Domain (Interface 구현)
+JpaTripRepository ..|> TripRepository : implements
+JpaScheduleRepository ..|> ScheduleRepository : implements
+
+' Infrastructure Dependencies (외부 시스템 연동)
+MessageQueueScheduleGenerationAdapter ..> ScheduleApplicationService : notifies
+RestLocationServiceAdapter ..> ScheduleApplicationService : provides data
+RedisCacheService ..> ScheduleApplicationService : caches data
+WebSocketNotificationAdapter ..> ScheduleApplicationService : sends notifications
+
+note top of "Domain Layer"
+**Domain Layer (핵심 비즈니스 로직)**
+- 외부 의존성 없음
+- 순수한 비즈니스 규칙
+- Entity, Value Object, Domain Service
+end note
+
+note top of "Application Layer"
+**Application Layer (Use Cases)**
+- Domain Layer만 의존
+- 비즈니스 플로우 조정
+- Port Interface 정의
+end note
+
+note top of "Infrastructure Layer"
+**Infrastructure Layer (기술 구현체)**
+- Domain Interface 구현
+- 외부 시스템 연동
+- 데이터베이스, 메시징, 캐시
+end note
+
+note top of "Interface Layer"
+**Interface Layer (외부 인터페이스)**
+- Application Layer 호출
+- HTTP API, 웹 컨트롤러
+- 요청/응답 변환
+end note
+
+' 주요 플로우 표시
+note bottom
+**주요 비즈니스 플로우:**
+1. **여행 생성**: TripController → TripApplicationService → Trip Entity
+2. **일정 생성**: ScheduleController → ScheduleApplicationService → MessageQueue
+3. **일정 완료 알림**: MessageQueue → WebSocketNotificationAdapter → Client
+4. **데이터 캐싱**: 모든 조회 → RedisCacheService → 성능 최적화
+end note
+
+@enduml
