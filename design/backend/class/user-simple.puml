@@ -1,288 +1,228 @@
 @startuml
 !theme mono
 
-title User Service - 간단 클래스 설계서
-subtitle Layered Architecture Pattern | Package: com.unicorn.tripgen
+title User 서비스 간단 클래스 설계서 (Layered Architecture)
 
 ' ======================================
-' Controller Layer
+' Layered Architecture Overview
 ' ======================================
 package "Controller Layer" {
     class UserController {
-        +registerUser: 회원등록
-        +loginUser: 로그인
-        +logoutUser: 로그아웃
-        +getProfile: 프로필 조회
-        +updateProfile: 프로필 수정
-        +uploadAvatar: 프로필 이미지 업로드
-        +changePassword: 비밀번호 변경
-        +checkUsername: 아이디 중복 확인
-        +checkEmail: 이메일 중복 확인
+        -UserService userService
+        +registerUser()
+        +loginUser()
+        +logoutUser()
+        +getProfile()
+        +updateProfile()
+        +uploadAvatar()
+        +changePassword()
+        +checkUsername()
+        +checkEmail()
     }
 }
 
-' ======================================
-' Service Layer
-' ======================================
 package "Service Layer" {
     interface UserService {
-        +registerUser: 회원등록 처리
-        +authenticateUser: 사용자 인증
-        +logoutUser: 로그아웃 처리
-        +getUserProfile: 프로필 조회
-        +updateProfile: 프로필 수정
-        +uploadAvatar: 프로필 이미지 업로드
-        +changePassword: 비밀번호 변경
-        +checkUsernameDuplication: 아이디 중복 확인
-        +checkEmailDuplication: 이메일 중복 확인
-        +validateLoginAttempt: 로그인 시도 검증
-        +increaseFailedLoginCount: 실패 횟수 증가
-        +resetFailedLoginCount: 실패 횟수 초기화
+        +register()
+        +login()
+        +logout()
+        +getProfile()
+        +updateProfile()
+        +uploadAvatar()
+        +changePassword()
+        +checkUsernameAvailability()
+        +checkEmailAvailability()
     }
-
+    
     class UserServiceImpl {
-        +registerUser: 회원등록 처리
-        +authenticateUser: 사용자 인증
-        +logoutUser: 로그아웃 처리
-        +getUserProfile: 프로필 조회
-        +updateProfile: 프로필 수정
-        +uploadAvatar: 프로필 이미지 업로드
-        +changePassword: 비밀번호 변경
-        +checkUsernameDuplication: 아이디 중복 확인
-        +checkEmailDuplication: 이메일 중복 확인
-        +validateLoginAttempt: 로그인 시도 검증
-        +increaseFailedLoginCount: 실패 횟수 증가
-        +resetFailedLoginCount: 실패 횟수 초기화
-    }
-
-    interface TokenService {
-        +generateAccessToken: 액세스 토큰 생성
-        +generateRefreshToken: 리프레시 토큰 생성
-        +validateToken: 토큰 검증
-        +extractUserIdFromToken: 토큰에서 사용자 ID 추출
-        +isTokenExpired: 토큰 만료 여부 확인
-        +invalidateToken: 토큰 무효화
-        +getTokenExpirationTime: 토큰 만료 시간 조회
-    }
-
-    class JwtTokenService {
-        +generateAccessToken: 액세스 토큰 생성
-        +generateRefreshToken: 리프레시 토큰 생성
-        +validateToken: 토큰 검증
-        +extractUserIdFromToken: 토큰에서 사용자 ID 추출
-        +isTokenExpired: 토큰 만료 여부 확인
-        +invalidateToken: 토큰 무효화
-        +getTokenExpirationTime: 토큰 만료 시간 조회
-    }
-
-    interface FileStorageService {
-        +uploadFile: 파일 업로드
-        +deleteFile: 파일 삭제
-        +generateFileName: 파일명 생성
-        +validateFileType: 파일 타입 검증
-        +validateFileSize: 파일 크기 검증
-    }
-
-    class S3FileStorageService {
-        +uploadFile: 파일 업로드
-        +deleteFile: 파일 삭제
-        +generateFileName: 파일명 생성
-        +validateFileType: 파일 타입 검증
-        +validateFileSize: 파일 크기 검증
-    }
-
-    interface CacheService {
-        +get: 캐시 조회
-        +set: 캐시 저장
-        +delete: 캐시 삭제
-        +increment: 카운터 증가
-        +exists: 키 존재 여부 확인
-        +setWithExpire: 만료 시간과 함께 저장
-    }
-
-    class RedisCacheService {
-        +get: 캐시 조회
-        +set: 캐시 저장
-        +delete: 캐시 삭제
-        +increment: 카운터 증가
-        +exists: 키 존재 여부 확인
-        +setWithExpire: 만료 시간과 함께 저장
+        -UserRepository userRepository
+        -PasswordEncoder passwordEncoder
+        -JwtTokenProvider jwtTokenProvider
+        -RedisTemplate redisTemplate
+        -FileStorageService fileStorageService
+        +register()
+        +login()
+        +logout()
+        +getProfile()
+        +updateProfile()
+        +uploadAvatar()
+        +changePassword()
+        +checkUsernameAvailability()
+        +checkEmailAvailability()
     }
 }
 
-' ======================================
-' Domain Layer
-' ======================================
-package "Domain Layer" {
-    class User {
-        +incrementFailedLoginCount: 실패 횟수 증가
-        +resetFailedLoginCount: 실패 횟수 초기화
-        +lockAccount: 계정 잠금
-        +unlockAccount: 계정 잠금 해제
-        +isAccountLocked: 계정 잠금 상태 확인
-        +updateProfile: 프로필 정보 업데이트
-        +changePassword: 비밀번호 변경
-    }
-
-    enum UserStatus {
-        +getUserStatus: 사용자 상태 조회
-        +isActive: 활성 상태 여부 확인
-    }
-}
-
-' ======================================
-' DTO Layer
-' ======================================
-package "DTO Layer" {
-    class RegisterRequest {
-        +isPasswordMatched: 비밀번호 일치 확인
-        +validate: 요청 데이터 검증
-    }
-
-    class RegisterResponse
-    class LoginRequest {
-        +validate: 요청 데이터 검증
-    }
-    class LoginResponse
-    class UserProfile
-    class UpdateProfileRequest {
-        +validate: 요청 데이터 검증
-    }
-    class ChangePasswordRequest {
-        +isNewPasswordMatched: 새 비밀번호 일치 확인
-        +validate: 요청 데이터 검증
-    }
-    class AvatarUploadResponse
-    class DuplicationCheckResponse
-}
-
-' ======================================
-' Repository Layer
-' ======================================
 package "Repository Layer" {
     interface UserRepository {
-        +save: 사용자 저장
-        +findById: ID로 사용자 조회
-        +findByUsername: 아이디로 사용자 조회
-        +findByEmail: 이메일로 사용자 조회
-        +deleteById: ID로 사용자 삭제
-        +existsByUsername: 아이디 존재 여부 확인
-        +existsByEmail: 이메일 존재 여부 확인
-        +findByUsernameAndIsAccountLockedFalse: 잠금되지 않은 사용자 조회
-        +updateFailedLoginCount: 실패 횟수 업데이트
-        +updateLastLoginAttempt: 마지막 로그인 시도 시간 업데이트
-        +lockAccount: 계정 잠금
-        +unlockAccount: 계정 잠금 해제
-        +countByCreatedAtBetween: 기간별 가입자 수 조회
+        +save()
+        +findById()
+        +findByUserId()
+        +findByUsername()
+        +findByEmail()
+        +existsByUsername()
+        +existsByEmail()
+        +updateLastLoginAt()
+        +updateLoginAttempts()
     }
-
+    
     class UserRepositoryImpl {
-        +save: 사용자 저장
-        +findById: ID로 사용자 조회
-        +findByUsername: 아이디로 사용자 조회
-        +findByEmail: 이메일로 사용자 조회
-        +deleteById: ID로 사용자 삭제
-        +existsByUsername: 아이디 존재 여부 확인
-        +existsByEmail: 이메일 존재 여부 확인
-        +findByUsernameAndIsAccountLockedFalse: 잠금되지 않은 사용자 조회
-        +updateFailedLoginCount: 실패 횟수 업데이트
-        +updateLastLoginAttempt: 마지막 로그인 시도 시간 업데이트
-        +lockAccount: 계정 잠금
-        +unlockAccount: 계정 잠금 해제
-        +countByCreatedAtBetween: 기간별 가입자 수 조회
-    }
-
-    class UserEntity
-}
-
-' ======================================
-' Mapper Layer
-' ======================================
-package "Mapper Layer" {
-    interface UserMapper {
-        +toUser: 엔티티를 도메인으로 변환
-        +toEntity: 도메인을 엔티티로 변환
-        +toUserProfile: 도메인을 프로필 DTO로 변환
-        +toRegisterResponse: 도메인을 등록 응답 DTO로 변환
-        +toUser: 등록 요청 DTO를 도메인으로 변환
-        +updateUserFromRequest: 요청 DTO로 도메인 업데이트
-    }
-
-    class UserMapperImpl {
-        +toUser: 엔티티를 도메인으로 변환
-        +toEntity: 도메인을 엔티티로 변환
-        +toUserProfile: 도메인을 프로필 DTO로 변환
-        +toRegisterResponse: 도메인을 등록 응답 DTO로 변환
-        +toUser: 등록 요청 DTO를 도메인으로 변환
-        +updateUserFromRequest: 요청 DTO로 도메인 업데이트
+        -JdbcTemplate jdbcTemplate
+        -UserRowMapper userRowMapper
+        +save()
+        +findById()
+        +findByUserId()
+        +findByUsername()
+        +findByEmail()
+        +existsByUsername()
+        +existsByEmail()
     }
 }
 
-' ======================================
-' Configuration Layer
-' ======================================
+package "Entity Layer" {
+    class User {
+        -Long id
+        -String userId
+        -String username
+        -String password
+        -String name
+        -String email
+        -String phone
+        -String avatarUrl
+        -UserStatus status
+        -int loginAttempts
+        -LocalDateTime lockedUntil
+        -LocalDateTime lastLoginAt
+        +isAccountLocked()
+        +incrementLoginAttempts()
+        +resetLoginAttempts()
+        +lockAccount()
+        +updateLastLogin()
+    }
+    
+    enum UserStatus {
+        ACTIVE
+        INACTIVE
+        SUSPENDED
+        LOCKED
+        DELETED
+    }
+}
+
+package "DTO Layer" {
+    class RegisterRequest {
+        -String name
+        -String email
+        -String phone
+        -String username
+        -String password
+        -String passwordConfirm
+        -boolean termsAccepted
+    }
+    
+    class LoginRequest {
+        -String username
+        -String password
+        -boolean rememberMe
+    }
+    
+    class UpdateProfileRequest {
+        -String name
+        -String phone
+        -String email
+    }
+    
+    class ChangePasswordRequest {
+        -String currentPassword
+        -String newPassword
+        -String newPasswordConfirm
+    }
+    
+    class RegisterResponse {
+        -String userId
+        -String username
+        -String message
+    }
+    
+    class LoginResponse {
+        -String accessToken
+        -String refreshToken
+        -String tokenType
+        -int expiresIn
+        -UserProfile user
+    }
+    
+    class UserProfile {
+        -String userId
+        -String username
+        -String name
+        -String email
+        -String phone
+        -String avatarUrl
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+    }
+}
+
 package "Configuration Layer" {
-    class UserServiceConfig {
-        +passwordEncoder: 비밀번호 인코더 빈 설정
-        +jwtTokenService: JWT 토큰 서비스 빈 설정
-        +s3FileStorageService: S3 파일 저장 서비스 빈 설정
-        +redisCacheService: Redis 캐시 서비스 빈 설정
-        +userMapper: 사용자 매퍼 빈 설정
-        +userRepository: 사용자 리포지토리 빈 설정
-        +userService: 사용자 서비스 빈 설정
+    class UserConfig {
+        +passwordEncoder()
+        +jwtTokenProvider()
+        +userDetailsService()
+        +fileStorageService()
     }
-
-    class SecurityConfig {
-        +configureHttpSecurity: HTTP 보안 설정
-        +jwtAuthenticationFilter: JWT 인증 필터 빈 설정
-        +authenticationEntryPoint: 인증 진입점 빈 설정
-        +accessDeniedHandler: 접근 거부 핸들러 빈 설정
+    
+    class JwtTokenProvider {
+        -String secretKey
+        -long accessTokenValidityTime
+        -long refreshTokenValidityTime
+        +generateAccessToken()
+        +generateRefreshToken()
+        +validateToken()
+        +getUsernameFromToken()
     }
-
-    class CacheConfig {
-        +redisConnectionFactory: Redis 연결 팩토리 빈 설정
-        +redisTemplate: Redis 템플릿 빈 설정
-        +cacheManager: 캐시 매니저 빈 설정
-        +configureCacheDefaults: 캐시 기본 설정
+    
+    class FileStorageService {
+        -String uploadPath
+        -long maxFileSize
+        +uploadFile()
+        +deleteFile()
+        +validateFile()
     }
 }
 
 ' ======================================
-' Relationships
+' Layered Architecture Relationships
 ' ======================================
 
-' Controller Dependencies
-UserController --> UserService
+' Layer Dependencies (Top to Bottom)
+UserController --> UserService : depends on
+UserService <|.. UserServiceImpl : implements
+UserServiceImpl --> UserRepository : depends on
+UserRepository <|.. UserRepositoryImpl : implements
+UserRepositoryImpl --> User : manages
 
-' Service Implementations
-UserService <|.. UserServiceImpl
-TokenService <|.. JwtTokenService
-FileStorageService <|.. S3FileStorageService
-CacheService <|.. RedisCacheService
+' Cross-cutting Dependencies
+UserServiceImpl --> JwtTokenProvider : uses
+UserServiceImpl --> FileStorageService : uses
+UserController --> RegisterRequest : uses
+UserController --> LoginRequest : uses
+UserController --> UpdateProfileRequest : uses
+UserController --> ChangePasswordRequest : uses
+UserController --> RegisterResponse : creates
+UserController --> LoginResponse : creates
+UserController --> UserProfile : creates
 
-' Service Dependencies
-UserServiceImpl --> UserRepository
-UserServiceImpl --> TokenService
-UserServiceImpl --> FileStorageService
-UserServiceImpl --> CacheService
-UserServiceImpl --> UserMapper
+User --> UserStatus : has
 
-' Repository Implementation
-UserRepository <|.. UserRepositoryImpl
+UserConfig --> JwtTokenProvider : creates
+UserConfig --> FileStorageService : creates
 
-' Mapper Implementation
-UserMapper <|.. UserMapperImpl
+note top of UserController : "Presentation Layer\n- HTTP 요청/응답 처리\n- 데이터 검증\n- 보안 인증"
 
-' Domain Relationships
-User --> UserStatus
+note top of UserService : "Business Layer\n- 비즈니스 로직\n- 트랜잭션 관리\n- 데이터 변환"
 
-' DTO Relationships
-LoginResponse --> UserProfile
+note top of UserRepository : "Data Access Layer\n- 데이터 영속성\n- 쿼리 실행\n- 매핑"
 
-' Entity Mapping
-UserMapper --> User
-UserMapper --> UserEntity
-UserMapper --> UserProfile
-UserMapper --> RegisterResponse
+note top of User : "Domain Layer\n- 도메인 엔티티\n- 비즈니스 규칙"
 
 @enduml

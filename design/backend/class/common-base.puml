@@ -1,115 +1,233 @@
 @startuml
 !theme mono
 
-title 공통 베이스 컴포넌트 설계
+title 공통 컴포넌트 클래스 설계서
 
-package "Common Response" {
-    class ApiResponse<T> {
-        +success: boolean
-        +message: String
-        +data: T
-        +timestamp: LocalDateTime
-        +ApiResponse(success: boolean, message: String, data: T)
-        +success(data: T): ApiResponse<T>
-        +error(message: String): ApiResponse<T>
-    }
-
-    class ErrorResponse {
-        +errorCode: String
-        +errorMessage: String
-        +details: Map<String, Object>
-        +path: String
-        +timestamp: LocalDateTime
-        +ErrorResponse(errorCode: String, errorMessage: String, path: String)
-    }
-}
-
+' ======================================
+' Common Exception Classes
+' ======================================
 package "Common Exception" {
     abstract class BaseException {
-        +errorCode: String
-        +message: String
+        -String message
+        -String errorCode
+        -Throwable cause
+        +BaseException(message: String)
+        +BaseException(message: String, cause: Throwable)
         +BaseException(errorCode: String, message: String)
         +getErrorCode(): String
+        +setErrorCode(errorCode: String): void
     }
 
     class BusinessException {
+        +BusinessException(message: String)
         +BusinessException(errorCode: String, message: String)
+        +BusinessException(message: String, cause: Throwable)
     }
 
     class ValidationException {
-        +field: String
-        +rejectedValue: Object
-        +ValidationException(field: String, message: String, rejectedValue: Object)
+        -List<String> fieldErrors
+        +ValidationException(message: String)
+        +ValidationException(fieldErrors: List<String>)
+        +getFieldErrors(): List<String>
+        +addFieldError(field: String): void
     }
 
-    class ResourceNotFoundException {
-        +resourceType: String
-        +resourceId: String
-        +ResourceNotFoundException(resourceType: String, resourceId: String)
+    class InternalServerException {
+        +InternalServerException(message: String)
+        +InternalServerException(message: String, cause: Throwable)
+    }
+
+    class UnauthorizedException {
+        +UnauthorizedException(message: String)
+    }
+
+    class ForbiddenException {
+        +ForbiddenException(message: String)
+    }
+
+    class NotFoundException {
+        +NotFoundException(message: String)
+        +NotFoundException(resourceType: String, resourceId: String)
     }
 }
 
+' ======================================
+' Common Response DTOs
+' ======================================
+package "Common Response" {
+    abstract class BaseResponse {
+        -String timestamp
+        -String requestId
+        +BaseResponse()
+        +getTimestamp(): String
+        +setTimestamp(timestamp: String): void
+        +getRequestId(): String
+        +setRequestId(requestId: String): void
+    }
+
+    class ApiResponse<T> {
+        -boolean success
+        -T data
+        -String message
+        +ApiResponse()
+        +ApiResponse(data: T)
+        +ApiResponse(success: boolean, data: T, message: String)
+        +success(data: T): ApiResponse<T>
+        +error(message: String): ApiResponse<T>
+        +isSuccess(): boolean
+        +getData(): T
+        +getMessage(): String
+    }
+
+    class ErrorResponse {
+        -String errorCode
+        -String errorMessage
+        -List<String> fieldErrors
+        -String path
+        +ErrorResponse()
+        +ErrorResponse(errorCode: String, errorMessage: String)
+        +ErrorResponse(errorCode: String, errorMessage: String, fieldErrors: List<String>)
+        +getErrorCode(): String
+        +getErrorMessage(): String
+        +getFieldErrors(): List<String>
+        +getPath(): String
+    }
+
+    class PageResponse<T> {
+        -List<T> content
+        -int page
+        -int size
+        -long totalElements
+        -int totalPages
+        -boolean hasNext
+        -boolean hasPrevious
+        +PageResponse()
+        +PageResponse(content: List<T>, page: int, size: int, totalElements: long)
+        +getContent(): List<T>
+        +getPage(): int
+        +getSize(): int  
+        +getTotalElements(): long
+        +getTotalPages(): int
+        +isHasNext(): boolean
+        +isHasPrevious(): boolean
+    }
+}
+
+' ======================================
+' Common Entity Interface
+' ======================================
 package "Common Entity" {
-    abstract class BaseTimeEntity {
-        +createdAt: LocalDateTime
-        +updatedAt: LocalDateTime
-        +onCreate(): void
-        +onUpdate(): void
+    interface BaseEntity {
+        +getId(): Long
+        +getCreatedAt(): LocalDateTime
+        +getUpdatedAt(): LocalDateTime
+        +setCreatedAt(createdAt: LocalDateTime): void
+        +setUpdatedAt(updatedAt: LocalDateTime): void
     }
 
-    abstract class BaseEntity {
-        +id: Long
-        +version: Long
-        +equals(obj: Object): boolean
-        +hashCode(): int
+    abstract class BaseAuditEntity {
+        -Long id
+        -String createdBy
+        -String updatedBy
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +getId(): Long
+        +setId(id: Long): void
+        +getCreatedBy(): String
+        +setCreatedBy(createdBy: String): void
+        +getUpdatedBy(): String
+        +setUpdatedBy(updatedBy: String): void
+        +getCreatedAt(): LocalDateTime
+        +setCreatedAt(createdAt: LocalDateTime): void
+        +getUpdatedAt(): LocalDateTime
+        +setUpdatedAt(updatedAt: LocalDateTime): void
     }
 }
 
-package "Common Utility" {
-    class DateTimeUtil {
-        +now(): LocalDateTime
-        +format(dateTime: LocalDateTime, pattern: String): String
-        +parse(dateTimeString: String, pattern: String): LocalDateTime
-        +isValidDateTimeRange(start: LocalDateTime, end: LocalDateTime): boolean
+' ======================================
+' Common Utilities
+' ======================================
+package "Common Utilities" {
+    class DateUtils {
+        +formatDate(date: LocalDateTime, pattern: String): String
+        +parseDate(dateString: String, pattern: String): LocalDateTime
+        +getCurrentTimestamp(): String
+        +isDateBefore(date1: LocalDateTime, date2: LocalDateTime): boolean
+        +isDateAfter(date1: LocalDateTime, date2: LocalDateTime): boolean
+        +calculateDaysBetween(startDate: LocalDateTime, endDate: LocalDateTime): long
     }
 
-    class ValidationUtil {
+    class StringUtils {
+        +isEmpty(str: String): boolean
+        +isNotEmpty(str: String): boolean
+        +isBlank(str: String): boolean
+        +isNotBlank(str: String): boolean
+        +trim(str: String): String
+        +truncate(str: String, maxLength: int): String
+        +generateRandomString(length: int): String
+        +maskSensitiveInfo(str: String, startIndex: int, endIndex: int): String
+    }
+
+    class ValidationUtils {
         +isValidEmail(email: String): boolean
-        +isValidPassword(password: String): boolean
         +isValidPhoneNumber(phoneNumber: String): boolean
+        +isValidPassword(password: String): boolean
+        +isValidUsername(username: String): boolean
+        +validateNotNull(obj: Object, fieldName: String): void
+        +validateNotEmpty(str: String, fieldName: String): void
+        +validateLength(str: String, minLength: int, maxLength: int, fieldName: String): void
+        +validateRange(value: int, min: int, max: int, fieldName: String): void
+    }
+
+    class SecurityUtils {
+        +encryptPassword(password: String): String
+        +verifyPassword(password: String, hashedPassword: String): boolean
+        +generateSalt(): String
+        +generateToken(length: int): String
         +sanitizeInput(input: String): String
     }
+}
 
-    class SecurityUtil {
-        +encryptPassword(password: String): String
-        +verifyPassword(rawPassword: String, encodedPassword: String): boolean
-        +generateToken(userId: Long): String
-        +validateToken(token: String): boolean
-        +extractUserIdFromToken(token: String): Long
+' ======================================
+' Common Constants
+' ======================================
+package "Common Constants" {
+    class ErrorCodes {
+        +VALIDATION_ERROR: String
+        +BUSINESS_ERROR: String
+        +INTERNAL_SERVER_ERROR: String
+        +UNAUTHORIZED_ERROR: String
+        +FORBIDDEN_ERROR: String
+        +NOT_FOUND_ERROR: String
+        +DUPLICATE_ERROR: String
+        +INVALID_INPUT_ERROR: String
+    }
+
+    class CommonMessages {
+        +SUCCESS: String
+        +INVALID_REQUEST: String
+        +UNAUTHORIZED_ACCESS: String
+        +FORBIDDEN_ACCESS: String
+        +RESOURCE_NOT_FOUND: String
+        +INTERNAL_SERVER_ERROR: String
+        +VALIDATION_FAILED: String
     }
 }
 
-package "Common Configuration" {
-    interface CacheConfig {
-        +getCacheName(): String
-        +getTtl(): Duration
-    }
-
-    class RedisCacheConfig {
-        +redisTemplate: RedisTemplate
-        +getCacheName(): String
-        +getTtl(): Duration
-        +configureRedisTemplate(): RedisTemplate
-    }
-}
-
+' ======================================
 ' Relationships
+' ======================================
 BaseException <|-- BusinessException
-BaseException <|-- ValidationException
-BaseException <|-- ResourceNotFoundException
+BaseException <|-- ValidationException  
+BaseException <|-- InternalServerException
+BaseException <|-- UnauthorizedException
+BaseException <|-- ForbiddenException
+BaseException <|-- NotFoundException
 
-BaseTimeEntity <|-- BaseEntity
+BaseResponse <|-- ApiResponse
+BaseResponse <|-- ErrorResponse
+BaseResponse <|-- PageResponse
 
-CacheConfig <|.. RedisCacheConfig
+BaseEntity <|.. BaseAuditEntity
 
 @enduml

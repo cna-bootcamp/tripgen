@@ -1,550 +1,560 @@
 @startuml
 !theme mono
 
-title User Service - 상세 클래스 설계서
-subtitle Layered Architecture Pattern | Package: com.unicorn.tripgen
+title User 서비스 클래스 설계서 (Layered Architecture)
 
 ' ======================================
-' Controller Layer
+' Layered Architecture Packages
 ' ======================================
 package "com.unicorn.tripgen.user.controller" {
     class UserController {
-        -userService: UserService
+        -UserService userService
         +UserController(userService: UserService)
+        
+        ' Authentication APIs
         +registerUser(request: RegisterRequest): ResponseEntity<ApiResponse<RegisterResponse>>
         +loginUser(request: LoginRequest): ResponseEntity<ApiResponse<LoginResponse>>
         +logoutUser(request: HttpServletRequest): ResponseEntity<ApiResponse<String>>
-        +getProfile(): ResponseEntity<ApiResponse<UserProfile>>
-        +updateProfile(request: UpdateProfileRequest): ResponseEntity<ApiResponse<UserProfile>>
-        +uploadAvatar(file: MultipartFile): ResponseEntity<ApiResponse<AvatarUploadResponse>>
-        +changePassword(request: ChangePasswordRequest): ResponseEntity<ApiResponse<String>>
-        +checkUsername(username: String): ResponseEntity<ApiResponse<DuplicationCheckResponse>>
-        +checkEmail(email: String): ResponseEntity<ApiResponse<DuplicationCheckResponse>>
+        +checkUsername(username: String): ResponseEntity<ApiResponse<UsernameCheckResponse>>
+        +checkEmail(email: String): ResponseEntity<ApiResponse<EmailCheckResponse>>
+        
+        ' Profile APIs
+        +getProfile(authentication: Authentication): ResponseEntity<ApiResponse<UserProfile>>
+        +updateProfile(request: UpdateProfileRequest, authentication: Authentication): ResponseEntity<ApiResponse<UserProfile>>
+        +uploadAvatar(file: MultipartFile, authentication: Authentication): ResponseEntity<ApiResponse<AvatarUploadResponse>>
+        +changePassword(request: ChangePasswordRequest, authentication: Authentication): ResponseEntity<ApiResponse<String>>
     }
 }
 
-' ======================================
-' Service Layer
-' ======================================
 package "com.unicorn.tripgen.user.service" {
     interface UserService {
-        +registerUser(request: RegisterRequest): RegisterResponse
-        +authenticateUser(request: LoginRequest): LoginResponse
-        +logoutUser(userId: Long): void
-        +getUserProfile(userId: Long): UserProfile
-        +updateProfile(userId: Long, request: UpdateProfileRequest): UserProfile
-        +uploadAvatar(userId: Long, file: MultipartFile): AvatarUploadResponse
-        +changePassword(userId: Long, request: ChangePasswordRequest): void
-        +checkUsernameDuplication(username: String): DuplicationCheckResponse
-        +checkEmailDuplication(email: String): DuplicationCheckResponse
-        +validateLoginAttempt(username: String): void
-        +increaseFailedLoginCount(username: String): void
-        +resetFailedLoginCount(username: String): void
+        ' Authentication services
+        +register(request: RegisterRequest): RegisterResponse
+        +login(request: LoginRequest): LoginResponse
+        +logout(token: String): void
+        +checkUsernameAvailability(username: String): boolean
+        +checkEmailAvailability(email: String): boolean
+        
+        ' Profile services
+        +getProfile(userId: String): UserProfile
+        +updateProfile(userId: String, request: UpdateProfileRequest): UserProfile
+        +uploadAvatar(userId: String, file: MultipartFile): String
+        +changePassword(userId: String, request: ChangePasswordRequest): void
+        
+        ' User management
+        +getUserById(userId: String): User
+        +getUserByUsername(username: String): User
+        +getUserByEmail(email: String): User
+        +isAccountLocked(username: String): boolean
+        +updateLoginAttempts(username: String, success: boolean): void
     }
-
+    
     class UserServiceImpl {
-        -userRepository: UserRepository
-        -tokenService: TokenService
-        -fileStorageService: FileStorageService
-        -cacheService: CacheService
-        -passwordEncoder: PasswordEncoder
-        -userMapper: UserMapper
-        +UserServiceImpl(userRepository: UserRepository, tokenService: TokenService, fileStorageService: FileStorageService, cacheService: CacheService, passwordEncoder: PasswordEncoder, userMapper: UserMapper)
-        +registerUser(request: RegisterRequest): RegisterResponse
-        +authenticateUser(request: LoginRequest): LoginResponse
-        +logoutUser(userId: Long): void
-        +getUserProfile(userId: Long): UserProfile
-        +updateProfile(userId: Long, request: UpdateProfileRequest): UserProfile
-        +uploadAvatar(userId: Long, file: MultipartFile): AvatarUploadResponse
-        +changePassword(userId: Long, request: ChangePasswordRequest): void
-        +checkUsernameDuplication(username: String): DuplicationCheckResponse
-        +checkEmailDuplication(email: String): DuplicationCheckResponse
-        +validateLoginAttempt(username: String): void
-        +increaseFailedLoginCount(username: String): void
-        +resetFailedLoginCount(username: String): void
+        -UserRepository userRepository
+        -PasswordEncoder passwordEncoder
+        -JwtTokenProvider jwtTokenProvider
+        -RedisTemplate<String, Object> redisTemplate
+        -FileStorageService fileStorageService
+        
+        +UserServiceImpl(userRepository: UserRepository, passwordEncoder: PasswordEncoder, jwtTokenProvider: JwtTokenProvider, redisTemplate: RedisTemplate<String, Object>, fileStorageService: FileStorageService)
+        
+        ' Authentication implementations
+        +register(request: RegisterRequest): RegisterResponse
+        +login(request: LoginRequest): LoginResponse
+        +logout(token: String): void
+        +checkUsernameAvailability(username: String): boolean
+        +checkEmailAvailability(email: String): boolean
+        
+        ' Profile implementations
+        +getProfile(userId: String): UserProfile
+        +updateProfile(userId: String, request: UpdateProfileRequest): UserProfile
+        +uploadAvatar(userId: String, file: MultipartFile): String
+        +changePassword(userId: String, request: ChangePasswordRequest): void
+        
+        ' User management implementations
+        +getUserById(userId: String): User
+        +getUserByUsername(username: String): User
+        +getUserByEmail(email: String): User
+        +isAccountLocked(username: String): boolean
+        +updateLoginAttempts(username: String, success: boolean): void
+        
+        ' Private helper methods
         -validateRegisterRequest(request: RegisterRequest): void
-        -validateUpdateRequest(request: UpdateProfileRequest): void
-        -isAccountLocked(username: String): boolean
-        -generateCacheKey(keyType: String, identifier: String): String
-    }
-
-    interface TokenService {
-        +generateAccessToken(user: User): String
-        +generateRefreshToken(user: User): String
-        +validateToken(token: String): boolean
-        +extractUserIdFromToken(token: String): Long
-        +isTokenExpired(token: String): boolean
-        +invalidateToken(token: String): void
-        +getTokenExpirationTime(): long
-    }
-
-    class JwtTokenService {
-        -secretKey: String
-        -accessTokenExpiration: Long
-        -refreshTokenExpiration: Long
-        -jwtParser: JwtParser
-        +JwtTokenService(secretKey: String, accessTokenExpiration: Long, refreshTokenExpiration: Long)
-        +generateAccessToken(user: User): String
-        +generateRefreshToken(user: User): String
-        +validateToken(token: String): boolean
-        +extractUserIdFromToken(token: String): Long
-        +isTokenExpired(token: String): boolean
-        +invalidateToken(token: String): void
-        +getTokenExpirationTime(): long
-        -createToken(user: User, expiration: Long): String
-        -extractClaims(token: String): Claims
-    }
-
-    interface FileStorageService {
-        +uploadFile(file: MultipartFile, userId: Long): String
-        +deleteFile(fileUrl: String): void
-        +generateFileName(originalFilename: String, userId: Long): String
-        +validateFileType(file: MultipartFile): boolean
-        +validateFileSize(file: MultipartFile): boolean
-    }
-
-    class S3FileStorageService {
-        -s3Client: AmazonS3
-        -bucketName: String
-        -cdnBaseUrl: String
-        -maxFileSize: Long
-        -allowedTypes: Set<String>
-        +S3FileStorageService(s3Client: AmazonS3, bucketName: String, cdnBaseUrl: String, maxFileSize: Long, allowedTypes: Set<String>)
-        +uploadFile(file: MultipartFile, userId: Long): String
-        +deleteFile(fileUrl: String): void
-        +generateFileName(originalFilename: String, userId: Long): String
-        +validateFileType(file: MultipartFile): boolean
-        +validateFileSize(file: MultipartFile): boolean
-        -getFileExtension(filename: String): String
-        -uploadToS3(file: MultipartFile, fileName: String): String
-    }
-
-    interface CacheService {
-        +get(key: String): Object
-        +set(key: String, value: Object, ttl: Duration): void
-        +delete(key: String): void
-        +increment(key: String): Long
-        +exists(key: String): boolean
-        +setWithExpire(key: String, value: Object, seconds: long): void
-    }
-
-    class RedisCacheService {
-        -redisTemplate: RedisTemplate<String, Object>
-        -defaultTtl: Duration
-        +RedisCacheService(redisTemplate: RedisTemplate<String, Object>, defaultTtl: Duration)
-        +get(key: String): Object
-        +set(key: String, value: Object, ttl: Duration): void
-        +delete(key: String): void
-        +increment(key: String): Long
-        +exists(key: String): boolean
-        +setWithExpire(key: String, value: Object, seconds: long): void
-        -serializeValue(value: Object): String
-        -deserializeValue(serializedValue: String): Object
+        -validateLoginRequest(request: LoginRequest): void
+        -validateUpdateProfileRequest(request: UpdateProfileRequest): void
+        -validatePasswordChangeRequest(request: ChangePasswordRequest): void
+        -validateImageFile(file: MultipartFile): void
+        -generateTokens(user: User): TokenPair
+        -convertToUserProfile(user: User): UserProfile
+        -handleFailedLogin(username: String): void
+        -resetLoginAttempts(username: String): void
     }
 }
 
-' ======================================
-' Domain Layer
-' ======================================
-package "com.unicorn.tripgen.user.domain" {
-    class User {
-        -id: Long
-        -username: String
-        -password: String
-        -name: String
-        -email: String
-        -phone: String
-        -avatarUrl: String
-        -createdAt: LocalDateTime
-        -updatedAt: LocalDateTime
-        -version: Long
-        -failedLoginCount: Integer
-        -lastLoginAttempt: LocalDateTime
-        -isAccountLocked: Boolean
-        +User()
-        +User(username: String, password: String, name: String, email: String, phone: String)
-        +getId(): Long
-        +getUsername(): String
-        +getPassword(): String
-        +getName(): String
-        +getEmail(): String
-        +getPhone(): String
-        +getAvatarUrl(): String
-        +getCreatedAt(): LocalDateTime
-        +getUpdatedAt(): LocalDateTime
-        +getVersion(): Long
-        +getFailedLoginCount(): Integer
-        +getLastLoginAttempt(): LocalDateTime
-        +getIsAccountLocked(): Boolean
-        +setUsername(username: String): void
-        +setPassword(password: String): void
-        +setName(name: String): void
-        +setEmail(email: String): void
-        +setPhone(phone: String): void
-        +setAvatarUrl(avatarUrl: String): void
-        +setFailedLoginCount(count: Integer): void
-        +setLastLoginAttempt(dateTime: LocalDateTime): void
-        +setIsAccountLocked(locked: Boolean): void
-        +incrementFailedLoginCount(): void
-        +resetFailedLoginCount(): void
-        +lockAccount(): void
-        +unlockAccount(): void
-        +isAccountLocked(): boolean
-        +updateProfile(name: String, email: String, phone: String): void
-        +changePassword(newPassword: String): void
-        +equals(obj: Object): boolean
-        +hashCode(): int
-        +toString(): String
-    }
-
-    enum UserStatus {
-        ACTIVE
-        INACTIVE
-        LOCKED
-        DELETED
-        +getUserStatus(): String
-        +isActive(): boolean
-    }
-}
-
-' ======================================
-' DTO Layer
-' ======================================
-package "com.unicorn.tripgen.user.dto" {
-    class RegisterRequest {
-        +name: String
-        +email: String
-        +phone: String
-        +username: String
-        +password: String
-        +passwordConfirm: String
-        +termsAccepted: Boolean
-        +RegisterRequest()
-        +RegisterRequest(name: String, email: String, phone: String, username: String, password: String, passwordConfirm: String, termsAccepted: Boolean)
-        +getName(): String
-        +getEmail(): String
-        +getPhone(): String
-        +getUsername(): String
-        +getPassword(): String
-        +getPasswordConfirm(): String
-        +getTermsAccepted(): Boolean
-        +isPasswordMatched(): boolean
-        +validate(): void
-    }
-
-    class RegisterResponse {
-        +userId: String
-        +username: String
-        +message: String
-        +RegisterResponse()
-        +RegisterResponse(userId: String, username: String, message: String)
-        +getUserId(): String
-        +getUsername(): String
-        +getMessage(): String
-    }
-
-    class LoginRequest {
-        +username: String
-        +password: String
-        +rememberMe: Boolean
-        +LoginRequest()
-        +LoginRequest(username: String, password: String, rememberMe: Boolean)
-        +getUsername(): String
-        +getPassword(): String
-        +getRememberMe(): Boolean
-        +validate(): void
-    }
-
-    class LoginResponse {
-        +accessToken: String
-        +refreshToken: String
-        +tokenType: String
-        +expiresIn: Long
-        +user: UserProfile
-        +LoginResponse()
-        +LoginResponse(accessToken: String, refreshToken: String, tokenType: String, expiresIn: Long, user: UserProfile)
-        +getAccessToken(): String
-        +getRefreshToken(): String
-        +getTokenType(): String
-        +getExpiresIn(): Long
-        +getUser(): UserProfile
-    }
-
-    class UserProfile {
-        +userId: String
-        +username: String
-        +name: String
-        +email: String
-        +phone: String
-        +avatarUrl: String
-        +createdAt: LocalDateTime
-        +updatedAt: LocalDateTime
-        +UserProfile()
-        +UserProfile(userId: String, username: String, name: String, email: String, phone: String, avatarUrl: String, createdAt: LocalDateTime, updatedAt: LocalDateTime)
-        +getUserId(): String
-        +getUsername(): String
-        +getName(): String
-        +getEmail(): String
-        +getPhone(): String
-        +getAvatarUrl(): String
-        +getCreatedAt(): LocalDateTime
-        +getUpdatedAt(): LocalDateTime
-    }
-
-    class UpdateProfileRequest {
-        +name: String
-        +phone: String
-        +email: String
-        +UpdateProfileRequest()
-        +UpdateProfileRequest(name: String, phone: String, email: String)
-        +getName(): String
-        +getPhone(): String
-        +getEmail(): String
-        +validate(): void
-    }
-
-    class ChangePasswordRequest {
-        +currentPassword: String
-        +newPassword: String
-        +newPasswordConfirm: String
-        +ChangePasswordRequest()
-        +ChangePasswordRequest(currentPassword: String, newPassword: String, newPasswordConfirm: String)
-        +getCurrentPassword(): String
-        +getNewPassword(): String
-        +getNewPasswordConfirm(): String
-        +isNewPasswordMatched(): boolean
-        +validate(): void
-    }
-
-    class AvatarUploadResponse {
-        +avatarUrl: String
-        +AvatarUploadResponse()
-        +AvatarUploadResponse(avatarUrl: String)
-        +getAvatarUrl(): String
-    }
-
-    class DuplicationCheckResponse {
-        +available: Boolean
-        +message: String
-        +DuplicationCheckResponse()
-        +DuplicationCheckResponse(available: Boolean, message: String)
-        +getAvailable(): Boolean
-        +getMessage(): String
-    }
-}
-
-' ======================================
-' Repository Layer
-' ======================================
-package "com.unicorn.tripgen.user.repository.jpa" {
+package "com.unicorn.tripgen.user.repository" {
     interface UserRepository {
         +save(user: User): User
         +findById(id: Long): Optional<User>
+        +findByUserId(userId: String): Optional<User>
         +findByUsername(username: String): Optional<User>
         +findByEmail(email: String): Optional<User>
-        +deleteById(id: Long): void
-        +existsByUsername(username: String): Boolean
-        +existsByEmail(email: String): Boolean
-        +findByUsernameAndIsAccountLockedFalse(username: String): Optional<User>
-        +updateFailedLoginCount(username: String, count: Integer): Integer
-        +updateLastLoginAttempt(username: String, dateTime: LocalDateTime): Integer
-        +lockAccount(username: String): Integer
-        +unlockAccount(username: String): Integer
-        +countByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): Long
+        +existsByUsername(username: String): boolean
+        +existsByEmail(email: String): boolean
+        +updateLastLoginAt(userId: String, lastLoginAt: LocalDateTime): void
+        +updateLoginAttempts(username: String, loginAttempts: int, lockedUntil: LocalDateTime): void
+        +resetLoginAttempts(username: String): void
+        +findByUsernameAndAccountLocked(username: String, locked: boolean): Optional<User>
     }
-
+    
     class UserRepositoryImpl {
-        -entityManager: EntityManager
-        +UserRepositoryImpl(entityManager: EntityManager)
+        -JdbcTemplate jdbcTemplate
+        -UserRowMapper userRowMapper
+        
+        +UserRepositoryImpl(jdbcTemplate: JdbcTemplate, userRowMapper: UserRowMapper)
+        
         +save(user: User): User
         +findById(id: Long): Optional<User>
+        +findByUserId(userId: String): Optional<User>
         +findByUsername(username: String): Optional<User>
         +findByEmail(email: String): Optional<User>
-        +deleteById(id: Long): void
-        +existsByUsername(username: String): Boolean
-        +existsByEmail(email: String): Boolean
-        +findByUsernameAndIsAccountLockedFalse(username: String): Optional<User>
-        +updateFailedLoginCount(username: String, count: Integer): Integer
-        +updateLastLoginAttempt(username: String, dateTime: LocalDateTime): Integer
-        +lockAccount(username: String): Integer
-        +unlockAccount(username: String): Integer
-        +countByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): Long
-        -createQuery(jpql: String): Query
-        -createTypedQuery(jpql: String, resultClass: Class<T>): TypedQuery<T>
+        +existsByUsername(username: String): boolean
+        +existsByEmail(email: String): boolean
+        +updateLastLoginAt(userId: String, lastLoginAt: LocalDateTime): void
+        +updateLoginAttempts(username: String, loginAttempts: int, lockedUntil: LocalDateTime): void
+        +resetLoginAttempts(username: String): void
+        +findByUsernameAndAccountLocked(username: String, locked: boolean): Optional<User>
+        
+        ' Private helper methods
+        -insertUser(user: User): User
+        -updateUser(user: User): User
+        -mapRowToUser(rs: ResultSet, rowNum: int): User
     }
 }
 
-package "com.unicorn.tripgen.user.repository.entity" {
-    class UserEntity {
-        -id: Long
-        -username: String
-        -password: String
-        -name: String
-        -email: String
-        -phone: String
-        -avatarUrl: String
-        -failedLoginCount: Integer
-        -lastLoginAttempt: LocalDateTime
-        -isAccountLocked: Boolean
-        -createdAt: LocalDateTime
-        -updatedAt: LocalDateTime
-        -version: Long
-        +UserEntity()
-        +UserEntity(username: String, password: String, name: String, email: String, phone: String)
+package "com.unicorn.tripgen.user.entity" {
+    class User {
+        -Long id
+        -String userId
+        -String username
+        -String password
+        -String name
+        -String email
+        -String phone
+        -String avatarUrl
+        -UserStatus status
+        -int loginAttempts
+        -LocalDateTime lockedUntil
+        -LocalDateTime lastLoginAt
+        -String createdBy
+        -String updatedBy
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        
+        +User()
+        +User(username: String, password: String, name: String, email: String, phone: String)
+        
+        ' Getters and Setters
         +getId(): Long
-        +getUsername(): String
-        +getPassword(): String
-        +getName(): String
-        +getEmail(): String
-        +getPhone(): String
-        +getAvatarUrl(): String
-        +getFailedLoginCount(): Integer
-        +getLastLoginAttempt(): LocalDateTime
-        +getIsAccountLocked(): Boolean
-        +getCreatedAt(): LocalDateTime
-        +getUpdatedAt(): LocalDateTime
-        +getVersion(): Long
         +setId(id: Long): void
+        +getUserId(): String
+        +setUserId(userId: String): void
+        +getUsername(): String
         +setUsername(username: String): void
+        +getPassword(): String
         +setPassword(password: String): void
+        +getName(): String
         +setName(name: String): void
+        +getEmail(): String
         +setEmail(email: String): void
+        +getPhone(): String
         +setPhone(phone: String): void
+        +getAvatarUrl(): String
         +setAvatarUrl(avatarUrl: String): void
-        +setFailedLoginCount(count: Integer): void
-        +setLastLoginAttempt(dateTime: LocalDateTime): void
-        +setIsAccountLocked(locked: Boolean): void
+        +getStatus(): UserStatus
+        +setStatus(status: UserStatus): void
+        +getLoginAttempts(): int
+        +setLoginAttempts(loginAttempts: int): void
+        +getLockedUntil(): LocalDateTime
+        +setLockedUntil(lockedUntil: LocalDateTime): void
+        +getLastLoginAt(): LocalDateTime
+        +setLastLoginAt(lastLoginAt: LocalDateTime): void
+        +getCreatedBy(): String
+        +setCreatedBy(createdBy: String): void
+        +getUpdatedBy(): String
+        +setUpdatedBy(updatedBy: String): void
+        +getCreatedAt(): LocalDateTime
         +setCreatedAt(createdAt: LocalDateTime): void
+        +getUpdatedAt(): LocalDateTime
         +setUpdatedAt(updatedAt: LocalDateTime): void
-        +setVersion(version: Long): void
-        +prePersist(): void
-        +preUpdate(): void
+        
+        ' Business methods
+        +isAccountLocked(): boolean
+        +incrementLoginAttempts(): void
+        +resetLoginAttempts(): void
+        +lockAccount(lockDurationMinutes: int): void
+        +updateLastLogin(): void
+        +isActive(): boolean
+        +generateUserId(): void
+    }
+    
+    enum UserStatus {
+        ACTIVE
+        INACTIVE
+        SUSPENDED
+        LOCKED
+        DELETED
     }
 }
 
-' ======================================
-' Mapper Layer
-' ======================================
-package "com.unicorn.tripgen.user.mapper" {
-    interface UserMapper {
-        +toUser(entity: UserEntity): User
-        +toEntity(user: User): UserEntity
-        +toUserProfile(user: User): UserProfile
-        +toRegisterResponse(user: User): RegisterResponse
-        +toUser(request: RegisterRequest): User
-        +updateUserFromRequest(user: User, request: UpdateProfileRequest): void
+package "com.unicorn.tripgen.user.dto.request" {
+    class RegisterRequest {
+        -String name
+        -String email
+        -String phone
+        -String username
+        -String password
+        -String passwordConfirm
+        -boolean termsAccepted
+        
+        +RegisterRequest()
+        +RegisterRequest(name: String, email: String, phone: String, username: String, password: String, passwordConfirm: String, termsAccepted: boolean)
+        
+        ' Getters and Setters
+        +getName(): String
+        +setName(name: String): void
+        +getEmail(): String
+        +setEmail(email: String): void
+        +getPhone(): String
+        +setPhone(phone: String): void
+        +getUsername(): String
+        +setUsername(username: String): void
+        +getPassword(): String
+        +setPassword(password: String): void
+        +getPasswordConfirm(): String
+        +setPasswordConfirm(passwordConfirm: String): void
+        +isTermsAccepted(): boolean
+        +setTermsAccepted(termsAccepted: boolean): void
+        
+        ' Validation methods
+        +isPasswordMatching(): boolean
+        +validate(): void
     }
-
-    class UserMapperImpl {
-        +UserMapperImpl()
-        +toUser(entity: UserEntity): User
-        +toEntity(user: User): UserEntity
-        +toUserProfile(user: User): UserProfile
-        +toRegisterResponse(user: User): RegisterResponse
-        +toUser(request: RegisterRequest): User
-        +updateUserFromRequest(user: User, request: UpdateProfileRequest): void
-        -copyProperties(source: Object, target: Object): void
-        -generateUserId(id: Long): String
+    
+    class LoginRequest {
+        -String username
+        -String password
+        -boolean rememberMe
+        
+        +LoginRequest()
+        +LoginRequest(username: String, password: String, rememberMe: boolean)
+        
+        ' Getters and Setters
+        +getUsername(): String
+        +setUsername(username: String): void
+        +getPassword(): String
+        +setPassword(password: String): void
+        +isRememberMe(): boolean
+        +setRememberMe(rememberMe: boolean): void
+    }
+    
+    class UpdateProfileRequest {
+        -String name
+        -String phone
+        -String email
+        
+        +UpdateProfileRequest()
+        +UpdateProfileRequest(name: String, phone: String, email: String)
+        
+        ' Getters and Setters
+        +getName(): String
+        +setName(name: String): void
+        +getPhone(): String
+        +setPhone(phone: String): void
+        +getEmail(): String
+        +setEmail(email: String): void
+    }
+    
+    class ChangePasswordRequest {
+        -String currentPassword
+        -String newPassword
+        -String newPasswordConfirm
+        
+        +ChangePasswordRequest()
+        +ChangePasswordRequest(currentPassword: String, newPassword: String, newPasswordConfirm: String)
+        
+        ' Getters and Setters
+        +getCurrentPassword(): String
+        +setCurrentPassword(currentPassword: String): void
+        +getNewPassword(): String
+        +setNewPassword(newPassword: String): void
+        +getNewPasswordConfirm(): String
+        +setNewPasswordConfirm(newPasswordConfirm: String): void
+        
+        ' Validation methods
+        +isNewPasswordMatching(): boolean
     }
 }
 
-' ======================================
-' Configuration Layer
-' ======================================
+package "com.unicorn.tripgen.user.dto.response" {
+    class RegisterResponse {
+        -String userId
+        -String username
+        -String message
+        
+        +RegisterResponse()
+        +RegisterResponse(userId: String, username: String, message: String)
+        
+        ' Getters and Setters
+        +getUserId(): String
+        +setUserId(userId: String): void
+        +getUsername(): String
+        +setUsername(username: String): void
+        +getMessage(): String
+        +setMessage(message: String): void
+    }
+    
+    class LoginResponse {
+        -String accessToken
+        -String refreshToken
+        -String tokenType
+        -int expiresIn
+        -UserProfile user
+        
+        +LoginResponse()
+        +LoginResponse(accessToken: String, refreshToken: String, tokenType: String, expiresIn: int, user: UserProfile)
+        
+        ' Getters and Setters
+        +getAccessToken(): String
+        +setAccessToken(accessToken: String): void
+        +getRefreshToken(): String
+        +setRefreshToken(refreshToken: String): void
+        +getTokenType(): String
+        +setTokenType(tokenType: String): void
+        +getExpiresIn(): int
+        +setExpiresIn(expiresIn: int): void
+        +getUser(): UserProfile
+        +setUser(user: UserProfile): void
+    }
+    
+    class UserProfile {
+        -String userId
+        -String username
+        -String name
+        -String email
+        -String phone
+        -String avatarUrl
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        
+        +UserProfile()
+        +UserProfile(userId: String, username: String, name: String, email: String, phone: String, avatarUrl: String, createdAt: LocalDateTime, updatedAt: LocalDateTime)
+        
+        ' Getters and Setters
+        +getUserId(): String
+        +setUserId(userId: String): void
+        +getUsername(): String
+        +setUsername(username: String): void
+        +getName(): String
+        +setName(name: String): void
+        +getEmail(): String
+        +setEmail(email: String): void
+        +getPhone(): String
+        +setPhone(phone: String): void
+        +getAvatarUrl(): String
+        +setAvatarUrl(avatarUrl: String): void
+        +getCreatedAt(): LocalDateTime
+        +setCreatedAt(createdAt: LocalDateTime): void
+        +getUpdatedAt(): LocalDateTime
+        +setUpdatedAt(updatedAt: LocalDateTime): void
+    }
+    
+    class UsernameCheckResponse {
+        -boolean available
+        -String message
+        
+        +UsernameCheckResponse()
+        +UsernameCheckResponse(available: boolean, message: String)
+        
+        ' Getters and Setters
+        +isAvailable(): boolean
+        +setAvailable(available: boolean): void
+        +getMessage(): String
+        +setMessage(message: String): void
+    }
+    
+    class EmailCheckResponse {
+        -boolean available
+        -String message
+        
+        +EmailCheckResponse()
+        +EmailCheckResponse(available: boolean, message: String)
+        
+        ' Getters and Setters
+        +isAvailable(): boolean
+        +setAvailable(available: boolean): void
+        +getMessage(): String
+        +setMessage(message: String): void
+    }
+    
+    class AvatarUploadResponse {
+        -String avatarUrl
+        
+        +AvatarUploadResponse()
+        +AvatarUploadResponse(avatarUrl: String)
+        
+        ' Getters and Setters
+        +getAvatarUrl(): String
+        +setAvatarUrl(avatarUrl: String): void
+    }
+    
+    class TokenPair {
+        -String accessToken
+        -String refreshToken
+        -int expiresIn
+        
+        +TokenPair()
+        +TokenPair(accessToken: String, refreshToken: String, expiresIn: int)
+        
+        ' Getters and Setters
+        +getAccessToken(): String
+        +setAccessToken(accessToken: String): void
+        +getRefreshToken(): String
+        +setRefreshToken(refreshToken: String): void
+        +getExpiresIn(): int
+        +setExpiresIn(expiresIn: int): void
+    }
+}
+
 package "com.unicorn.tripgen.user.config" {
-    class UserServiceConfig {
+    class UserConfig {
         +passwordEncoder(): PasswordEncoder
-        +jwtTokenService(): TokenService
-        +s3FileStorageService(): FileStorageService
-        +redisCacheService(): CacheService
-        +userMapper(): UserMapper
-        +userRepository(): UserRepository
-        +userService(): UserService
+        +jwtTokenProvider(userDetailsService: UserDetailsService): JwtTokenProvider
+        +userDetailsService(userRepository: UserRepository): UserDetailsService
+        +fileStorageService(): FileStorageService
+        +userRowMapper(): UserRowMapper
     }
-
-    class SecurityConfig {
-        -jwtTokenService: TokenService
-        +SecurityConfig(jwtTokenService: TokenService)
-        +configureHttpSecurity(http: HttpSecurity): void
-        +jwtAuthenticationFilter(): JwtAuthenticationFilter
-        +authenticationEntryPoint(): AuthenticationEntryPoint
-        +accessDeniedHandler(): AccessDeniedHandler
+    
+    class JwtTokenProvider {
+        -String secretKey
+        -long accessTokenValidityTime
+        -long refreshTokenValidityTime
+        
+        +JwtTokenProvider(secretKey: String, accessTokenValidityTime: long, refreshTokenValidityTime: long)
+        
+        +generateAccessToken(userDetails: UserDetails): String
+        +generateRefreshToken(userDetails: UserDetails): String
+        +validateToken(token: String): boolean
+        +getUsernameFromToken(token: String): String
+        +getExpirationDateFromToken(token: String): Date
+        +isTokenExpired(token: String): boolean
+        +blacklistToken(token: String): void
+        +isTokenBlacklisted(token: String): boolean
     }
+    
+    class FileStorageService {
+        -String uploadPath
+        -long maxFileSize
+        -Set<String> allowedFileTypes
+        
+        +FileStorageService(uploadPath: String, maxFileSize: long, allowedFileTypes: Set<String>)
+        
+        +uploadFile(file: MultipartFile, userId: String): String
+        +deleteFile(fileUrl: String): void
+        +validateFile(file: MultipartFile): void
+        +generateFileName(originalFileName: String, userId: String): String
+        +getFileUrl(fileName: String): String
+    }
+}
 
-    class CacheConfig {
-        +redisConnectionFactory(): RedisConnectionFactory
-        +redisTemplate(): RedisTemplate<String, Object>
-        +cacheManager(): CacheManager
-        +configureCacheDefaults(): RedisCacheConfiguration
+package "com.unicorn.tripgen.user.mapper" {
+    class UserRowMapper {
+        +UserRowMapper()
+        +mapRow(rs: ResultSet, rowNum: int): User
+        -mapUserStatus(statusValue: String): UserStatus
+        -mapLocalDateTime(timestamp: Timestamp): LocalDateTime
     }
 }
 
 ' ======================================
-' Common Components (Reference Only)
-' ======================================
-package "Common Components" {
-    class ApiResponse<T>
-    class ErrorResponse
-    class BaseException
-    class BusinessException
-    class ValidationException
-    class ResourceNotFoundException
-    class BaseTimeEntity
-    class BaseEntity
-    class DateTimeUtil
-    class ValidationUtil
-    class SecurityUtil
-    class RedisCacheConfig
-}
-
-' ======================================
-' Relationships
+' Common Components (Referenced from common-base.puml)
 ' ======================================
 
-' Controller Dependencies
-UserController --> UserService
+' ======================================
+' Layered Architecture Relationships
+' ======================================
 
-' Service Implementations
-UserService <|.. UserServiceImpl
-TokenService <|.. JwtTokenService
-FileStorageService <|.. S3FileStorageService
-CacheService <|.. RedisCacheService
+' Controller Layer Relationships
+' Association (프로퍼티로 보유하는 Service)
+UserController --> UserService : "1" association
 
-' Service Dependencies
-UserServiceImpl --> UserRepository
-UserServiceImpl --> TokenService
-UserServiceImpl --> FileStorageService
-UserServiceImpl --> CacheService
-UserServiceImpl --> UserMapper
+' Dependency (메서드 파라미터/반환값으로만 사용)
+UserController ..> RegisterRequest : receives
+UserController ..> LoginRequest : receives
+UserController ..> UpdateProfileRequest : receives
+UserController ..> ChangePasswordRequest : receives
+UserController ..> RegisterResponse : creates
+UserController ..> LoginResponse : creates
+UserController ..> UserProfile : creates
+UserController ..> UsernameCheckResponse : creates
+UserController ..> EmailCheckResponse : creates
+UserController ..> AvatarUploadResponse : creates
 
-' Repository Implementation
-UserRepository <|.. UserRepositoryImpl
+' Service Layer Relationships
+' Association (프로퍼티로 보유하는 지속적 관계)
+UserServiceImpl --> UserRepository : "1" association
+UserServiceImpl --> JwtTokenProvider : "1" association  
+UserServiceImpl --> FileStorageService : "1" association
 
-' Mapper Implementation
-UserMapper <|.. UserMapperImpl
+' Realization (인터페이스 구현)
+UserService <|.. UserServiceImpl : implements
+UserRepository <|.. UserRepositoryImpl : implements
 
-' Domain Relationships
-User --> UserStatus
-User --|> BaseTimeEntity : extends
-UserEntity --|> BaseEntity : extends
+' Dependency (메서드 내에서만 사용하는 일시적 관계)
+UserServiceImpl ..> User : manages
+UserServiceImpl ..> RegisterRequest : processes
+UserServiceImpl ..> LoginRequest : processes
+UserServiceImpl ..> UpdateProfileRequest : processes
+UserServiceImpl ..> ChangePasswordRequest : processes
+UserServiceImpl ..> RegisterResponse : creates
+UserServiceImpl ..> LoginResponse : creates
+UserServiceImpl ..> UserProfile : creates
+UserServiceImpl ..> TokenPair : creates
 
-' DTO Relationships
-LoginResponse --> UserProfile
+' Repository Layer Relationships
+' Association (프로퍼티로 보유)
+UserRepositoryImpl --> UserRowMapper : "1" association
 
-' Entity Mapping
-UserMapper --> User
-UserMapper --> UserEntity
-UserMapper --> UserProfile
-UserMapper --> RegisterResponse
+' Dependency (메서드에서 관리)
+UserRepositoryImpl ..> User : manages
 
-' Common Component Usage
-UserController --> ApiResponse
-UserController --> ErrorResponse
-UserServiceImpl --> BusinessException
-UserServiceImpl --> ValidationException
-UserServiceImpl --> ResourceNotFoundException
-UserServiceImpl --> ValidationUtil
-UserServiceImpl --> SecurityUtil
-RedisCacheService --> RedisCacheConfig
+' Entity Relationships
+' Association (필드로 보유)
+User --> UserStatus : "1" association
+
+' Configuration Dependencies (메서드 내에서 생성)
+UserConfig ..> JwtTokenProvider : creates
+UserConfig ..> FileStorageService : creates
+UserConfig ..> UserRowMapper : creates
+
+' Common Component Usage - Generalization (상속)
+User --|> BaseAuditEntity : extends
+RegisterResponse --|> BaseResponse : extends
+LoginResponse --|> BaseResponse : extends
+UserProfile --|> BaseResponse : extends
+UsernameCheckResponse --|> BaseResponse : extends
+EmailCheckResponse --|> BaseResponse : extends
+AvatarUploadResponse --|> BaseResponse : extends
+
+' Utility Dependencies (메서드 내에서만 사용)
+UserServiceImpl ..> ValidationUtils : uses
+UserServiceImpl ..> SecurityUtils : uses
+UserServiceImpl ..> DateUtils : uses
+UserServiceImpl ..> StringUtils : uses
+
+' Exception Dependencies (메서드 내에서 생성하여 throw)
+UserServiceImpl ..> BusinessException : throws
+UserServiceImpl ..> ValidationException : throws
+UserServiceImpl ..> UnauthorizedException : throws
+UserServiceImpl ..> NotFoundException : throws
 
 @enduml

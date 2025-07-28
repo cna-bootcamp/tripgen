@@ -1,333 +1,224 @@
 @startuml
 !theme mono
 
-title AI 서비스 클래스 설계 (간단)
+title AI 서비스 간단 클래스 설계서 (Layered Architecture)
 
-' ========== Controller Layer ==========
-package "Controller Layer" {
+' ======================================
+' Controller Layer
+' ======================================
+package "Controller Layer" <<Node>> {
     class AIScheduleController {
-        -aiScheduleService: AIScheduleService
-        +generateAISchedule(): ResponseEntity
-        +getGenerationStatus(): ResponseEntity
-        +getGeneratedSchedule(): ResponseEntity
-        +cancelGeneration(): ResponseEntity
-        +regenerateDaySchedule(): ResponseEntity
-        +analyzeWeatherImpact(): ResponseEntity
+        +generateAISchedule()
+        +getGenerationStatus()
+        +getGeneratedSchedule()
+        +cancelGeneration()
+        +regenerateDaySchedule()
+        +analyzeWeatherImpact()
     }
 
     class AIRecommendationController {
-        -aiRecommendationService: AIRecommendationService
-        +generatePlaceRecommendations(): ResponseEntity
+        +generatePlaceRecommendations()
     }
 }
 
-' ========== Service Layer ==========
-package "Service Layer" {
-    interface AIScheduleService {
-        +generateSchedule(): GenerateScheduleResponse
-        +getGenerationStatus(): GenerationStatusResponse
-        +getGeneratedSchedule(): GeneratedScheduleResponse
-        +cancelGeneration(): void
-        +regenerateDaySchedule(): GenerateScheduleResponse
-        +analyzeWeatherImpact(): WeatherImpactResponse
-    }
-
+' ======================================
+' Service Layer
+' ======================================
+package "Service Layer" <<Node>> {
+    interface AIScheduleService
     class AIScheduleServiceImpl {
-        -aiRequestRepository: AIRequestRepository
-        -aiScheduleRepository: AIScheduleRepository
-        -aiEngineClient: AIEngineClient
-        -weatherService: WeatherService
-        -locationService: LocationService
-        -cacheService: CacheService
-        -messagingService: MessagingService
+        +generateSchedule()
+        +getGenerationStatus()
+        +getGeneratedSchedule()
+        +cancelGeneration()
+        +regenerateDaySchedule()
+        +analyzeWeatherImpact()
     }
 
-    interface AIRecommendationService {
-        +generateRecommendations(): RecommendationResponse
-    }
-
+    interface AIRecommendationService
     class AIRecommendationServiceImpl {
-        -aiRecommendationRepository: AIRecommendationRepository
-        -aiEngineClient: AIEngineClient
-        -locationService: LocationService
-        -cacheService: CacheService
+        +generatePlaceRecommendations()
+        +getCachedRecommendations()
+        +cacheRecommendations()
     }
 
-    interface WeatherService {
-        +getCurrentWeather(): WeatherInfo
-        +getWeatherForecast(): List<WeatherInfo>
-        +analyzeWeatherImpact(): WeatherImpactAnalysis
-    }
-
-    class WeatherServiceImpl {
-        -weatherApiClient: WeatherApiClient
-        -cacheService: CacheService
-    }
-
-    interface LocationService {
-        +getLocationInfo(): LocationInfo
-        +searchNearbyPlaces(): List<LocationInfo>
-        +calculateRoute(): RouteInfo
-    }
-
-    class LocationServiceImpl {
-        -locationApiClient: LocationApiClient
-        -cacheService: CacheService
-    }
-
-    interface CacheService {
-        +put(): void
-        +get(): Optional<T>
-        +evict(): void
-    }
-
-    class CacheServiceImpl {
-        -redisTemplate: RedisTemplate
-    }
-
-    interface MessagingService {
-        +publishScheduleGenerationEvent(): void
-        +subscribeToScheduleEvents(): void
-    }
-
-    class MessagingServiceImpl {
-        -rabbitTemplate: RabbitTemplate
+    class AIJobService {
+        +createJob()
+        +updateJobStatus()
+        +completeJob()
+        +failJob()
+        +getJobStatus()
+        +cancelJob()
     }
 }
 
-' ========== Domain Layer ==========
-package "Domain Layer" {
-    class AIRequest {
-        +requestId: String
-        +tripId: String
-        +status: GenerationStatus
-        +progress: Integer
-        +members: List<TripMember>
-        +destinations: List<Destination>
-        +updateStatus(): void
-        +markCompleted(): void
-        +isCompleted(): boolean
-    }
-
-    class AISchedule {
-        +requestId: String
-        +tripId: String
-        +schedules: List<DaySchedule>
-        +metadata: ScheduleMetadata
-        +addDaySchedule(): void
-        +getTotalDays(): Integer
-    }
-
-    class AIRecommendation {
-        +placeId: String
-        +recommendations: RecommendationContent
-        +generatedAt: LocalDateTime
-        +isExpired(): boolean
-    }
-
-    class TripMember {
-        +name: String
-        +age: Integer
-        +gender: Gender
-        +healthStatus: HealthStatus
-        +preferences: List<String>
-        +isElderly(): boolean
-        +needsSpecialCare(): boolean
-    }
-
-    class Destination {
-        +destinationName: String
-        +nights: Integer
-        +startDate: LocalDate
-        +endDate: LocalDate
-        +accommodation: String
-        +getDuration(): Period
-    }
-
-    class DaySchedule {
-        +day: Integer
-        +date: LocalDate
-        +destinationName: String
-        +weather: WeatherInfo
-        +places: List<PlaceVisit>
-        +getTotalDuration(): Integer
-    }
-
-    class PlaceVisit {
-        +placeId: String
-        +placeName: String
-        +startTime: LocalTime
-        +duration: Integer
-        +transportation: Transportation
-        +getEndTime(): LocalTime
-    }
-
-    class RecommendationContent {
-        +reasons: List<String>
-        +tips: RecommendationTips
-        +addReason(): void
-    }
-
-    class WeatherInfo {
-        +condition: String
-        +temperature: Temperature
-        +precipitation: Double
-        +isRainy(): boolean
-    }
-}
-
-' ========== Repository Layer ==========
-package "Repository Layer" {
-    interface AIRequestRepository {
-        +findByRequestId(): Optional<AIRequestEntity>
-        +findByTripId(): List<AIRequestEntity>
-        +save(): AIRequestEntity
-    }
-
+' ======================================
+' Repository Layer
+' ======================================
+package "Repository Layer" <<Database>> {
     interface AIScheduleRepository {
-        +findByRequestId(): Optional<AIScheduleEntity>
-        +findByTripId(): List<AIScheduleEntity>
-        +save(): AIScheduleEntity
+        +save()
+        +findByRequestId()
+        +findByTripId()
+        +deleteByRequestId()
+    }
+
+    interface AIJobRepository {
+        +save()
+        +findByRequestId()
+        +findByStatus()
+        +updateJobStatus()
     }
 
     interface AIRecommendationRepository {
-        +findByPlaceId(): Optional<AIRecommendationEntity>
-        +save(): AIRecommendationEntity
-        +deleteExpiredRecommendations(): void
-    }
-
-    class AIRequestEntity {
-        +id: Long
-        +requestId: String
-        +tripId: String
-        +status: String
-        +toDomain(): AIRequest
-        +fromDomain(): AIRequestEntity
-    }
-
-    class AIScheduleEntity {
-        +id: Long
-        +requestId: String
-        +tripId: String
-        +schedulesJson: String
-        +toDomain(): AISchedule
-        +fromDomain(): AIScheduleEntity
-    }
-
-    class AIRecommendationEntity {
-        +id: Long
-        +placeId: String
-        +recommendationsJson: String
-        +toDomain(): AIRecommendation
-        +fromDomain(): AIRecommendationEntity
+        +save()
+        +findByPlaceIdAndProfileHash()
+        +findByPlaceId()
+        +deleteExpired()
     }
 }
 
-' ========== External Client Layer ==========
-package "External Client Layer" {
-    interface AIEngineClient {
-        +submitScheduleGeneration(): AIEngineResponse
-        +getGenerationStatus(): AIEngineStatusResponse
-        +generateRecommendations(): AIEngineRecommendationResponse
+' ======================================
+' Entity Layer
+' ======================================
+package "Entity Layer" <<Database>> {
+    class AISchedule {
+        -String requestId
+        -String tripId
+        -AIJobStatus status
+        -String scheduleData
+        -LocalDateTime generatedAt
     }
 
-    class AIEngineClientImpl {
-        -restTemplate: RestTemplate
-        -aiEngineConfig: AIEngineConfig
+    class AIJob {
+        -String requestId
+        -AIJobType jobType
+        -AIJobStatus status
+        -int progress
+        -String currentStep
     }
 
-    interface WeatherApiClient {
-        +getCurrentWeather(): WeatherApiResponse
-        +getWeatherForecast(): WeatherForecastResponse
-    }
-
-    class WeatherApiClientImpl {
-        -restTemplate: RestTemplate
-        -weatherApiConfig: WeatherApiConfig
-    }
-
-    interface LocationApiClient {
-        +getLocationDetails(): LocationApiResponse
-        +searchPlaces(): LocationSearchResponse
-        +calculateRoute(): RouteApiResponse
-    }
-
-    class LocationApiClientImpl {
-        -restTemplate: RestTemplate
-        -locationApiConfig: LocationApiConfig
+    class AIRecommendation {
+        -String placeId
+        -String profileHash
+        -String recommendationData
+        -LocalDateTime generatedAt
     }
 }
 
-' ========== Configuration ==========
-package "Configuration Layer" {
-    class AIServiceConfig {
-        +aiEngineConfig: AIEngineConfig
-        +cacheConfig: CacheConfig
-        +messagingConfig: MessagingConfig
+' ======================================
+' External Clients
+' ======================================
+package "External Clients" <<Cloud>> {
+    interface AIModelClient
+    class OpenAIClient
+    class ClaudeClient
+    
+    interface WeatherServiceClient
+    interface LocationServiceClient
+}
+
+' ======================================
+' DTO Layer
+' ======================================
+package "DTO Layer" <<Folder>> {
+    class GenerateScheduleRequest
+    class GenerateScheduleResponse
+    class GenerationStatusResponse
+    class GeneratedScheduleDto
+    class RecommendationRequest
+    class RecommendationResponse
+    class WeatherImpactRequest
+    class WeatherImpactResponse
+}
+
+' ======================================
+' Enums
+' ======================================
+package "Enums" <<Folder>> {
+    enum AIJobType {
+        SCHEDULE_GENERATION
+        SCHEDULE_REGENERATION
+        RECOMMENDATION_GENERATION
+        WEATHER_IMPACT_ANALYSIS
+    }
+
+    enum AIJobStatus {
+        QUEUED
+        PROCESSING
+        COMPLETED
+        FAILED
+        CANCELLED
     }
 }
 
-' ========== Common Components ==========
-package "Common Components" {
-    class ApiResponse
-    class BaseException
-    class BaseTimeEntity
-    class CacheConfig
+' ======================================
+' Infrastructure
+' ======================================
+package "Infrastructure" <<Component>> {
+    interface CacheManager
+    interface MessageQueue
 }
 
-' ========== Relationships ==========
+' ======================================
+' Validation
+' ======================================
+package "Validation" <<Component>> {
+    class AIScheduleValidator
+    class RecommendationValidator
+}
 
-' Controller to Service
+' ======================================
+' Main Relationships
+' ======================================
+
+' Layered Architecture Flow
 AIScheduleController --> AIScheduleService
+AIScheduleController --> AIScheduleValidator
 AIRecommendationController --> AIRecommendationService
+AIRecommendationController --> RecommendationValidator
 
-' Service Implementation
 AIScheduleService <|.. AIScheduleServiceImpl
 AIRecommendationService <|.. AIRecommendationServiceImpl
-WeatherService <|.. WeatherServiceImpl
-LocationService <|.. LocationServiceImpl
-CacheService <|.. CacheServiceImpl
-MessagingService <|.. MessagingServiceImpl
 
-' Service Dependencies
-AIScheduleServiceImpl --> AIRequestRepository
 AIScheduleServiceImpl --> AIScheduleRepository
-AIScheduleServiceImpl --> AIEngineClient
-AIScheduleServiceImpl --> WeatherService
-AIScheduleServiceImpl --> LocationService
-AIScheduleServiceImpl --> CacheService
+AIScheduleServiceImpl --> AIJobRepository
+AIScheduleServiceImpl --> AIModelClient
+AIScheduleServiceImpl --> WeatherServiceClient
+AIScheduleServiceImpl --> LocationServiceClient
+AIScheduleServiceImpl --> CacheManager
+AIScheduleServiceImpl --> MessageQueue
 
 AIRecommendationServiceImpl --> AIRecommendationRepository
-AIRecommendationServiceImpl --> AIEngineClient
-AIRecommendationServiceImpl --> LocationService
+AIRecommendationServiceImpl --> AIModelClient
+AIRecommendationServiceImpl --> LocationServiceClient
+AIRecommendationServiceImpl --> CacheManager
 
-' Domain Relationships
-AIRequest --> TripMember
-AIRequest --> Destination
-AISchedule --> DaySchedule
-DaySchedule --> PlaceVisit
-PlaceVisit --> Transportation
-AIRecommendation --> RecommendationContent
+AIJobService --> AIJobRepository
+AIJobService --> MessageQueue
 
-' Repository Relationships
-AIRequestRepository --> AIRequestEntity
-AIScheduleRepository --> AIScheduleEntity
-AIRecommendationRepository --> AIRecommendationEntity
+' AI Model Client Implementations  
+AIModelClient <|.. OpenAIClient
+AIModelClient <|.. ClaudeClient
 
-' Entity to Base
-AIRequestEntity --> BaseTimeEntity
-AIScheduleEntity --> BaseTimeEntity
-AIRecommendationEntity --> BaseTimeEntity
+' Entity Usage
+AIScheduleRepository --> AISchedule
+AIJobRepository --> AIJob
+AIRecommendationRepository --> AIRecommendation
 
-' Client Implementation
-AIEngineClient <|.. AIEngineClientImpl
-WeatherApiClient <|.. WeatherApiClientImpl
-LocationApiClient <|.. LocationApiClientImpl
+AISchedule --> AIJobStatus
+AIJob --> AIJobType
+AIJob --> AIJobStatus
 
-' Common Components
-AIScheduleController --> ApiResponse
-AIRecommendationController --> ApiResponse
-AIScheduleServiceImpl --> BaseException
-CacheServiceImpl --> CacheConfig
+' DTO Usage by Controllers
+AIScheduleController ..> GenerateScheduleRequest
+AIScheduleController ..> GenerateScheduleResponse
+AIScheduleController ..> GenerationStatusResponse
+AIScheduleController ..> GeneratedScheduleDto
+AIScheduleController ..> WeatherImpactRequest
+AIScheduleController ..> WeatherImpactResponse
+
+AIRecommendationController ..> RecommendationRequest
+AIRecommendationController ..> RecommendationResponse
 
 @enduml

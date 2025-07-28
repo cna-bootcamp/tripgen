@@ -1,889 +1,395 @@
 @startuml
 !theme mono
 
-title AI 서비스 클래스 설계 (상세)
+title AI 서비스 클래스 설계서 (Layered Architecture)
 
-' ========== Controller Layer ==========
-package "Controller Layer (com.unicorn.tripgen.ai.controller)" {
+' ======================================
+' Controller Layer
+' ======================================
+package "Controller Layer" {
     class AIScheduleController {
-        -aiScheduleService: AIScheduleService
-        +generateAISchedule(request: GenerateScheduleRequest): ResponseEntity<ApiResponse<GenerateScheduleResponse>>
-        +getGenerationStatus(requestId: String): ResponseEntity<ApiResponse<GenerationStatusResponse>>
-        +getGeneratedSchedule(requestId: String): ResponseEntity<ApiResponse<GeneratedScheduleResponse>>
+        -AIScheduleService aiScheduleService
+        -AIScheduleValidator scheduleValidator
+        +AIScheduleController(aiScheduleService: AIScheduleService, scheduleValidator: AIScheduleValidator)
+        +generateAISchedule(request: GenerateScheduleRequest): ResponseEntity<GenerateScheduleResponse>
+        +getGenerationStatus(requestId: String): ResponseEntity<GenerationStatusResponse>
+        +getGeneratedSchedule(requestId: String): ResponseEntity<GeneratedScheduleResponse>
         +cancelGeneration(requestId: String): ResponseEntity<Void>
-        +regenerateDaySchedule(request: RegenerateScheduleRequest): ResponseEntity<ApiResponse<GenerateScheduleResponse>>
-        +analyzeWeatherImpact(tripId: String, request: WeatherImpactRequest): ResponseEntity<ApiResponse<WeatherImpactResponse>>
+        +regenerateDaySchedule(request: RegenerateScheduleRequest): ResponseEntity<GenerateScheduleResponse>
+        +analyzeWeatherImpact(tripId: String, request: WeatherImpactRequest): ResponseEntity<WeatherImpactResponse>
     }
 
     class AIRecommendationController {
-        -aiRecommendationService: AIRecommendationService
-        +generatePlaceRecommendations(placeId: String, request: RecommendationRequest): ResponseEntity<ApiResponse<RecommendationResponse>>
+        -AIRecommendationService recommendationService
+        -RecommendationValidator recommendationValidator
+        +AIRecommendationController(recommendationService: AIRecommendationService, recommendationValidator: RecommendationValidator)
+        +generatePlaceRecommendations(placeId: String, request: RecommendationRequest): ResponseEntity<RecommendationResponse>
     }
 }
 
-' ========== Service Layer ==========
-package "Service Layer (com.unicorn.tripgen.ai.service)" {
+' ======================================
+' Service Layer
+' ======================================
+package "Service Layer" {
     interface AIScheduleService {
         +generateSchedule(request: GenerateScheduleRequest): GenerateScheduleResponse
         +getGenerationStatus(requestId: String): GenerationStatusResponse
-        +getGeneratedSchedule(requestId: String): GeneratedScheduleResponse
+        +getGeneratedSchedule(requestId: String): GeneratedScheduleDto
         +cancelGeneration(requestId: String): void
         +regenerateDaySchedule(request: RegenerateScheduleRequest): GenerateScheduleResponse
         +analyzeWeatherImpact(tripId: String, request: WeatherImpactRequest): WeatherImpactResponse
     }
 
     class AIScheduleServiceImpl {
-        -aiRequestRepository: AIRequestRepository
-        -aiScheduleRepository: AIScheduleRepository
-        -aiEngineClient: AIEngineClient
-        -weatherService: WeatherService
-        -locationService: LocationService
-        -cacheService: CacheService
-        -messagingService: MessagingService
+        -AIScheduleRepository scheduleRepository
+        -AIJobRepository jobRepository
+        -AIModelClient aiModelClient
+        -WeatherServiceClient weatherClient
+        -LocationServiceClient locationClient
+        -CacheManager cacheManager
+        -MessageQueue messageQueue
+        +AIScheduleServiceImpl(scheduleRepository: AIScheduleRepository, jobRepository: AIJobRepository, aiModelClient: AIModelClient, weatherClient: WeatherServiceClient, locationClient: LocationServiceClient, cacheManager: CacheManager, messageQueue: MessageQueue)
         +generateSchedule(request: GenerateScheduleRequest): GenerateScheduleResponse
         +getGenerationStatus(requestId: String): GenerationStatusResponse
-        +getGeneratedSchedule(requestId: String): GeneratedScheduleResponse
+        +getGeneratedSchedule(requestId: String): GeneratedScheduleDto
         +cancelGeneration(requestId: String): void
         +regenerateDaySchedule(request: RegenerateScheduleRequest): GenerateScheduleResponse
         +analyzeWeatherImpact(tripId: String, request: WeatherImpactRequest): WeatherImpactResponse
-        -validateScheduleRequest(request: GenerateScheduleRequest): void
-        -createGenerationRequest(request: GenerateScheduleRequest): AIRequest
-        -submitToAIEngine(aiRequest: AIRequest): void
-        -processGenerationResult(requestId: String, result: AIEngineResult): void
+        -processScheduleGeneration(request: GenerateScheduleRequest, requestId: String): void
+        -optimizeScheduleWithAI(scheduleData: ScheduleOptimizationData): List<DailySchedule>
+        -validateScheduleConstraints(schedules: List<DailySchedule>): ValidationResult
+        -calculateTravelTimes(places: List<PlaceInfo>, transportMode: String): TravelTimeMatrix
+        -considerHealthConstraints(places: List<PlaceInfo>, healthProfiles: List<HealthProfile>): List<PlaceInfo>
+        -applyWeatherConsiderations(schedules: List<DailySchedule>, weatherData: List<WeatherInfo>): List<DailySchedule>
     }
 
     interface AIRecommendationService {
-        +generateRecommendations(placeId: String, request: RecommendationRequest): RecommendationResponse
+        +generatePlaceRecommendations(placeId: String, request: RecommendationRequest): RecommendationResponse
+        +getCachedRecommendations(placeId: String, profileHash: String): RecommendationResponse
+        +cacheRecommendations(placeId: String, profileHash: String, recommendations: RecommendationResponse): void
     }
 
     class AIRecommendationServiceImpl {
-        -aiRecommendationRepository: AIRecommendationRepository
-        -aiEngineClient: AIEngineClient
-        -locationService: LocationService
-        -cacheService: CacheService
-        +generateRecommendations(placeId: String, request: RecommendationRequest): RecommendationResponse
-        -validateRecommendationRequest(request: RecommendationRequest): void
-        -buildRecommendationContext(placeId: String, request: RecommendationRequest): RecommendationContext
-        -processRecommendationResult(context: RecommendationContext, result: AIEngineResult): RecommendationResponse
+        -AIRecommendationRepository recommendationRepository
+        -AIModelClient aiModelClient
+        -LocationServiceClient locationClient
+        -CacheManager cacheManager
+        +AIRecommendationServiceImpl(recommendationRepository: AIRecommendationRepository, aiModelClient: AIModelClient, locationClient: LocationServiceClient, cacheManager: CacheManager)
+        +generatePlaceRecommendations(placeId: String, request: RecommendationRequest): RecommendationResponse
+        +getCachedRecommendations(placeId: String, profileHash: String): RecommendationResponse
+        +cacheRecommendations(placeId: String, profileHash: String, recommendations: RecommendationResponse): void
+        -generatePersonalizedRecommendations(place: PlaceInfo, userProfile: UserProfile, tripContext: TripContext): RecommendationData
+        -generateProfileHash(userProfile: UserProfile, tripContext: TripContext): String
+        -extractPlaceInsights(place: PlaceInfo): PlaceInsights
+        -generateAlternativePlaces(place: PlaceInfo, userProfile: UserProfile): List<AlternativePlace>
     }
 
-    interface WeatherService {
-        +getCurrentWeather(location: String, date: LocalDate): WeatherInfo
-        +getWeatherForecast(location: String, startDate: LocalDate, endDate: LocalDate): List<WeatherInfo>
-        +analyzeWeatherImpact(schedules: List<DaySchedule>, weatherChanges: List<WeatherChange>): WeatherImpactAnalysis
-    }
-
-    class WeatherServiceImpl {
-        -weatherApiClient: WeatherApiClient
-        -cacheService: CacheService
-        +getCurrentWeather(location: String, date: LocalDate): WeatherInfo
-        +getWeatherForecast(location: String, startDate: LocalDate, endDate: LocalDate): List<WeatherInfo>
-        +analyzeWeatherImpact(schedules: List<DaySchedule>, weatherChanges: List<WeatherChange>): WeatherImpactAnalysis
-        -isWeatherCacheValid(location: String, date: LocalDate): boolean
-        -cacheWeatherInfo(location: String, date: LocalDate, weatherInfo: WeatherInfo): void
-    }
-
-    interface LocationService {
-        +getLocationInfo(placeId: String): LocationInfo
-        +searchNearbyPlaces(location: Coordinate, radius: Double, categories: List<String>): List<LocationInfo>
-        +calculateRoute(origin: Coordinate, destination: Coordinate, transportMode: TransportMode): RouteInfo
-    }
-
-    class LocationServiceImpl {
-        -locationApiClient: LocationApiClient
-        -cacheService: CacheService
-        +getLocationInfo(placeId: String): LocationInfo
-        +searchNearbyPlaces(location: Coordinate, radius: Double, categories: List<String>): List<LocationInfo>
-        +calculateRoute(origin: Coordinate, destination: Coordinate, transportMode: TransportMode): RouteInfo
-        -cacheLocationInfo(placeId: String, locationInfo: LocationInfo): void
-    }
-
-    interface CacheService {
-        +put(key: String, value: Object, ttl: Duration): void
-        +get(key: String, clazz: Class<T>): Optional<T>
-        +evict(key: String): void
-        +evictPattern(pattern: String): void
-    }
-
-    class CacheServiceImpl {
-        -redisTemplate: RedisTemplate<String, Object>
-        +put(key: String, value: Object, ttl: Duration): void
-        +get(key: String, clazz: Class<T>): Optional<T>
-        +evict(key: String): void
-        +evictPattern(pattern: String): void
-        -generateCacheKey(prefix: String, params: String...): String
-    }
-
-    interface MessagingService {
-        +publishScheduleGenerationEvent(event: ScheduleGenerationEvent): void
-        +subscribeToScheduleEvents(): void
-    }
-
-    class MessagingServiceImpl {
-        -rabbitTemplate: RabbitTemplate
-        +publishScheduleGenerationEvent(event: ScheduleGenerationEvent): void
-        +subscribeToScheduleEvents(): void
-        -handleScheduleGenerationCompleted(event: ScheduleGenerationCompletedEvent): void
-        -handleScheduleGenerationFailed(event: ScheduleGenerationFailedEvent): void
+    class AIJobService {
+        -AIJobRepository jobRepository
+        -MessageQueue messageQueue
+        +AIJobService(jobRepository: AIJobRepository, messageQueue: MessageQueue)
+        +createJob(jobType: AIJobType, requestId: String, payload: String): AIJob
+        +updateJobStatus(requestId: String, status: AIJobStatus, progress: int, currentStep: String): void
+        +updateJobProgress(requestId: String, progress: int, currentStep: String): void
+        +completeJob(requestId: String, result: String): void
+        +failJob(requestId: String, errorMessage: String): void
+        +getJobStatus(requestId: String): AIJob
+        +cancelJob(requestId: String): void
+        +cleanupExpiredJobs(): void
     }
 }
 
-' ========== Domain Layer ==========
-package "Domain Layer (com.unicorn.tripgen.ai.domain)" {
-    class AIRequest {
-        +requestId: String
-        +tripId: String
-        +tripName: String
-        +transportMode: TransportMode
-        +startTime: LocalTime
-        +members: List<TripMember>
-        +destinations: List<Destination>
-        +specialRequests: String
-        +status: GenerationStatus
-        +progress: Integer
-        +currentStep: String
-        +steps: List<GenerationStep>
-        +estimatedTime: Integer
-        +errorMessage: String
-        +submittedAt: LocalDateTime
-        +completedAt: LocalDateTime
-        +AIRequest(tripId: String, tripName: String, transportMode: TransportMode)
-        +updateStatus(status: GenerationStatus): void
-        +updateProgress(progress: Integer, currentStep: String): void
-        +markCompleted(): void
-        +markFailed(errorMessage: String): void
-        +isCompleted(): boolean
-        +isFailed(): boolean
-        +canBeCancelled(): boolean
+' ======================================
+' Repository Layer
+' ======================================
+package "Repository Layer" {
+    interface AIScheduleRepository {
+        +save(schedule: AISchedule): AISchedule
+        +findByRequestId(requestId: String): Optional<AISchedule>
+        +findByTripId(tripId: String): List<AISchedule>
+        +deleteByRequestId(requestId: String): void
+        +findByTripIdAndDay(tripId: String, day: int): Optional<AISchedule>
+        +findExpiredSchedules(expiredBefore: LocalDateTime): List<AISchedule>
+        +deleteExpiredSchedules(expiredBefore: LocalDateTime): int
     }
 
+    interface AIJobRepository {
+        +save(job: AIJob): AIJob
+        +findByRequestId(requestId: String): Optional<AIJob>
+        +findByStatus(status: AIJobStatus): List<AIJob>
+        +findExpiredJobs(expiredBefore: LocalDateTime): List<AIJob>
+        +deleteExpiredJobs(expiredBefore: LocalDateTime): int
+        +updateJobStatus(requestId: String, status: AIJobStatus, progress: int, currentStep: String): int
+        +findProcessingJobs(): List<AIJob>
+    }
+
+    interface AIRecommendationRepository {
+        +save(recommendation: AIRecommendation): AIRecommendation
+        +findByPlaceIdAndProfileHash(placeId: String, profileHash: String): Optional<AIRecommendation>
+        +findByPlaceId(placeId: String): List<AIRecommendation>
+        +deleteExpired(expiredBefore: LocalDateTime): int
+        +findExpiredRecommendations(expiredBefore: LocalDateTime): List<AIRecommendation>
+    }
+}
+
+' ======================================
+' Entity Layer
+' ======================================
+package "Entity Layer" {
     class AISchedule {
-        +requestId: String
-        +tripId: String
-        +generatedAt: LocalDateTime
-        +schedules: List<DaySchedule>
-        +metadata: ScheduleMetadata
-        +AISchedule(requestId: String, tripId: String)
-        +addDaySchedule(daySchedule: DaySchedule): void
-        +getDaySchedule(day: Integer): Optional<DaySchedule>
-        +getTotalDays(): Integer
-        +getTotalPlaces(): Integer
+        -Long id
+        -String requestId
+        -String tripId
+        -AIJobStatus status
+        -String scheduleData
+        -LocalDateTime generatedAt
+        -LocalDateTime expiredAt
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +AISchedule()
+        +AISchedule(requestId: String, tripId: String, status: AIJobStatus)
+        +getId(): Long
+        +getRequestId(): String
+        +setRequestId(requestId: String): void
+        +getTripId(): String
+        +setTripId(tripId: String): void
+        +getStatus(): AIJobStatus
+        +setStatus(status: AIJobStatus): void
+        +getScheduleData(): String
+        +setScheduleData(scheduleData: String): void
+        +getGeneratedAt(): LocalDateTime
+        +setGeneratedAt(generatedAt: LocalDateTime): void
+        +getExpiredAt(): LocalDateTime
+        +setExpiredAt(expiredAt: LocalDateTime): void
+        +isExpired(): boolean
+    }
+
+    class AIJob {
+        -Long id
+        -String requestId
+        -AIJobType jobType
+        -AIJobStatus status
+        -String payload
+        -String result
+        -int progress
+        -String currentStep
+        -String errorMessage
+        -LocalDateTime startedAt
+        -LocalDateTime completedAt
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +AIJob()
+        +AIJob(requestId: String, jobType: AIJobType, payload: String)
+        +getId(): Long
+        +getRequestId(): String
+        +setRequestId(requestId: String): void
+        +getJobType(): AIJobType
+        +setJobType(jobType: AIJobType): void
+        +getStatus(): AIJobStatus
+        +setStatus(status: AIJobStatus): void
+        +getPayload(): String
+        +setPayload(payload: String): void
+        +getResult(): String
+        +setResult(result: String): void
+        +getProgress(): int
+        +setProgress(progress: int): void
+        +getCurrentStep(): String
+        +setCurrentStep(currentStep: String): void
+        +getErrorMessage(): String
+        +setErrorMessage(errorMessage: String): void
+        +getStartedAt(): LocalDateTime
+        +setStartedAt(startedAt: LocalDateTime): void
+        +getCompletedAt(): LocalDateTime
+        +setCompletedAt(completedAt: LocalDateTime): void
+        +isCompleted(): boolean
+        +isFailed(): boolean
+        +isProcessing(): boolean
     }
 
     class AIRecommendation {
-        +placeId: String
-        +recommendations: RecommendationContent
-        +generatedAt: LocalDateTime
-        +cacheExpiry: LocalDateTime
-        +AIRecommendation(placeId: String, recommendations: RecommendationContent)
+        -Long id
+        -String placeId
+        -String profileHash
+        -String recommendationData
+        -LocalDateTime generatedAt
+        -LocalDateTime expiredAt
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +AIRecommendation()
+        +AIRecommendation(placeId: String, profileHash: String, recommendationData: String)
+        +getId(): Long
+        +getPlaceId(): String
+        +setPlaceId(placeId: String): void
+        +getProfileHash(): String
+        +setProfileHash(profileHash: String): void
+        +getRecommendationData(): String
+        +setRecommendationData(recommendationData: String): void
+        +getGeneratedAt(): LocalDateTime
+        +setGeneratedAt(generatedAt: LocalDateTime): void
+        +getExpiredAt(): LocalDateTime
+        +setExpiredAt(expiredAt: LocalDateTime): void
         +isExpired(): boolean
-        +refreshCacheExpiry(duration: Duration): void
-    }
-
-    class TripMember {
-        +name: String
-        +age: Integer
-        +gender: Gender
-        +healthStatus: HealthStatus
-        +preferences: List<String>
-        +TripMember(name: String, age: Integer, gender: Gender, healthStatus: HealthStatus)
-        +hasPreference(preference: String): boolean
-        +isElderly(): boolean
-        +isChild(): boolean
-        +needsSpecialCare(): boolean
-    }
-
-    class Destination {
-        +destinationName: String
-        +nights: Integer
-        +startDate: LocalDate
-        +endDate: LocalDate
-        +accommodation: String
-        +checkInTime: LocalTime
-        +checkOutTime: LocalTime
-        +Destination(destinationName: String, nights: Integer, startDate: LocalDate, endDate: LocalDate)
-        +getDuration(): Period
-        +isDateInRange(date: LocalDate): boolean
-    }
-
-    class DaySchedule {
-        +day: Integer
-        +date: LocalDate
-        +destinationName: String
-        +weather: WeatherInfo
-        +places: List<PlaceVisit>
-        +DaySchedule(day: Integer, date: LocalDate, destinationName: String)
-        +addPlaceVisit(placeVisit: PlaceVisit): void
-        +getTotalDuration(): Integer
-        +getStartTime(): LocalTime
-        +getEndTime(): LocalTime
-    }
-
-    class PlaceVisit {
-        +placeId: String
-        +placeName: String
-        +category: String
-        +startTime: LocalTime
-        +duration: Integer
-        +transportation: Transportation
-        +healthConsideration: HealthConsideration
-        +weatherConsideration: WeatherConsideration
-        +PlaceVisit(placeId: String, placeName: String, category: String)
-        +getEndTime(): LocalTime
-        +isOutdoorActivity(): boolean
-    }
-
-    class RecommendationContent {
-        +reasons: List<String>
-        +tips: RecommendationTips
-        +RecommendationContent(reasons: List<String>, tips: RecommendationTips)
-        +addReason(reason: String): void
-    }
-
-    class RecommendationTips {
-        +description: String
-        +events: List<String>
-        +bestVisitTime: String
-        +estimatedDuration: String
-        +photoSpots: List<String>
-        +practicalTips: List<String>
-        +alternativePlaces: List<AlternativePlace>
-        +RecommendationTips(description: String)
-    }
-
-    class AlternativePlace {
-        +name: String
-        +reason: String
-        +distance: String
-        +AlternativePlace(name: String, reason: String, distance: String)
-    }
-
-    class WeatherInfo {
-        +condition: String
-        +temperature: Temperature
-        +precipitation: Double
-        +warnings: List<String>
-        +WeatherInfo(condition: String, temperature: Temperature, precipitation: Double)
-        +isRainy(): boolean
-        +isSevereWeather(): boolean
-    }
-
-    class Temperature {
-        +min: Double
-        +max: Double
-        +Temperature(min: Double, max: Double)
-        +getAverage(): Double
-        +isHot(): boolean
-        +isCold(): boolean
-    }
-
-    class Transportation {
-        +type: TransportType
-        +duration: Integer
-        +distance: Double
-        +route: String
-        +parkingInfo: ParkingInfo
-        +Transportation(type: TransportType, duration: Integer, distance: Double)
-    }
-
-    class ParkingInfo {
-        +name: String
-        +distance: String
-        +estimatedCost: String
-        +ParkingInfo(name: String, distance: String, estimatedCost: String)
-    }
-
-    class HealthConsideration {
-        +restPoints: List<String>
-        +optionalActivities: OptionalActivities
-        +accessibility: List<String>
-        +walkingDistance: Double
-        +HealthConsideration()
-    }
-
-    class OptionalActivities {
-        +basic: String
-        +active: String
-        +OptionalActivities(basic: String, active: String)
-    }
-
-    class WeatherConsideration {
-        +indoorAlternative: String
-        +preparationItems: List<String>
-        +WeatherConsideration()
-        +addPreparationItem(item: String): void
-    }
-
-    class ScheduleMetadata {
-        +totalDays: Integer
-        +totalPlaces: Integer
-        +healthStatusConsidered: String
-        +weatherConsidered: Boolean
-        +ScheduleMetadata(totalDays: Integer, totalPlaces: Integer)
-    }
-
-    class GenerationStep {
-        +step: String
-        +status: StepStatus
-        +GenerationStep(step: String, status: StepStatus)
-        +markCompleted(): void
-        +markProcessing(): void
-    }
-
-    ' Value Objects and Context Classes
-    class RecommendationContext {
-        +placeId: String
-        +placeName: String
-        +placeType: String
-        +placeAddress: String
-        +userProfile: UserProfile
-        +tripContext: TripContext
-        +RecommendationContext(placeId: String, placeName: String, placeType: String)
-    }
-
-    class UserProfile {
-        +memberComposition: String
-        +healthStatus: String
-        +transportMode: String
-        +preferences: List<String>
-        +UserProfile(memberComposition: String, healthStatus: String, transportMode: String)
-    }
-
-    class TripContext {
-        +visitDate: LocalDate
-        +visitTime: LocalTime
-        +previousPlace: String
-        +nextPlace: String
-        +TripContext(visitDate: LocalDate, visitTime: LocalTime)
-    }
-
-    class WeatherChange {
-        +date: LocalDate
-        +previousCondition: String
-        +newCondition: String
-        +severity: WeatherSeverity
-        +WeatherChange(date: LocalDate, previousCondition: String, newCondition: String, severity: WeatherSeverity)
-    }
-
-    class WeatherImpactAnalysis {
-        +impactedDays: List<ImpactedDay>
-        +WeatherImpactAnalysis()
-        +addImpactedDay(impactedDay: ImpactedDay): void
-    }
-
-    class ImpactedDay {
-        +day: Integer
-        +date: LocalDate
-        +reason: String
-        +affectedPlaces: List<String>
-        +recommendation: RecommendationAction
-        +alternativeOptions: List<String>
-        +ImpactedDay(day: Integer, date: LocalDate, reason: String)
-    }
-
-    class LocationInfo {
-        +placeId: String
-        +name: String
-        +category: String
-        +coordinate: Coordinate
-        +address: String
-        +rating: Double
-        +openingHours: String
-        +LocationInfo(placeId: String, name: String, category: String, coordinate: Coordinate)
-    }
-
-    class Coordinate {
-        +latitude: Double
-        +longitude: Double
-        +Coordinate(latitude: Double, longitude: Double)
-        +distanceTo(other: Coordinate): Double
-    }
-
-    class RouteInfo {
-        +distance: Double
-        +duration: Integer
-        +steps: List<String>
-        +RouteInfo(distance: Double, duration: Integer)
-    }
-
-    class AIEngineResult {
-        +requestId: String
-        +status: String
-        +result: Object
-        +error: String
-        +AIEngineResult(requestId: String, status: String)
-    }
-
-    class ScheduleGenerationEvent {
-        +requestId: String
-        +status: GenerationStatus
-        +timestamp: LocalDateTime
-        +ScheduleGenerationEvent(requestId: String, status: GenerationStatus)
-    }
-
-    class ScheduleGenerationCompletedEvent {
-        +requestId: String
-        +result: AISchedule
-        +ScheduleGenerationCompletedEvent(requestId: String, result: AISchedule)
-    }
-
-    class ScheduleGenerationFailedEvent {
-        +requestId: String
-        +errorMessage: String
-        +ScheduleGenerationFailedEvent(requestId: String, errorMessage: String)
     }
 }
 
-' ========== DTO Layer ==========
-package "DTO Layer (com.unicorn.tripgen.ai.dto)" {
+' ======================================
+' DTO Layer
+' ======================================
+package "DTO Layer" {
     class GenerateScheduleRequest {
-        +tripId: String
-        +tripName: String
-        +transportMode: String
-        +startTime: String
-        +members: List<MemberDto>
-        +destinations: List<DestinationDto>
-        +specialRequests: String
+        -String tripId
+        -String tripName
+        -String transportMode
+        -String startTime
+        -List<TripMember> members
+        -List<Destination> destinations
+        -String specialRequests
+        +GenerateScheduleRequest()
+        +getTripId(): String
+        +setTripId(tripId: String): void
+        +getTripName(): String
+        +setTripName(tripName: String): void
+        +getTransportMode(): String
+        +setTransportMode(transportMode: String): void
+        +getStartTime(): String
+        +setStartTime(startTime: String): void
+        +getMembers(): List<TripMember>
+        +setMembers(members: List<TripMember>): void
+        +getDestinations(): List<Destination>
+        +setDestinations(destinations: List<Destination>): void
+        +getSpecialRequests(): String
+        +setSpecialRequests(specialRequests: String): void
     }
 
     class GenerateScheduleResponse {
-        +requestId: String
-        +status: String
-        +message: String
-        +estimatedTime: Integer
+        -String requestId
+        -AIJobStatus status
+        -String message
+        -int estimatedTime
+        +GenerateScheduleResponse()
+        +GenerateScheduleResponse(requestId: String, status: AIJobStatus, message: String)
+        +getRequestId(): String
+        +setRequestId(requestId: String): void
+        +getStatus(): AIJobStatus
+        +setStatus(status: AIJobStatus): void
+        +getMessage(): String
+        +setMessage(message: String): void
+        +getEstimatedTime(): int
+        +setEstimatedTime(estimatedTime: int): void
     }
 
     class GenerationStatusResponse {
-        +requestId: String
-        +status: String
-        +progress: Integer
-        +currentStep: String
-        +steps: List<StepDto>
-        +estimatedTime: Integer
-        +error: String
+        -String requestId
+        -AIJobStatus status
+        -int progress
+        -String currentStep
+        -List<ProcessStep> steps
+        -int estimatedTime
+        -String error
+        +GenerationStatusResponse()
+        +getRequestId(): String
+        +setRequestId(requestId: String): void
+        +getStatus(): AIJobStatus
+        +setStatus(status: AIJobStatus): void
+        +getProgress(): int
+        +setProgress(progress: int): void
+        +getCurrentStep(): String
+        +setCurrentStep(currentStep: String): void
+        +getSteps(): List<ProcessStep>
+        +setSteps(steps: List<ProcessStep>): void
+        +getEstimatedTime(): int
+        +setEstimatedTime(estimatedTime: int): void
+        +getError(): String
+        +setError(error: String): void
     }
 
-    class GeneratedScheduleResponse {
-        +requestId: String
-        +tripId: String
-        +status: String
-        +generatedAt: LocalDateTime
-        +schedules: List<DayScheduleDto>
-        +metadata: ScheduleMetadataDto
-    }
-
-    class RegenerateScheduleRequest {
-        +tripId: String
-        +day: Integer
-        +existingSchedules: List<ExistingScheduleDto>
-        +specialRequests: String
+    class GeneratedScheduleDto {
+        -String requestId
+        -String tripId
+        -AIJobStatus status
+        -LocalDateTime generatedAt
+        -List<DailyScheduleDto> schedules
+        -ScheduleMetadata metadata
+        +GeneratedScheduleDto()
+        +getRequestId(): String
+        +setRequestId(requestId: String): void
+        +getTripId(): String
+        +setTripId(tripId: String): void
+        +getStatus(): AIJobStatus
+        +setStatus(status: AIJobStatus): void
+        +getGeneratedAt(): LocalDateTime
+        +setGeneratedAt(generatedAt: LocalDateTime): void
+        +getSchedules(): List<DailyScheduleDto>
+        +setSchedules(schedules: List<DailyScheduleDto>): void
+        +getMetadata(): ScheduleMetadata
+        +setMetadata(metadata: ScheduleMetadata): void
     }
 
     class RecommendationRequest {
-        +placeName: String
-        +placeType: String
-        +placeAddress: String
-        +userProfile: UserProfileDto
-        +tripContext: TripContextDto
+        -String placeName
+        -String placeType
+        -String placeAddress
+        -UserProfile userProfile
+        -TripContext tripContext
+        +RecommendationRequest()
+        +getPlaceName(): String
+        +setPlaceName(placeName: String): void
+        +getPlaceType(): String
+        +setPlaceType(placeType: String): void
+        +getPlaceAddress(): String
+        +setPlaceAddress(placeAddress: String): void
+        +getUserProfile(): UserProfile
+        +setUserProfile(userProfile: UserProfile): void
+        +getTripContext(): TripContext
+        +setTripContext(tripContext: TripContext): void
     }
 
     class RecommendationResponse {
-        +placeId: String
-        +recommendations: RecommendationContentDto
-        +generatedAt: LocalDateTime
-        +cacheExpiry: LocalDateTime
+        -String placeId
+        -RecommendationData recommendations
+        -LocalDateTime generatedAt
+        -LocalDateTime cacheExpiry
+        +RecommendationResponse()
+        +getPlaceId(): String
+        +setPlaceId(placeId: String): void
+        +getRecommendations(): RecommendationData
+        +setRecommendations(recommendations: RecommendationData): void
+        +getGeneratedAt(): LocalDateTime
+        +setGeneratedAt(generatedAt: LocalDateTime): void
+        +getCacheExpiry(): LocalDateTime
+        +setCacheExpiry(cacheExpiry: LocalDateTime): void
     }
 
     class WeatherImpactRequest {
-        +schedules: List<ScheduleForWeatherDto>
-        +weatherChanges: List<WeatherChangeDto>
+        -List<DailyScheduleDto> schedules
+        -List<WeatherChange> weatherChanges
+        +WeatherImpactRequest()
+        +getSchedules(): List<DailyScheduleDto>
+        +setSchedules(schedules: List<DailyScheduleDto>): void
+        +getWeatherChanges(): List<WeatherChange>
+        +setWeatherChanges(weatherChanges: List<WeatherChange>): void
     }
 
     class WeatherImpactResponse {
-        +impactedDays: List<ImpactedDayDto>
-    }
-
-    ' Supporting DTOs
-    class MemberDto {
-        +name: String
-        +age: Integer
-        +gender: String
-        +healthStatus: String
-        +preferences: List<String>
-    }
-
-    class DestinationDto {
-        +destinationName: String
-        +nights: Integer
-        +startDate: String
-        +endDate: String
-        +accommodation: String
-        +checkInTime: String
-        +checkOutTime: String
-    }
-
-    class StepDto {
-        +step: String
-        +status: String
-    }
-
-    class DayScheduleDto {
-        +day: Integer
-        +date: String
-        +destinationName: String
-        +weather: WeatherInfoDto
-        +places: List<PlaceVisitDto>
-    }
-
-    class PlaceVisitDto {
-        +placeId: String
-        +placeName: String
-        +category: String
-        +startTime: String
-        +duration: Integer
-        +transportation: TransportationDto
-        +healthConsideration: HealthConsiderationDto
-        +weatherConsideration: WeatherConsiderationDto
-    }
-
-    class WeatherInfoDto {
-        +condition: String
-        +temperature: TemperatureDto
-        +precipitation: Double
-        +warnings: List<String>
-    }
-
-    class TemperatureDto {
-        +min: Double
-        +max: Double
-    }
-
-    class TransportationDto {
-        +type: String
-        +duration: Integer
-        +distance: Double
-        +route: String
-        +parkingInfo: ParkingInfoDto
-    }
-
-    class ParkingInfoDto {
-        +name: String
-        +distance: String
-        +estimatedCost: String
-    }
-
-    class HealthConsiderationDto {
-        +restPoints: List<String>
-        +optionalActivities: OptionalActivitiesDto
-        +accessibility: List<String>
-        +walkingDistance: Double
-    }
-
-    class OptionalActivitiesDto {
-        +basic: String
-        +active: String
-    }
-
-    class WeatherConsiderationDto {
-        +indoorAlternative: String
-        +preparationItems: List<String>
-    }
-
-    class ScheduleMetadataDto {
-        +totalDays: Integer
-        +totalPlaces: Integer
-        +healthStatusConsidered: String
-        +weatherConsidered: Boolean
-    }
-
-    class ExistingScheduleDto {
-        +day: Integer
-        +places: List<String>
-    }
-
-    class UserProfileDto {
-        +memberComposition: String
-        +healthStatus: String
-        +transportMode: String
-        +preferences: List<String>
-    }
-
-    class TripContextDto {
-        +visitDate: String
-        +visitTime: String
-        +previousPlace: String
-        +nextPlace: String
-    }
-
-    class RecommendationContentDto {
-        +reasons: List<String>
-        +tips: RecommendationTipsDto
-    }
-
-    class RecommendationTipsDto {
-        +description: String
-        +events: List<String>
-        +bestVisitTime: String
-        +estimatedDuration: String
-        +photoSpots: List<String>
-        +practicalTips: List<String>
-        +alternativePlaces: List<AlternativePlaceDto>
-    }
-
-    class AlternativePlaceDto {
-        +name: String
-        +reason: String
-        +distance: String
-    }
-
-    class ScheduleForWeatherDto {
-        +day: Integer
-        +date: String
-        +places: List<PlaceForWeatherDto>
-    }
-
-    class PlaceForWeatherDto {
-        +placeId: String
-        +isOutdoor: Boolean
-    }
-
-    class WeatherChangeDto {
-        +date: String
-        +previousCondition: String
-        +newCondition: String
-        +severity: String
-    }
-
-    class ImpactedDayDto {
-        +day: Integer
-        +date: String
-        +reason: String
-        +affectedPlaces: List<String>
-        +recommendation: String
-        +alternativeOptions: List<String>
+        -List<ImpactedDay> impactedDays
+        +WeatherImpactResponse()
+        +getImpactedDays(): List<ImpactedDay>
+        +setImpactedDays(impactedDays: List<ImpactedDay>): void
     }
 }
 
-' ========== Repository Layer ==========
-package "Repository Layer (com.unicorn.tripgen.ai.repository)" {
-    ' JPA Repositories
-    package "JPA (com.unicorn.tripgen.ai.repository.jpa)" {
-        interface AIRequestRepository {
-            +findByRequestId(requestId: String): Optional<AIRequestEntity>
-            +findByTripId(tripId: String): List<AIRequestEntity>
-            +findByStatusIn(statuses: List<GenerationStatus>): List<AIRequestEntity>
-            +findBySubmittedAtBefore(cutoffTime: LocalDateTime): List<AIRequestEntity>
-            +save(entity: AIRequestEntity): AIRequestEntity
-            +deleteByRequestId(requestId: String): void
-        }
-
-        interface AIScheduleRepository {
-            +findByRequestId(requestId: String): Optional<AIScheduleEntity>
-            +findByTripId(tripId: String): List<AIScheduleEntity>
-            +findByGeneratedAtBetween(startTime: LocalDateTime, endTime: LocalDateTime): List<AIScheduleEntity>
-            +save(entity: AIScheduleEntity): AIScheduleEntity
-            +deleteByRequestId(requestId: String): void
-        }
-
-        interface AIRecommendationRepository {
-            +findByPlaceId(placeId: String): Optional<AIRecommendationEntity>
-            +findByCacheExpiryBefore(cutoffTime: LocalDateTime): List<AIRecommendationEntity>
-            +save(entity: AIRecommendationEntity): AIRecommendationEntity
-            +deleteByPlaceId(placeId: String): void
-            +deleteExpiredRecommendations(): void
-        }
+' ======================================
+' Enum Classes
+' ======================================
+package "Enums" {
+    enum AIJobType {
+        SCHEDULE_GENERATION
+        SCHEDULE_REGENERATION
+        RECOMMENDATION_GENERATION
+        WEATHER_IMPACT_ANALYSIS
     }
 
-    ' JPA Entities
-    package "Entity (com.unicorn.tripgen.ai.repository.entity)" {
-        class AIRequestEntity {
-            +id: Long
-            +requestId: String
-            +tripId: String
-            +tripName: String
-            +transportMode: String
-            +startTime: String
-            +membersJson: String
-            +destinationsJson: String
-            +specialRequests: String
-            +status: String
-            +progress: Integer
-            +currentStep: String
-            +stepsJson: String
-            +estimatedTime: Integer
-            +errorMessage: String
-            +submittedAt: LocalDateTime
-            +completedAt: LocalDateTime
-            +AIRequestEntity()
-            +toDomain(): AIRequest
-            +fromDomain(domain: AIRequest): AIRequestEntity
-        }
-
-        class AIScheduleEntity {
-            +id: Long
-            +requestId: String
-            +tripId: String
-            +generatedAt: LocalDateTime
-            +schedulesJson: String
-            +metadataJson: String
-            +AIScheduleEntity()
-            +toDomain(): AISchedule
-            +fromDomain(domain: AISchedule): AIScheduleEntity
-        }
-
-        class AIRecommendationEntity {
-            +id: Long
-            +placeId: String
-            +recommendationsJson: String
-            +generatedAt: LocalDateTime
-            +cacheExpiry: LocalDateTime
-            +AIRecommendationEntity()
-            +toDomain(): AIRecommendation
-            +fromDomain(domain: AIRecommendation): AIRecommendationEntity
-        }
-    }
-}
-
-' ========== Configuration Layer ==========
-package "Configuration Layer (com.unicorn.tripgen.ai.config)" {
-    class AIServiceConfig {
-        +aiEngineConfig: AIEngineConfig
-        +cacheConfig: CacheConfig
-        +messagingConfig: MessagingConfig
-        +aiEngineClient(): AIEngineClient
-        +weatherApiClient(): WeatherApiClient
-        +locationApiClient(): LocationApiClient
-        +taskExecutor(): TaskExecutor
-        +objectMapper(): ObjectMapper
-    }
-
-    class AIEngineConfig {
-        +endpoint: String
-        +apiKey: String
-        +timeout: Duration
-        +maxRetries: Integer
-    }
-
-    class MessagingConfig {
-        +exchangeName: String
-        +queueName: String
-        +routingKey: String
-        +rabbitTemplate(connectionFactory: ConnectionFactory): RabbitTemplate
-        +rabbitListenerContainerFactory(connectionFactory: ConnectionFactory): RabbitListenerContainerFactory
-    }
-}
-
-' ========== External Client Layer ==========
-package "External Client Layer (com.unicorn.tripgen.ai.client)" {
-    interface AIEngineClient {
-        +submitScheduleGeneration(request: AIEngineScheduleRequest): AIEngineResponse
-        +getGenerationStatus(requestId: String): AIEngineStatusResponse
-        +cancelGeneration(requestId: String): void
-        +generateRecommendations(request: AIEngineRecommendationRequest): AIEngineRecommendationResponse
-    }
-
-    class AIEngineClientImpl {
-        -restTemplate: RestTemplate
-        -aiEngineConfig: AIEngineConfig
-        -retryTemplate: RetryTemplate
-        +submitScheduleGeneration(request: AIEngineScheduleRequest): AIEngineResponse
-        +getGenerationStatus(requestId: String): AIEngineStatusResponse
-        +cancelGeneration(requestId: String): void
-        +generateRecommendations(request: AIEngineRecommendationRequest): AIEngineRecommendationResponse
-        -buildAuthHeaders(): HttpHeaders
-        -handleApiError(response: ResponseEntity): void
-    }
-
-    interface WeatherApiClient {
-        +getCurrentWeather(location: String, date: LocalDate): WeatherApiResponse
-        +getWeatherForecast(location: String, startDate: LocalDate, endDate: LocalDate): WeatherForecastResponse
-    }
-
-    class WeatherApiClientImpl {
-        -restTemplate: RestTemplate
-        -weatherApiConfig: WeatherApiConfig
-        +getCurrentWeather(location: String, date: LocalDate): WeatherApiResponse
-        +getWeatherForecast(location: String, startDate: LocalDate, endDate: LocalDate): WeatherForecastResponse
-        -buildWeatherApiUrl(location: String, date: LocalDate): String
-    }
-
-    interface LocationApiClient {
-        +getLocationDetails(placeId: String): LocationApiResponse
-        +searchPlaces(query: String, location: Coordinate, radius: Double): LocationSearchResponse
-        +calculateRoute(origin: Coordinate, destination: Coordinate, mode: String): RouteApiResponse
-    }
-
-    class LocationApiClientImpl {
-        -restTemplate: RestTemplate
-        -locationApiConfig: LocationApiConfig
-        +getLocationDetails(placeId: String): LocationApiResponse
-        +searchPlaces(query: String, location: Coordinate, radius: Double): LocationSearchResponse
-        +calculateRoute(origin: Coordinate, destination: Coordinate, mode: String): RouteApiResponse
-        -buildLocationApiHeaders(): HttpHeaders
-    }
-
-    ' External API Response Classes
-    class AIEngineResponse {
-        +requestId: String
-        +status: String
-        +message: String
-        +estimatedTime: Integer
-    }
-
-    class AIEngineStatusResponse {
-        +requestId: String
-        +status: String
-        +progress: Integer
-        +currentStep: String
-        +result: Object
-        +error: String
-    }
-
-    class AIEngineRecommendationResponse {
-        +placeId: String
-        +recommendations: Object
-        +generatedAt: String
-    }
-
-    class WeatherApiResponse {
-        +location: String
-        +date: String
-        +condition: String
-        +temperature: Object
-        +precipitation: Double
-        +warnings: List<String>
-    }
-
-    class WeatherForecastResponse {
-        +location: String
-        +forecasts: List<WeatherApiResponse>
-    }
-
-    class LocationApiResponse {
-        +placeId: String
-        +name: String
-        +category: String
-        +coordinate: Object
-        +address: String
-        +rating: Double
-        +openingHours: String
-    }
-
-    class LocationSearchResponse {
-        +results: List<LocationApiResponse>
-        +totalCount: Integer
-    }
-
-    class RouteApiResponse {
-        +distance: Double
-        +duration: Integer
-        +steps: List<String>
-    }
-}
-
-' ========== Enums ==========
-package "Enums (com.unicorn.tripgen.ai.domain.enums)" {
-    enum GenerationStatus {
+    enum AIJobStatus {
         QUEUED
         PROCESSING
         COMPLETED
@@ -891,157 +397,176 @@ package "Enums (com.unicorn.tripgen.ai.domain.enums)" {
         CANCELLED
     }
 
-    enum StepStatus {
+    enum ProcessStepStatus {
         PENDING
         PROCESSING
         COMPLETED
-    }
-
-    enum TransportMode {
-        PUBLIC
-        CAR
-    }
-
-    enum TransportType {
-        WALK
-        CAR
-        PUBLIC
-    }
-
-    enum Gender {
-        MALE
-        FEMALE
-    }
-
-    enum HealthStatus {
-        EXCELLENT
-        GOOD
-        CAUTION
-        LIMITED
-    }
-
-    enum WeatherSeverity {
-        LOW
-        MEDIUM
-        HIGH
-    }
-
-    enum RecommendationAction {
-        REGENERATE
-        MODIFY
-        KEEP
+        FAILED
     }
 }
 
-' ========== Common Components ==========
-package "Common Components" {
-    class ApiResponse
-    class ErrorResponse
-    class BaseException
-    class BusinessException
-    class ValidationException
-    class ResourceNotFoundException
-    class BaseTimeEntity
-    class BaseEntity
-    class DateTimeUtil
-    class ValidationUtil
-    class SecurityUtil
-    class CacheConfig
-    class RedisCacheConfig
+' ======================================
+' External Clients
+' ======================================
+package "External Clients" {
+    interface AIModelClient {
+        +generateSchedule(optimizationData: ScheduleOptimizationData): AIScheduleResult
+        +generateRecommendations(place: PlaceInfo, userProfile: UserProfile, tripContext: TripContext): AIRecommendationResult
+        +analyzeWeatherImpact(schedules: List<DailySchedule>, weatherChanges: List<WeatherChange>): WeatherImpactResult
+        +optimizeRoutes(places: List<PlaceInfo>, constraints: RouteConstraints): RouteOptimizationResult
+    }
+
+    class OpenAIClient {
+        -String apiKey
+        -String baseUrl
+        -RestTemplate restTemplate
+        +OpenAIClient(apiKey: String, baseUrl: String, restTemplate: RestTemplate)
+        +generateSchedule(optimizationData: ScheduleOptimizationData): AIScheduleResult
+        +generateRecommendations(place: PlaceInfo, userProfile: UserProfile, tripContext: TripContext): AIRecommendationResult
+        +analyzeWeatherImpact(schedules: List<DailySchedule>, weatherChanges: List<WeatherChange>): WeatherImpactResult
+        +optimizeRoutes(places: List<PlaceInfo>, constraints: RouteConstraints): RouteOptimizationResult
+        -buildSchedulePrompt(data: ScheduleOptimizationData): String
+        -buildRecommendationPrompt(place: PlaceInfo, userProfile: UserProfile, tripContext: TripContext): String
+        -parseScheduleResponse(response: String): AIScheduleResult
+        -parseRecommendationResponse(response: String): AIRecommendationResult
+    }
+
+    class ClaudeClient {
+        -String apiKey
+        -String baseUrl
+        -RestTemplate restTemplate
+        +ClaudeClient(apiKey: String, baseUrl: String, restTemplate: RestTemplate)
+        +generateSchedule(optimizationData: ScheduleOptimizationData): AIScheduleResult
+        +generateRecommendations(place: PlaceInfo, userProfile: UserProfile, tripContext: TripContext): AIRecommendationResult
+        +analyzeWeatherImpact(schedules: List<DailySchedule>, weatherChanges: List<WeatherChange>): WeatherImpactResult
+        +optimizeRoutes(places: List<PlaceInfo>, constraints: RouteConstraints): RouteOptimizationResult
+        -buildAnthropicRequest(messages: List<Message>): AnthropicRequest
+        -parseAnthropicResponse(response: AnthropicResponse): AIResult
+    }
+
+    interface WeatherServiceClient {
+        +getWeatherInfo(destinations: List<Destination>): List<WeatherInfo>
+        +getWeatherForecast(location: String, startDate: LocalDate, endDate: LocalDate): List<WeatherInfo>
+    }
+
+    interface LocationServiceClient {
+        +getPlaceDetails(placeId: String): PlaceInfo
+        +searchPlaces(query: String, location: String): List<PlaceInfo>
+    }
 }
 
-' ========== Relationships ==========
+' ======================================
+' Validation Layer
+' ======================================
+package "Validation Layer" {
+    class AIScheduleValidator {
+        +validateGenerateScheduleRequest(request: GenerateScheduleRequest): void
+        +validateRegenerateScheduleRequest(request: RegenerateScheduleRequest): void
+        +validateWeatherImpactRequest(request: WeatherImpactRequest): void
+        -validateTripMembers(members: List<TripMember>): void
+        -validateDestinations(destinations: List<Destination>): void
+        -validateTransportMode(transportMode: String): void
+        -validateTimeFormat(time: String): void
+    }
 
-' Controller Dependencies
-AIScheduleController --> AIScheduleService : uses
-AIRecommendationController --> AIRecommendationService : uses
+    class RecommendationValidator {
+        +validateRecommendationRequest(request: RecommendationRequest): void
+        -validatePlaceInfo(placeName: String, placeType: String): void
+        -validateUserProfile(userProfile: UserProfile): void
+        -validateTripContext(tripContext: TripContext): void
+    }
+}
 
-' Service Layer Relationships
+' ======================================
+' Cache & Message Queue
+' ======================================
+package "Infrastructure" {
+    interface CacheManager {
+        +get(key: String): Object
+        +put(key: String, value: Object, expiration: Duration): void
+        +evict(key: String): void
+        +clear(): void
+    }
+
+    interface MessageQueue {
+        +sendMessage(queue: String, message: Object): void
+        +receiveMessage(queue: String): Object
+        +sendDelayedMessage(queue: String, message: Object, delay: Duration): void
+    }
+}
+
+' ======================================
+' Relationships
+' ======================================
+
+' Controller Layer Associations (의존성 주입으로 보유)
+AIScheduleController --> "1" AIScheduleService : -aiScheduleService
+AIScheduleController --> "1" AIScheduleValidator : -scheduleValidator
+AIRecommendationController --> "1" AIRecommendationService : -recommendationService
+AIRecommendationController --> "1" RecommendationValidator : -recommendationValidator
+
+' Service Interface Realizations (인터페이스 구현)
 AIScheduleService <|.. AIScheduleServiceImpl : implements
 AIRecommendationService <|.. AIRecommendationServiceImpl : implements
-WeatherService <|.. WeatherServiceImpl : implements
-LocationService <|.. LocationServiceImpl : implements
-CacheService <|.. CacheServiceImpl : implements
-MessagingService <|.. MessagingServiceImpl : implements
 
-' Service Dependencies
-AIScheduleServiceImpl --> AIRequestRepository : uses
-AIScheduleServiceImpl --> AIScheduleRepository : uses
-AIScheduleServiceImpl --> AIEngineClient : uses
-AIScheduleServiceImpl --> WeatherService : uses
-AIScheduleServiceImpl --> LocationService : uses
-AIScheduleServiceImpl --> CacheService : uses
-AIScheduleServiceImpl --> MessagingService : uses
+' Service Layer Associations (의존성 주입으로 보유)
+AIScheduleServiceImpl --> "1" AIScheduleRepository : -scheduleRepository
+AIScheduleServiceImpl --> "1" AIJobRepository : -jobRepository
+AIScheduleServiceImpl --> "1" AIModelClient : -aiModelClient
+AIScheduleServiceImpl --> "1" WeatherServiceClient : -weatherClient
+AIScheduleServiceImpl --> "1" LocationServiceClient : -locationClient
+AIScheduleServiceImpl --> "1" CacheManager : -cacheManager
+AIScheduleServiceImpl --> "1" MessageQueue : -messageQueue
 
-AIRecommendationServiceImpl --> AIRecommendationRepository : uses
-AIRecommendationServiceImpl --> AIEngineClient : uses
-AIRecommendationServiceImpl --> LocationService : uses
-AIRecommendationServiceImpl --> CacheService : uses
+AIRecommendationServiceImpl --> "1" AIRecommendationRepository : -recommendationRepository
+AIRecommendationServiceImpl --> "1" AIModelClient : -aiModelClient
+AIRecommendationServiceImpl --> "1" LocationServiceClient : -locationClient
+AIRecommendationServiceImpl --> "1" CacheManager : -cacheManager
 
-WeatherServiceImpl --> WeatherApiClient : uses
-WeatherServiceImpl --> CacheService : uses
+AIJobService --> "1" AIJobRepository : -jobRepository
+AIJobService --> "1" MessageQueue : -messageQueue
 
-LocationServiceImpl --> LocationApiClient : uses
-LocationServiceImpl --> CacheService : uses
+' External Client Realizations (인터페이스 구현)
+AIModelClient <|.. OpenAIClient : implements
+AIModelClient <|.. ClaudeClient : implements
 
-' Domain Relationships
-AIRequest --> TripMember : contains
-AIRequest --> Destination : contains
-AIRequest --> GenerationStatus : uses
-AIRequest --> GenerationStep : contains
+' Repository Layer Dependencies (메서드에서 Entity 관리)
+AIScheduleRepository ..> AISchedule : manages
+AIJobRepository ..> AIJob : manages
+AIRecommendationRepository ..> AIRecommendation : manages
 
-AISchedule --> DaySchedule : contains
-AISchedule --> ScheduleMetadata : contains
+' Controller Layer Dependencies (메서드 파라미터/반환값)
+AIScheduleController ..> GenerateScheduleRequest : uses
+AIScheduleController ..> GenerateScheduleResponse : uses
+AIScheduleController ..> GenerationStatusResponse : uses
+AIScheduleController ..> GeneratedScheduleResponse : uses
+AIScheduleController ..> RegenerateScheduleRequest : uses
+AIScheduleController ..> WeatherImpactRequest : uses
+AIScheduleController ..> WeatherImpactResponse : uses
 
-DaySchedule --> PlaceVisit : contains
-DaySchedule --> WeatherInfo : contains
+AIRecommendationController ..> RecommendationRequest : uses
+AIRecommendationController ..> RecommendationResponse : uses
 
-PlaceVisit --> Transportation : contains
-PlaceVisit --> HealthConsideration : contains
-PlaceVisit --> WeatherConsideration : contains
+' Service Layer Dependencies (메서드 파라미터/반환값)
+AIScheduleServiceImpl ..> GenerateScheduleRequest : uses
+AIScheduleServiceImpl ..> GenerateScheduleResponse : uses
+AIScheduleServiceImpl ..> GenerationStatusResponse : uses
+AIScheduleServiceImpl ..> GeneratedScheduleDto : uses
+AIScheduleServiceImpl ..> RegenerateScheduleRequest : uses
+AIScheduleServiceImpl ..> WeatherImpactRequest : uses
+AIScheduleServiceImpl ..> WeatherImpactResponse : uses
 
-Transportation --> ParkingInfo : contains
-HealthConsideration --> OptionalActivities : contains
+AIRecommendationServiceImpl ..> RecommendationRequest : uses
+AIRecommendationServiceImpl ..> RecommendationResponse : uses
 
-WeatherInfo --> Temperature : contains
+' Entity Enum Dependencies (프로퍼티로 사용)
+AISchedule --> "1" AIJobStatus : -status
+AIJob --> "1" AIJobType : -jobType
+AIJob --> "1" AIJobStatus : -status
 
-AIRecommendation --> RecommendationContent : contains
-RecommendationContent --> RecommendationTips : contains
-RecommendationTips --> AlternativePlace : contains
-
-RecommendationContext --> UserProfile : contains
-RecommendationContext --> TripContext : contains
-
-WeatherImpactAnalysis --> ImpactedDay : contains
-
-LocationInfo --> Coordinate : contains
-
-' Repository Relationships
-AIRequestRepository --> AIRequestEntity : manages
-AIScheduleRepository --> AIScheduleEntity : manages
-AIRecommendationRepository --> AIRecommendationEntity : manages
-
-AIRequestEntity --> BaseTimeEntity : extends
-AIScheduleEntity --> BaseTimeEntity : extends  
-AIRecommendationEntity --> BaseTimeEntity : extends
-
-' Entity Domain Conversion
-AIRequestEntity --> AIRequest : converts
-AIScheduleEntity --> AISchedule : converts
-AIRecommendationEntity --> AIRecommendation : converts
-
-' Client Relationships
-AIEngineClient <|.. AIEngineClientImpl : implements
-WeatherApiClient <|.. WeatherApiClientImpl : implements
-LocationApiClient <|.. LocationApiClientImpl : implements
-
-' Common Component Usage
-AIScheduleController --> ApiResponse : uses
-AIRecommendationController --> ApiResponse : uses
-AIScheduleServiceImpl --> BusinessException : throws
-AIRecommendationServiceImpl --> ValidationException : throws
-AIRequestEntity --> BaseTimeEntity : extends
-AIScheduleEntity --> BaseTimeEntity : extends
-CacheServiceImpl --> RedisCacheConfig : uses
+' DTO Enum Dependencies (프로퍼티로 사용)
+GenerateScheduleResponse --> "1" AIJobStatus : -status
+GenerationStatusResponse --> "1" AIJobStatus : -status
+GeneratedScheduleDto --> "1" AIJobStatus : -status
 
 @enduml

@@ -1,0 +1,292 @@
+@startuml
+!theme mono
+
+title 여행 일정 생성 서비스 - 전체 클래스 구조도
+
+' ======================================
+' Common Components
+' ======================================
+package "Common Components" <<rectangle>> #lightgray {
+    class BaseException
+    class ApiResponse<T>
+    class BaseEntity
+    class DateUtils
+    class ValidationUtils
+    class SecurityUtils
+}
+
+' ======================================
+' User Service (Layered Architecture)
+' ======================================
+package "User Service" <<rectangle>> #lightblue {
+    class UserController {
+        +registerUser: 회원가입
+        +loginUser: 로그인
+        +getProfile: 프로필 조회
+        +updateProfile: 프로필 수정
+    }
+    
+    interface UserService
+    class UserServiceImpl {
+        +authenticateUser: 사용자 인증
+        +getUserProfile: 프로필 조회
+        +updateProfile: 프로필 수정
+    }
+    
+    interface UserRepository
+    class UserRepositoryImpl {
+        +findByUsername: 사용자명으로 조회
+        +save: 사용자 저장
+        +update: 사용자 정보 수정
+    }
+    
+    class User {
+        -userId: Long
+        -username: String
+        -email: String
+        -password: String
+    }
+}
+
+' ======================================
+' Location Service (Layered Architecture)
+' ======================================
+package "Location Service" <<rectangle>> #lightgreen {
+    class LocationController {
+        +searchLocation: 위치 검색
+        +getLocationDetail: 위치 상세 조회
+        +getWeather: 날씨 정보 조회
+        +getRoute: 경로 정보 조회
+    }
+    
+    interface LocationService
+    class LocationServiceImpl {
+        +searchLocations: 위치 검색
+        +getLocationDetail: 위치 상세 정보
+        +getWeatherInfo: 날씨 정보 조회
+    }
+    
+    interface LocationRepository
+    class LocationRepositoryImpl {
+        +findByName: 이름으로 위치 검색
+        +findById: ID로 위치 조회
+        +save: 위치 정보 저장
+    }
+    
+    class Location {
+        -locationId: Long
+        -name: String
+        -latitude: Double
+        -longitude: Double
+    }
+}
+
+' ======================================
+' AI Service (Layered Architecture)
+' ======================================
+package "AI Service" <<rectangle>> #lightyellow {
+    class AIScheduleController {
+        +generateSchedule: 일정 생성 요청
+        +getScheduleJobStatus: 일정 생성 상태 조회
+    }
+    
+    class AIRecommendationController {
+        +generateRecommendation: 추천 정보 생성
+        +getRecommendationJobStatus: 추천 상태 조회
+    }
+    
+    interface AIScheduleService
+    class AIScheduleServiceImpl {
+        +generateSchedule: AI 일정 생성
+        +getJobStatus: 작업 상태 조회
+    }
+    
+    interface AIScheduleRepository
+    class AIScheduleRepositoryImpl {
+        +save: AI 일정 저장
+        +findByJobId: 작업 ID로 조회
+    }
+    
+    class AISchedule {
+        -scheduleId: Long
+        -jobId: String
+        -scheduleData: String
+        -status: JobStatus
+    }
+}
+
+' ======================================
+' Trip Service (Clean Architecture)
+' ======================================
+package "Trip Service" <<rectangle>> #lightcoral {
+    ' Framework & Driver Layer
+    class TripController {
+        +createTrip: 여행 생성
+        +getTripDetail: 여행 상세 조회
+        +updateTrip: 여행 정보 수정
+    }
+    
+    class ScheduleController {
+        +generateSchedule: 일정 생성
+        +getSchedule: 일정 조회
+        +updateSchedule: 일정 수정
+    }
+    
+    ' Use Case Layer
+    interface TripUseCase {
+        +createTrip: 여행 생성 비즈니스 로직
+        +getTripDetail: 여행 상세 조회 로직
+        +updateTrip: 여행 수정 로직
+    }
+    
+    interface ScheduleUseCase {
+        +generateSchedule: 일정 생성 비즈니스 로직
+        +getSchedule: 일정 조회 로직
+        +updateSchedule: 일정 수정 로직
+    }
+    
+    ' Interface Adapter Layer
+    interface TripRepository
+    class TripRepositoryImpl {
+        +save: 여행 정보 저장
+        +findById: ID로 여행 조회
+        +update: 여행 정보 수정
+    }
+    
+    interface UserServiceClient {
+        +getUser: 사용자 정보 조회
+        +validateUser: 사용자 검증
+    }
+    
+    interface LocationServiceClient {
+        +getLocationInfo: 위치 정보 조회
+        +getWeatherInfo: 날씨 정보 조회
+    }
+    
+    interface AiServiceClient {
+        +generateSchedule: AI 일정 생성 요청
+        +getScheduleStatus: 일정 생성 상태 조회
+    }
+    
+    ' Entity Layer
+    class Trip {
+        -tripId: Long
+        -tripName: String
+        -startDate: LocalDate
+        -endDate: LocalDate
+        -status: TripStatus
+    }
+    
+    class Schedule {
+        -scheduleId: Long
+        -tripId: Long
+        -day: Integer
+        -date: LocalDate
+        -places: List<SchedulePlace>
+    }
+}
+
+' ======================================
+' External Services
+' ======================================
+package "External Services" <<rectangle>> #lightpink {
+    class GooglePlacesClient {
+        +searchPlaces: Google Places API 호출
+    }
+    
+    class OpenAIClient {
+        +generateText: OpenAI API 호출
+    }
+    
+    class WeatherApiClient {
+        +getWeather: 날씨 API 호출
+    }
+}
+
+' ======================================
+' Relationships - User Service
+' ======================================
+UserController --> UserService
+UserService <|.. UserServiceImpl
+UserServiceImpl --> UserRepository
+UserRepository <|.. UserRepositoryImpl
+UserRepositoryImpl --> User
+
+' ======================================
+' Relationships - Location Service
+' ======================================
+LocationController --> LocationService
+LocationService <|.. LocationServiceImpl
+LocationServiceImpl --> LocationRepository
+LocationRepository <|.. LocationRepositoryImpl
+LocationRepositoryImpl --> Location
+LocationServiceImpl --> GooglePlacesClient
+LocationServiceImpl --> WeatherApiClient
+
+' ======================================
+' Relationships - AI Service
+' ======================================
+AIScheduleController --> AIScheduleService
+AIScheduleService <|.. AIScheduleServiceImpl
+AIScheduleServiceImpl --> AIScheduleRepository
+AIScheduleRepository <|.. AIScheduleRepositoryImpl
+AIScheduleRepositoryImpl --> AISchedule
+AIScheduleServiceImpl --> OpenAIClient
+
+' ======================================
+' Relationships - Trip Service (Clean Architecture)
+' ======================================
+TripController --> TripUseCase
+ScheduleController --> ScheduleUseCase
+TripUseCase --> TripRepository
+ScheduleUseCase --> TripRepository
+TripRepository <|.. TripRepositoryImpl
+TripRepositoryImpl --> Trip
+TripRepositoryImpl --> Schedule
+
+' Trip Service External Dependencies
+TripUseCase --> UserServiceClient
+ScheduleUseCase --> LocationServiceClient
+ScheduleUseCase --> AiServiceClient
+
+' Cross-Service Dependencies
+UserServiceClient ..> UserService : "HTTP 호출"
+LocationServiceClient ..> LocationService : "HTTP 호출"
+AiServiceClient ..> AIScheduleService : "HTTP 호출"
+
+' ======================================
+' Common Component Usage
+' ======================================
+UserServiceImpl --> BaseException
+LocationServiceImpl --> BaseException
+AIScheduleServiceImpl --> BaseException
+TripUseCase --> BaseException
+
+UserController --> ApiResponse
+LocationController --> ApiResponse
+AIScheduleController --> ApiResponse
+TripController --> ApiResponse
+
+User --|> BaseEntity
+Location --|> BaseEntity
+AISchedule --|> BaseEntity
+Trip --|> BaseEntity
+
+UserServiceImpl --> ValidationUtils
+LocationServiceImpl --> DateUtils
+AIScheduleServiceImpl --> SecurityUtils
+
+' ======================================
+' Architecture Pattern Labels
+' ======================================
+note top of "User Service" : Layered Architecture\n(Controller → Service → Repository)
+
+note top of "Location Service" : Layered Architecture\n(Controller → Service → Repository)
+
+note top of "AI Service" : Layered Architecture\n(Controller → Service → Repository)
+
+note top of "Trip Service" : Clean Architecture\n(Controller → UseCase → Repository)
+
+note top of "Common Components" : 모든 서비스에서 공통 사용
+
+@enduml

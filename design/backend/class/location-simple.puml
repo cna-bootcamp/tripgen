@@ -1,297 +1,188 @@
 @startuml
 !theme mono
 
-title Location Service - 간단 클래스 설계서
+title Location 서비스 간단 클래스 설계서 (Layered Architecture)
 
-' ================================
-' Controller Layer
-' ================================
-package "Controller" {
+' ======================================
+' Core Layers
+' ======================================
+package "Controller Layer" {
     class LocationController {
-        +searchNearbyPlaces(): ResponseEntity<ApiResponse<NearbySearchResponse>>
-        +searchByKeyword(): ResponseEntity<ApiResponse<KeywordSearchResponse>>
-        +getPlaceDetails(): ResponseEntity<ApiResponse<PlaceDetails>>
-        +getPlaceRecommendations(): ResponseEntity<ApiResponse<AIRecommendationResponse>>
-        +getBusinessHours(): ResponseEntity<ApiResponse<BusinessHours>>
+        +searchNearbyPlaces()
+        +searchByKeyword()
+        +getPlaceDetails()
+        +getPlaceRecommendations()
+        +getBusinessHours()
     }
 }
 
-' ================================
-' Service Layer
-' ================================
-package "Service" {
+package "Service Layer" {
     interface LocationService {
-        +searchNearbyPlaces(): NearbySearchResponse
-        +searchByKeyword(): KeywordSearchResponse
-        +getPlaceDetails(): PlaceDetails
-        +getPlaceRecommendations(): AIRecommendationResponse
-        +getBusinessHours(): BusinessHours
+        +getPlaceDetails()
+        +getPlaceRecommendations()
+        +getBusinessHours()
     }
-
+    
+    interface LocationSearchService {
+        +searchNearbyPlaces()
+        +searchByKeyword()
+    }
+    
     class LocationServiceImpl {
-        +searchNearbyPlaces(): NearbySearchResponse
-        +searchByKeyword(): KeywordSearchResponse
-        +getPlaceDetails(): PlaceDetails
-        +getPlaceRecommendations(): AIRecommendationResponse
-        +getBusinessHours(): BusinessHours
+        +getPlaceDetails()
+        +getPlaceRecommendations()
+        +getBusinessHours()
     }
-
-    class PlaceSearchService {
-        +searchNearbyPlaces(): List<PlaceCard>
-        +searchByKeyword(): List<PlaceCard>
-        +getTotalCount(): Integer
+    
+    class LocationSearchServiceImpl {
+        +searchNearbyPlaces()
+        +searchByKeyword()
     }
-
-    class PlaceDetailsService {
-        +getPlaceDetails(): PlaceDetails
-        +enrichWithReviews(): PlaceDetails
+    
+    class ExternalApiService {
+        +getPlaceDetailsFromExternal()
+        +getBusinessHoursFromExternal()
     }
-
-    class AIRecommendationService {
-        +getRecommendations(): AIRecommendationResponse
-        +generateRecommendations(): CompletableFuture<AIRecommendation>
-    }
-
-    class BusinessHoursService {
-        +getBusinessHours(): BusinessHours
-        +getCurrentStatus(): String
-    }
-
-    class ReviewService {
-        +getLatestReviews(): List<Review>
-    }
-
+    
     class CacheService {
-        +get(): T
-        +put(): void
-        +evict(): void
-        +exists(): Boolean
+        +getPlaceDetails()
+        +cachePlace()
+        +getRecommendations()
     }
 }
 
-' ================================
-' Domain Layer
-' ================================
-package "Domain" {
+package "Repository Layer" {
+    interface PlaceRepository {
+        +findByPlaceId()
+        +findNearbyPlaces()
+        +searchByKeyword()
+    }
+    
+    interface PlaceDetailRepository {
+        +findByPlaceId()
+        +save()
+    }
+    
+    interface PlaceRecommendationRepository {
+        +findByPlaceId()
+        +save()
+    }
+}
+
+package "External Clients" {
+    interface AiServiceClient {
+        +generatePlaceRecommendations()
+        +isRecommendationReady()
+    }
+    
+    interface GooglePlacesApiClient {
+        +getPlaceDetails()
+        +searchNearbyPlaces()
+    }
+    
+    interface KakaoMapApiClient {
+        +searchPlaces()
+        +getDirections()
+    }
+}
+
+' ======================================
+' Core Domain Models
+' ======================================
+package "Domain Models" {
+    class Place {
+        -String placeId
+        -String name
+        -PlaceCategory category
+        -Location location
+        -Double rating
+    }
+    
+    class PlaceDetail {
+        -String placeId
+        -List<String> images
+        -ContactInfo contact
+        -BusinessHours businessHours
+    }
+    
+    class PlaceRecommendation {
+        -String placeId
+        -String recommendReason
+        -AITips tips
+        -LocalDateTime generatedAt
+    }
+    
     class Location {
-        +latitude: Double
-        +longitude: Double
-        +address: String
+        -Double latitude
+        -Double longitude
+        -String address
     }
-
-    class PlaceCard {
-        +placeId: String
-        +name: String
-        +category: PlaceCategory
-        +rating: Float
-        +reviewCount: Integer
-        +address: String
-        +distance: Integer
-        +travelTime: Integer
-        +imageUrl: String
-    }
-
-    class PlaceDetails {
-        +placeId: String
-        +name: String
-        +category: PlaceCategory
-        +description: String
-        +rating: Float
-        +reviewCount: Integer
-        +images: List<String>
-        +location: LocationInfo
-        +businessHours: BusinessHours
-        +contact: ContactInfo
-        +aiRecommendation: AIRecommendation
-        +reviews: List<Review>
-    }
-
-    class BusinessHours {
-        +isOpen: Boolean
-        +currentStatus: String
-        +todayHours: String
-        +weeklyHours: List<DayHours>
-    }
-
-    class AIRecommendation {
-        +recommendReason: String
-        +tips: AITips
-    }
-
-    class AITips {
-        +description: String
-        +bestVisitTime: String
-        +estimatedDuration: String
-        +photoSpots: List<String>
-        +practicalTips: List<String>
-        +alternativePlaces: List<AlternativePlace>
-    }
-
-    enum TransportMode {
-        PUBLIC_TRANSPORT
-        CAR
-        WALKING
-    }
-
+    
     enum PlaceCategory {
-        ALL
-        TOURIST
-        RESTAURANT
-        LAUNDRY
+        ALL, TOURIST, RESTAURANT, LAUNDRY
     }
 }
 
-' ================================
-' DTO Layer
-' ================================
-package "DTO" {
+' ======================================
+' Key DTOs
+' ======================================
+package "DTOs" {
     class NearbySearchRequest {
-        +origin: Location
-        +transportMode: TransportMode
-        +timeRange: Integer
-        +category: PlaceCategory
-        +page: Integer
-        +size: Integer
+        -Location origin
+        -String transportMode
+        -Integer timeRange
     }
-
-    class NearbySearchResponse {
-        +totalCount: Integer
-        +page: Integer
-        +size: Integer
-        +hasNext: Boolean
-        +places: List<PlaceCard>
+    
+    class PlaceDetails {
+        -String placeId
+        -String name
+        -LocationInfo location
+        -AIRecommendation aiRecommendation
     }
-
-    class KeywordSearchResponse {
-        +keyword: String
-        +totalCount: Integer
-        +page: Integer
-        +size: Integer
-        +hasNext: Boolean
-        +places: List<PlaceCard>
-    }
-
-    class AIRecommendationResponse {
-        +locationId: String
-        +recommendations: AIRecommendation
-        +fromCache: Boolean
-        +generatedAt: LocalDateTime
+    
+    class PlaceCard {
+        -String placeId
+        -String name
+        -Double rating
+        -Integer distance
     }
 }
 
-' ================================
-' Repository Layer
-' ================================
-package "Repository" {
-    interface ExternalPlaceRepository {
-        +searchNearbyPlaces(): List<ExternalPlace>
-        +searchByKeyword(): List<ExternalPlace>
-        +getPlaceDetails(): ExternalPlace
-        +getBusinessHours(): ExternalBusinessHours
-        +getReviews(): List<ExternalReview>
-    }
+' ======================================
+' Layer Dependencies (Layered Architecture)
+' ======================================
+LocationController --> LocationService : uses
+LocationController --> LocationSearchService : uses
 
-    class GooglePlacesRepository {
-        +searchNearbyPlaces(): List<ExternalPlace>
-        +searchByKeyword(): List<ExternalPlace>
-        +getPlaceDetails(): ExternalPlace
-        +getBusinessHours(): ExternalBusinessHours
-        +getReviews(): List<ExternalReview>
-    }
-}
+LocationService <|.. LocationServiceImpl : implements
+LocationSearchService <|.. LocationSearchServiceImpl : implements
 
-' ================================
-' Client Layer
-' ================================
-package "Client" {
-    interface AIServiceClient {
-        +generateRecommendations(): CompletableFuture<AIRecommendation>
-        +isServiceAvailable(): Boolean
-    }
+LocationServiceImpl --> PlaceRepository : uses
+LocationServiceImpl --> PlaceDetailRepository : uses
+LocationServiceImpl --> PlaceRecommendationRepository : uses
+LocationServiceImpl --> ExternalApiService : uses
+LocationServiceImpl --> CacheService : uses
+LocationServiceImpl --> AiServiceClient : uses
 
-    class AIServiceClientImpl {
-        +generateRecommendations(): CompletableFuture<AIRecommendation>
-        +isServiceAvailable(): Boolean
-    }
+LocationSearchServiceImpl --> PlaceRepository : uses
+LocationSearchServiceImpl --> CacheService : uses
 
-    interface TripServiceClient {
-        +getUserProfile(): UserProfile
-        +isServiceAvailable(): Boolean
-    }
+ExternalApiService --> GooglePlacesApiClient : uses
+ExternalApiService --> KakaoMapApiClient : uses
 
-    class TripServiceClientImpl {
-        +getUserProfile(): UserProfile
-        +isServiceAvailable(): Boolean
-    }
-}
-
-' ================================
-' Configuration Layer
-' ================================
-package "Configuration" {
-    class LocationConfig {
-        +googlePlacesRepository(): GooglePlacesRepository
-        +aiServiceClient(): AIServiceClient
-        +tripServiceClient(): TripServiceClient
-    }
-
-    class CacheConfiguration {
-        +defaultTtl: Duration
-        +placeDetailsTtl: Duration
-        +aiRecommendationTtl: Duration
-    }
-}
-
-' ================================
-' Common Components (참조만)
-' ================================
-package "Common" {
-    class ApiResponse<T>
-    abstract class BaseException
-    class ValidationUtil
-    class DateTimeUtil
-    interface CacheConfig
-}
-
-' ================================
-' Main Relationships
-' ================================
-
-' Controller to Service
-LocationController --> LocationService
-
-' Service Layer
-LocationService <|.. LocationServiceImpl
-LocationServiceImpl --> PlaceSearchService
-LocationServiceImpl --> PlaceDetailsService
-LocationServiceImpl --> AIRecommendationService
-LocationServiceImpl --> BusinessHoursService
-LocationServiceImpl --> CacheService
-
-' Service to Repository/Client
-PlaceSearchService --> ExternalPlaceRepository
-PlaceDetailsService --> ExternalPlaceRepository
-AIRecommendationService --> AIServiceClient
-AIRecommendationService --> TripServiceClient
-
-' Repository Implementation
-ExternalPlaceRepository <|.. GooglePlacesRepository
-
-' Client Implementation
-AIServiceClient <|.. AIServiceClientImpl
-TripServiceClient <|.. TripServiceClientImpl
-
+' ======================================
 ' Domain Relationships
-PlaceDetails --> BusinessHours
-PlaceDetails --> AIRecommendation
-AIRecommendation --> AITips
-NearbySearchRequest --> Location
-NearbySearchRequest --> TransportMode
-NearbySearchResponse --> PlaceCard
+' ======================================
+Place --> Location : contains
+Place --> PlaceCategory : uses
+PlaceDetail --> Place : belongs to
+PlaceRecommendation --> Place : belongs to
 
-' Common Dependencies
-LocationController --> ApiResponse
-LocationServiceImpl --> BaseException
-LocationConfig --> CacheConfig
+' ======================================
+' DTO Relationships
+' ======================================
+NearbySearchRequest --> Location : contains
+PlaceDetails --> Place : converts from
+PlaceCard --> Place : converts from
 
 @enduml
