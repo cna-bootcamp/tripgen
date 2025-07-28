@@ -40,12 +40,7 @@ package "User Service" <<rectangle>> #lightblue {
         +update: 사용자 정보 수정
     }
     
-    class User {
-        -userId: Long
-        -username: String
-        -email: String
-        -password: String
-    }
+    class User
 }
 
 ' ======================================
@@ -73,12 +68,7 @@ package "Location Service" <<rectangle>> #lightgreen {
         +save: 위치 정보 저장
     }
     
-    class Location {
-        -locationId: Long
-        -name: String
-        -latitude: Double
-        -longitude: Double
-    }
+    class Location
 }
 
 ' ======================================
@@ -107,12 +97,7 @@ package "AI Service" <<rectangle>> #lightyellow {
         +findByJobId: 작업 ID로 조회
     }
     
-    class AISchedule {
-        -scheduleId: Long
-        -jobId: String
-        -scheduleData: String
-        -status: JobStatus
-    }
+    class AISchedule
 }
 
 ' ======================================
@@ -169,21 +154,8 @@ package "Trip Service" <<rectangle>> #lightcoral {
     }
     
     ' Entity Layer
-    class Trip {
-        -tripId: Long
-        -tripName: String
-        -startDate: LocalDate
-        -endDate: LocalDate
-        -status: TripStatus
-    }
-    
-    class Schedule {
-        -scheduleId: Long
-        -tripId: Long
-        -day: Integer
-        -date: LocalDate
-        -places: List<SchedulePlace>
-    }
+    class Trip
+    class Schedule
 }
 
 ' ======================================
@@ -206,48 +178,48 @@ package "External Services" <<rectangle>> #lightpink {
 ' ======================================
 ' Relationships - User Service
 ' ======================================
-UserController --> UserService
-UserService <|.. UserServiceImpl
-UserServiceImpl --> UserRepository
-UserRepository <|.. UserRepositoryImpl
-UserRepositoryImpl --> User
+UserController --> UserService : 1
+UserService <|.. UserServiceImpl : implements
+UserServiceImpl --> UserRepository : 1
+UserRepository <|.. UserRepositoryImpl : implements
+UserRepositoryImpl ..> User : manages
 
 ' ======================================
 ' Relationships - Location Service
 ' ======================================
-LocationController --> LocationService
-LocationService <|.. LocationServiceImpl
-LocationServiceImpl --> LocationRepository
-LocationRepository <|.. LocationRepositoryImpl
-LocationRepositoryImpl --> Location
-LocationServiceImpl --> GooglePlacesClient
-LocationServiceImpl --> WeatherApiClient
+LocationController --> LocationService : 1
+LocationService <|.. LocationServiceImpl : implements
+LocationServiceImpl --> LocationRepository : 1
+LocationRepository <|.. LocationRepositoryImpl : implements
+LocationRepositoryImpl ..> Location : manages
+LocationServiceImpl --> GooglePlacesClient : 1
+LocationServiceImpl --> WeatherApiClient : 1
 
 ' ======================================
 ' Relationships - AI Service
 ' ======================================
-AIScheduleController --> AIScheduleService
-AIScheduleService <|.. AIScheduleServiceImpl
-AIScheduleServiceImpl --> AIScheduleRepository
-AIScheduleRepository <|.. AIScheduleRepositoryImpl
-AIScheduleRepositoryImpl --> AISchedule
-AIScheduleServiceImpl --> OpenAIClient
+AIScheduleController --> AIScheduleService : 1
+AIScheduleService <|.. AIScheduleServiceImpl : implements
+AIScheduleServiceImpl --> AIScheduleRepository : 1
+AIScheduleRepository <|.. AIScheduleRepositoryImpl : implements
+AIScheduleRepositoryImpl ..> AISchedule : manages
+AIScheduleServiceImpl --> OpenAIClient : 1
 
 ' ======================================
 ' Relationships - Trip Service (Clean Architecture)
 ' ======================================
-TripController --> TripUseCase
-ScheduleController --> ScheduleUseCase
-TripUseCase --> TripRepository
-ScheduleUseCase --> TripRepository
-TripRepository <|.. TripRepositoryImpl
-TripRepositoryImpl --> Trip
-TripRepositoryImpl --> Schedule
+TripController --> TripUseCase : 1
+ScheduleController --> ScheduleUseCase : 1
+TripUseCase --> TripRepository : 1
+ScheduleUseCase --> TripRepository : 1
+TripRepository <|.. TripRepositoryImpl : implements
+TripRepositoryImpl ..> Trip : manages
+TripRepositoryImpl ..> Schedule : manages
 
 ' Trip Service External Dependencies
-TripUseCase --> UserServiceClient
-ScheduleUseCase --> LocationServiceClient
-ScheduleUseCase --> AiServiceClient
+TripUseCase --> UserServiceClient : 1
+ScheduleUseCase --> LocationServiceClient : 1
+ScheduleUseCase --> AiServiceClient : 1
 
 ' Cross-Service Dependencies
 UserServiceClient ..> UserService : "HTTP 호출"
@@ -257,24 +229,24 @@ AiServiceClient ..> AIScheduleService : "HTTP 호출"
 ' ======================================
 ' Common Component Usage
 ' ======================================
-UserServiceImpl --> BaseException
-LocationServiceImpl --> BaseException
-AIScheduleServiceImpl --> BaseException
-TripUseCase --> BaseException
+UserServiceImpl ..> BaseException : throws
+LocationServiceImpl ..> BaseException : throws
+AIScheduleServiceImpl ..> BaseException : throws
+TripUseCase ..> BaseException : throws
 
-UserController --> ApiResponse
-LocationController --> ApiResponse
-AIScheduleController --> ApiResponse
-TripController --> ApiResponse
+UserController ..> ApiResponse : uses
+LocationController ..> ApiResponse : uses
+AIScheduleController ..> ApiResponse : uses
+TripController ..> ApiResponse : uses
 
-User --|> BaseEntity
-Location --|> BaseEntity
-AISchedule --|> BaseEntity
-Trip --|> BaseEntity
+User --|> BaseEntity : extends
+Location --|> BaseEntity : extends
+AISchedule --|> BaseEntity : extends
+Trip --|> BaseEntity : extends
 
-UserServiceImpl --> ValidationUtils
-LocationServiceImpl --> DateUtils
-AIScheduleServiceImpl --> SecurityUtils
+UserServiceImpl ..> ValidationUtils : uses
+LocationServiceImpl ..> DateUtils : uses
+AIScheduleServiceImpl ..> SecurityUtils : uses
 
 ' ======================================
 ' Architecture Pattern Labels

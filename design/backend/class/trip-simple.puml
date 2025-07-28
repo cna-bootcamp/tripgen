@@ -9,128 +9,114 @@ title Trip 서비스 간단 클래스 설계서 (Clean Architecture)
 
 package "Entity Layer (Domain)" <<Rectangle>> {
     class Trip {
-        -tripId: String
-        -tripName: String
-        -transportMode: TransportMode
-        -status: TripStatus
-        +createTrip()
-        +updateProgress()
-        +validateTripData()
+        +createTrip(): 여행 생성
+        +updateProgress(): 여행 진행 상태 업데이트
+        +validateTripData(): 여행 데이터 검증
     }
 
     class Member {
-        -memberId: String
-        -name: String
-        -age: Integer
-        -healthStatus: HealthStatus
-        +addPreference()
-        +isEligibleForActivity()
+        +addPreference(): 선호도 추가
+        +isEligibleForActivity(): 활동 참여 가능 여부 확인
     }
 
     class Destination {
-        -destinationId: String
-        -destinationName: String
-        -nights: Integer
-        +calculateEndDate()
-        +validateDestinationData()
+        +calculateEndDate(): 종료 날짜 계산
+        +validateDestinationData(): 목적지 데이터 검증
     }
 
     class Schedule {
-        -scheduleId: String
-        -day: Integer
-        -places: List<SchedulePlace>
-        +addPlace()
-        +updatePlaceOrder()
+        +addPlace(): 장소 추가
+        +updatePlaceOrder(): 장소 순서 변경
     }
 }
 
 package "Use Case Layer (Application)" <<Rectangle>> {
     interface TripUseCase {
-        +createTrip()
-        +getTripList()
-        +updateTrip()
+        +createTrip(): 여행 생성
+        +getTripList(): 여행 목록 조회
+        +updateTrip(): 여행 정보 수정
     }
 
     interface MemberUseCase {
-        +addTripMember()
-        +updateTripMember()
+        +addTripMember(): 여행 멤버 추가
+        +updateTripMember(): 여행 멤버 정보 수정
     }
 
     interface DestinationUseCase {
-        +addTripDestination()
-        +updateDestinationsBatch()
+        +addTripDestination(): 여행 목적지 추가
+        +updateDestinationsBatch(): 목적지 일괄 수정
     }
 
     interface ScheduleUseCase {
-        +generateSchedule()
-        +getSchedules()
-        +exportSchedule()
+        +generateSchedule(): 일정 생성
+        +getSchedules(): 일정 조회
+        +exportSchedule(): 일정 내보내기
     }
 
     class TripUseCaseImpl {
-        +createTrip()
-        +getTripList()
-        +updateTrip()
+        +createTrip(): 여행 생성 비즈니스 로직
+        +getTripList(): 여행 목록 조회 비즈니스 로직
+        +updateTrip(): 여행 정보 수정 비즈니스 로직
     }
 
     class ScheduleGenerationService {
-        +generateTripSchedule()
-        +getGenerationStatus()
+        +generateTripSchedule(): 여행 일정 생성
+        +getGenerationStatus(): 생성 상태 조회
     }
 }
 
 package "Interface Adapter Layer (Infrastructure)" <<Rectangle>> {
     interface TripRepository {
-        +save()
-        +findById()
-        +findByUserId()
+        +save(): 여행 정보 저장
+        +findById(): ID로 여행 조회
+        +findByUserId(): 사용자 ID로 여행 조회
     }
 
     interface UserServiceClient {
-        +getUserById()
-        +validateUser()
+        +getUserById(): 사용자 ID로 사용자 정보 조회
+        +validateUser(): 사용자 유효성 검증
     }
 
     interface AiServiceClient {
-        +generateSchedule()
-        +getGenerationStatus()
+        +generateSchedule(): AI 일정 생성 요청
+        +getGenerationStatus(): 생성 상태 조회
     }
 
     class TripRepositoryImpl {
-        +save()
-        +findById()
+        +save(): 여행 정보 저장 구현
+        +findById(): ID로 여행 조회 구현
     }
 
     class UserServiceClientImpl {
-        +getUserById()
+        +getUserById(): 사용자 서비스 API 호출
     }
 
     class AiServiceClientImpl {
-        +generateSchedule()
+        +generateSchedule(): AI 서비스 API 호출
     }
 }
 
 package "Framework & Driver Layer (Controller)" <<Rectangle>> {
     class TripController {
-        +getTripList()
-        +createTrip()
-        +updateTrip()
+        +getTripList(): 여행 목록 조회 API
+        +createTrip(): 여행 생성 API
+        +updateTrip(): 여행 정보 수정 API
     }
 
     class MemberController {
-        +addTripMember()
-        +updateTripMember()
+        +addTripMember(): 여행 멤버 추가 API
+        +updateTripMember(): 여행 멤버 정보 수정 API
     }
 
     class DestinationController {
-        +addTripDestination()
-        +updateDestinationsBatch()
+        +addTripDestination(): 여행 목적지 추가 API
+        +updateDestinationsBatch(): 목적지 일괄 수정 API
     }
 
     class ScheduleController {
-        +generateSchedule()
-        +getSchedules()
-        +exportSchedule()
+        +generateSchedule(): 일정 생성 API
+        +getSchedules(): 일정 조회 API
+        +exportSchedule(): 일정 내보내기 API
     }
 }
 
@@ -144,22 +130,22 @@ Trip ||--o{ Destination : has
 Trip ||--o{ Schedule : has
 
 ' Clean Architecture dependencies (inward only)
-TripController --> TripUseCase : uses
-MemberController --> MemberUseCase : uses
-DestinationController --> DestinationUseCase : uses
-ScheduleController --> ScheduleUseCase : uses
+TripController --> TripUseCase : 1
+MemberController --> MemberUseCase : 1
+DestinationController --> DestinationUseCase : 1
+ScheduleController --> ScheduleUseCase : 1
 
-TripUseCaseImpl ..|> TripUseCase : implements
-TripUseCaseImpl --> TripRepository : uses
-TripUseCaseImpl --> UserServiceClient : uses
+TripUseCaseImpl <|.. TripUseCase : implements
+TripUseCaseImpl --> TripRepository : 1
+TripUseCaseImpl --> UserServiceClient : 1
 
-TripRepositoryImpl ..|> TripRepository : implements
-UserServiceClientImpl ..|> UserServiceClient : implements
-AiServiceClientImpl ..|> AiServiceClient : implements
+TripRepositoryImpl <|.. TripRepository : implements
+UserServiceClientImpl <|.. UserServiceClient : implements
+AiServiceClientImpl <|.. AiServiceClient : implements
 
 ' External service dependencies
-ScheduleGenerationService --> AiServiceClient : uses
-ScheduleUseCase --> ScheduleGenerationService : uses
+ScheduleGenerationService --> AiServiceClient : 1
+ScheduleUseCase --> ScheduleGenerationService : 1
 
 ' ======================================
 ' Architecture Notes
@@ -211,7 +197,7 @@ package "External Services" <<Cloud>> {
     }
 }
 
-UserServiceClientImpl ..> UserService : calls
-AiServiceClientImpl ..> AiService : calls
+UserServiceClientImpl ..> UserService : uses
+AiServiceClientImpl ..> AiService : uses
 
 @enduml

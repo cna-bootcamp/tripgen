@@ -8,16 +8,16 @@ title AI 서비스 간단 클래스 설계서 (Layered Architecture)
 ' ======================================
 package "Controller Layer" <<Node>> {
     class AIScheduleController {
-        +generateAISchedule()
-        +getGenerationStatus()
-        +getGeneratedSchedule()
-        +cancelGeneration()
-        +regenerateDaySchedule()
-        +analyzeWeatherImpact()
+        +generateAISchedule(): AI 여행 일정 생성 요청
+        +getGenerationStatus(): 일정 생성 상태 조회
+        +getGeneratedSchedule(): 생성된 일정 조회
+        +cancelGeneration(): 일정 생성 취소
+        +regenerateDaySchedule(): 특정 날짜 일정 재생성
+        +analyzeWeatherImpact(): 날씨 영향 분석
     }
 
     class AIRecommendationController {
-        +generatePlaceRecommendations()
+        +generatePlaceRecommendations(): 장소 추천 정보 생성
     }
 }
 
@@ -27,28 +27,28 @@ package "Controller Layer" <<Node>> {
 package "Service Layer" <<Node>> {
     interface AIScheduleService
     class AIScheduleServiceImpl {
-        +generateSchedule()
-        +getGenerationStatus()
-        +getGeneratedSchedule()
-        +cancelGeneration()
-        +regenerateDaySchedule()
-        +analyzeWeatherImpact()
+        +generateSchedule(): 일정 생성 비즈니스 로직
+        +getGenerationStatus(): 생성 상태 조회 로직
+        +getGeneratedSchedule(): 생성된 일정 반환
+        +cancelGeneration(): 생성 취소 처리
+        +regenerateDaySchedule(): 일별 일정 재생성 로직
+        +analyzeWeatherImpact(): 날씨 영향 분석 처리
     }
 
     interface AIRecommendationService
     class AIRecommendationServiceImpl {
-        +generatePlaceRecommendations()
-        +getCachedRecommendations()
-        +cacheRecommendations()
+        +generatePlaceRecommendations(): 장소 추천 생성 로직
+        +getCachedRecommendations(): 캐시된 추천 정보 조회
+        +cacheRecommendations(): 추천 정보 캐싱
     }
 
     class AIJobService {
-        +createJob()
-        +updateJobStatus()
-        +completeJob()
-        +failJob()
-        +getJobStatus()
-        +cancelJob()
+        +createJob(): 비동기 작업 생성
+        +updateJobStatus(): 작업 상태 업데이트
+        +completeJob(): 작업 완료 처리
+        +failJob(): 작업 실패 처리
+        +getJobStatus(): 작업 상태 조회
+        +cancelJob(): 작업 취소 처리
     }
 }
 
@@ -57,24 +57,24 @@ package "Service Layer" <<Node>> {
 ' ======================================
 package "Repository Layer" <<Database>> {
     interface AIScheduleRepository {
-        +save()
-        +findByRequestId()
-        +findByTripId()
-        +deleteByRequestId()
+        +save(): 일정 데이터 저장
+        +findByRequestId(): 요청 ID로 일정 조회
+        +findByTripId(): 여행 ID로 일정 조회
+        +deleteByRequestId(): 요청 ID로 일정 삭제
     }
 
     interface AIJobRepository {
-        +save()
-        +findByRequestId()
-        +findByStatus()
-        +updateJobStatus()
+        +save(): 작업 정보 저장
+        +findByRequestId(): 요청 ID로 작업 조회
+        +findByStatus(): 상태별 작업 조회
+        +updateJobStatus(): 작업 상태 업데이트
     }
 
     interface AIRecommendationRepository {
-        +save()
-        +findByPlaceIdAndProfileHash()
-        +findByPlaceId()
-        +deleteExpired()
+        +save(): 추천 정보 저장
+        +findByPlaceIdAndProfileHash(): 장소와 프로필로 추천 조회
+        +findByPlaceId(): 장소 ID로 추천 조회
+        +deleteExpired(): 만료된 추천 정보 삭제
     }
 }
 
@@ -82,28 +82,11 @@ package "Repository Layer" <<Database>> {
 ' Entity Layer
 ' ======================================
 package "Entity Layer" <<Database>> {
-    class AISchedule {
-        -String requestId
-        -String tripId
-        -AIJobStatus status
-        -String scheduleData
-        -LocalDateTime generatedAt
-    }
+    class AISchedule
 
-    class AIJob {
-        -String requestId
-        -AIJobType jobType
-        -AIJobStatus status
-        -int progress
-        -String currentStep
-    }
+    class AIJob
 
-    class AIRecommendation {
-        -String placeId
-        -String profileHash
-        -String recommendationData
-        -LocalDateTime generatedAt
-    }
+    class AIRecommendation
 }
 
 ' ======================================
@@ -173,52 +156,52 @@ package "Validation" <<Component>> {
 ' ======================================
 
 ' Layered Architecture Flow
-AIScheduleController --> AIScheduleService
-AIScheduleController --> AIScheduleValidator
-AIRecommendationController --> AIRecommendationService
-AIRecommendationController --> RecommendationValidator
+AIScheduleController --> AIScheduleService : 1
+AIScheduleController --> AIScheduleValidator : 1
+AIRecommendationController --> AIRecommendationService : 1
+AIRecommendationController --> RecommendationValidator : 1
 
-AIScheduleService <|.. AIScheduleServiceImpl
-AIRecommendationService <|.. AIRecommendationServiceImpl
+AIScheduleService <|.. AIScheduleServiceImpl : implements
+AIRecommendationService <|.. AIRecommendationServiceImpl : implements
 
-AIScheduleServiceImpl --> AIScheduleRepository
-AIScheduleServiceImpl --> AIJobRepository
-AIScheduleServiceImpl --> AIModelClient
-AIScheduleServiceImpl --> WeatherServiceClient
-AIScheduleServiceImpl --> LocationServiceClient
-AIScheduleServiceImpl --> CacheManager
-AIScheduleServiceImpl --> MessageQueue
+AIScheduleServiceImpl --> AIScheduleRepository : 1
+AIScheduleServiceImpl --> AIJobRepository : 1
+AIScheduleServiceImpl --> AIModelClient : 1
+AIScheduleServiceImpl --> WeatherServiceClient : 1
+AIScheduleServiceImpl --> LocationServiceClient : 1
+AIScheduleServiceImpl --> CacheManager : 1
+AIScheduleServiceImpl --> MessageQueue : 1
 
-AIRecommendationServiceImpl --> AIRecommendationRepository
-AIRecommendationServiceImpl --> AIModelClient
-AIRecommendationServiceImpl --> LocationServiceClient
-AIRecommendationServiceImpl --> CacheManager
+AIRecommendationServiceImpl --> AIRecommendationRepository : 1
+AIRecommendationServiceImpl --> AIModelClient : 1
+AIRecommendationServiceImpl --> LocationServiceClient : 1
+AIRecommendationServiceImpl --> CacheManager : 1
 
-AIJobService --> AIJobRepository
-AIJobService --> MessageQueue
+AIJobService --> AIJobRepository : 1
+AIJobService --> MessageQueue : 1
 
 ' AI Model Client Implementations  
-AIModelClient <|.. OpenAIClient
-AIModelClient <|.. ClaudeClient
+AIModelClient <|.. OpenAIClient : implements
+AIModelClient <|.. ClaudeClient : implements
 
 ' Entity Usage
-AIScheduleRepository --> AISchedule
-AIJobRepository --> AIJob
-AIRecommendationRepository --> AIRecommendation
+AIScheduleRepository --> AISchedule : 1
+AIJobRepository --> AIJob : 1
+AIRecommendationRepository --> AIRecommendation : 1
 
-AISchedule --> AIJobStatus
-AIJob --> AIJobType
-AIJob --> AIJobStatus
+AISchedule --> AIJobStatus : 1
+AIJob --> AIJobType : 1
+AIJob --> AIJobStatus : 1
 
 ' DTO Usage by Controllers
-AIScheduleController ..> GenerateScheduleRequest
-AIScheduleController ..> GenerateScheduleResponse
-AIScheduleController ..> GenerationStatusResponse
-AIScheduleController ..> GeneratedScheduleDto
-AIScheduleController ..> WeatherImpactRequest
-AIScheduleController ..> WeatherImpactResponse
+AIScheduleController ..> GenerateScheduleRequest : uses
+AIScheduleController ..> GenerateScheduleResponse : uses
+AIScheduleController ..> GenerationStatusResponse : uses
+AIScheduleController ..> GeneratedScheduleDto : uses
+AIScheduleController ..> WeatherImpactRequest : uses
+AIScheduleController ..> WeatherImpactResponse : uses
 
-AIRecommendationController ..> RecommendationRequest
-AIRecommendationController ..> RecommendationResponse
+AIRecommendationController ..> RecommendationRequest : uses
+AIRecommendationController ..> RecommendationResponse : uses
 
 @enduml

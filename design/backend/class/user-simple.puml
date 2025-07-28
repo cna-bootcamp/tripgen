@@ -8,95 +8,75 @@ title User 서비스 간단 클래스 설계서 (Layered Architecture)
 ' ======================================
 package "Controller Layer" {
     class UserController {
-        -UserService userService
-        +registerUser()
-        +loginUser()
-        +logoutUser()
-        +getProfile()
-        +updateProfile()
-        +uploadAvatar()
-        +changePassword()
-        +checkUsername()
-        +checkEmail()
+        +registerUser(): 사용자 등록 API
+        +loginUser(): 로그인 API
+        +logoutUser(): 로그아웃 API
+        +getProfile(): 프로필 조회 API
+        +updateProfile(): 프로필 수정 API
+        +uploadAvatar(): 아바타 이미지 업로드 API
+        +changePassword(): 비밀번호 변경 API
+        +checkUsername(): 사용자명 중복 확인 API
+        +checkEmail(): 이메일 중복 확인 API
     }
 }
 
 package "Service Layer" {
     interface UserService {
-        +register()
-        +login()
-        +logout()
-        +getProfile()
-        +updateProfile()
-        +uploadAvatar()
-        +changePassword()
-        +checkUsernameAvailability()
-        +checkEmailAvailability()
+        +register(): 사용자 등록
+        +login(): 로그인
+        +logout(): 로그아웃
+        +getProfile(): 프로필 조회
+        +updateProfile(): 프로필 수정
+        +uploadAvatar(): 아바타 이미지 업로드
+        +changePassword(): 비밀번호 변경
+        +checkUsernameAvailability(): 사용자명 사용 가능 여부 확인
+        +checkEmailAvailability(): 이메일 사용 가능 여부 확인
     }
     
     class UserServiceImpl {
-        -UserRepository userRepository
-        -PasswordEncoder passwordEncoder
-        -JwtTokenProvider jwtTokenProvider
-        -RedisTemplate redisTemplate
-        -FileStorageService fileStorageService
-        +register()
-        +login()
-        +logout()
-        +getProfile()
-        +updateProfile()
-        +uploadAvatar()
-        +changePassword()
-        +checkUsernameAvailability()
-        +checkEmailAvailability()
+        +register(): 사용자 등록 비즈니스 로직
+        +login(): 로그인 비즈니스 로직
+        +logout(): 로그아웃 비즈니스 로직
+        +getProfile(): 프로필 조회 비즈니스 로직
+        +updateProfile(): 프로필 수정 비즈니스 로직
+        +uploadAvatar(): 아바타 업로드 비즈니스 로직
+        +changePassword(): 비밀번호 변경 비즈니스 로직
+        +checkUsernameAvailability(): 사용자명 중복 확인 비즈니스 로직
+        +checkEmailAvailability(): 이메일 중복 확인 비즈니스 로직
     }
 }
 
 package "Repository Layer" {
     interface UserRepository {
-        +save()
-        +findById()
-        +findByUserId()
-        +findByUsername()
-        +findByEmail()
-        +existsByUsername()
-        +existsByEmail()
-        +updateLastLoginAt()
-        +updateLoginAttempts()
+        +save(): 사용자 정보 저장
+        +findById(): ID로 사용자 조회
+        +findByUserId(): 사용자 ID로 사용자 조회
+        +findByUsername(): 사용자명으로 사용자 조회
+        +findByEmail(): 이메일로 사용자 조회
+        +existsByUsername(): 사용자명 존재 여부 확인
+        +existsByEmail(): 이메일 존재 여부 확인
+        +updateLastLoginAt(): 마지막 로그인 시간 업데이트
+        +updateLoginAttempts(): 로그인 시도 횟수 업데이트
     }
     
     class UserRepositoryImpl {
-        -JdbcTemplate jdbcTemplate
-        -UserRowMapper userRowMapper
-        +save()
-        +findById()
-        +findByUserId()
-        +findByUsername()
-        +findByEmail()
-        +existsByUsername()
-        +existsByEmail()
+        +save(): 사용자 정보 저장 구현
+        +findById(): ID로 사용자 조회 구현
+        +findByUserId(): 사용자 ID로 사용자 조회 구현
+        +findByUsername(): 사용자명으로 사용자 조회 구현
+        +findByEmail(): 이메일로 사용자 조회 구현
+        +existsByUsername(): 사용자명 존재 여부 확인 구현
+        +existsByEmail(): 이메일 존재 여부 확인 구현
     }
 }
 
 package "Entity Layer" {
     class User {
-        -Long id
-        -String userId
-        -String username
-        -String password
-        -String name
-        -String email
-        -String phone
-        -String avatarUrl
-        -UserStatus status
-        -int loginAttempts
-        -LocalDateTime lockedUntil
-        -LocalDateTime lastLoginAt
-        +isAccountLocked()
-        +incrementLoginAttempts()
-        +resetLoginAttempts()
-        +lockAccount()
-        +updateLastLogin()
+        +isAccountLocked(): 계정 잠김 상태 확인
+        +incrementLoginAttempts(): 로그인 시도 횟수 증가
+        +resetLoginAttempts(): 로그인 시도 횟수 초기화
+        +lockAccount(): 계정 잠금
+        +updateLastLogin(): 마지막 로그인 시간 업데이트
     }
     
     enum UserStatus {
@@ -109,84 +89,40 @@ package "Entity Layer" {
 }
 
 package "DTO Layer" {
-    class RegisterRequest {
-        -String name
-        -String email
-        -String phone
-        -String username
-        -String password
-        -String passwordConfirm
-        -boolean termsAccepted
-    }
+    class RegisterRequest
     
-    class LoginRequest {
-        -String username
-        -String password
-        -boolean rememberMe
-    }
+    class LoginRequest
     
-    class UpdateProfileRequest {
-        -String name
-        -String phone
-        -String email
-    }
+    class UpdateProfileRequest
     
-    class ChangePasswordRequest {
-        -String currentPassword
-        -String newPassword
-        -String newPasswordConfirm
-    }
+    class ChangePasswordRequest
     
-    class RegisterResponse {
-        -String userId
-        -String username
-        -String message
-    }
+    class RegisterResponse
     
-    class LoginResponse {
-        -String accessToken
-        -String refreshToken
-        -String tokenType
-        -int expiresIn
-        -UserProfile user
-    }
+    class LoginResponse
     
-    class UserProfile {
-        -String userId
-        -String username
-        -String name
-        -String email
-        -String phone
-        -String avatarUrl
-        -LocalDateTime createdAt
-        -LocalDateTime updatedAt
-    }
+    class UserProfile
 }
 
 package "Configuration Layer" {
     class UserConfig {
-        +passwordEncoder()
-        +jwtTokenProvider()
-        +userDetailsService()
-        +fileStorageService()
+        +passwordEncoder(): 비밀번호 암호화 빈 설정
+        +jwtTokenProvider(): JWT 토큰 제공자 빈 설정
+        +userDetailsService(): 사용자 상세 서비스 빈 설정
+        +fileStorageService(): 파일 저장 서비스 빈 설정
     }
     
     class JwtTokenProvider {
-        -String secretKey
-        -long accessTokenValidityTime
-        -long refreshTokenValidityTime
-        +generateAccessToken()
-        +generateRefreshToken()
-        +validateToken()
-        +getUsernameFromToken()
+        +generateAccessToken(): 액세스 토큰 생성
+        +generateRefreshToken(): 리프레시 토큰 생성
+        +validateToken(): 토큰 유효성 검증
+        +getUsernameFromToken(): 토큰에서 사용자명 추출
     }
     
     class FileStorageService {
-        -String uploadPath
-        -long maxFileSize
-        +uploadFile()
-        +deleteFile()
-        +validateFile()
+        +uploadFile(): 파일 업로드
+        +deleteFile(): 파일 삭제
+        +validateFile(): 파일 유효성 검증
     }
 }
 
@@ -195,27 +131,27 @@ package "Configuration Layer" {
 ' ======================================
 
 ' Layer Dependencies (Top to Bottom)
-UserController --> UserService : depends on
+UserController --> UserService : 1
 UserService <|.. UserServiceImpl : implements
-UserServiceImpl --> UserRepository : depends on
+UserServiceImpl --> UserRepository : 1
 UserRepository <|.. UserRepositoryImpl : implements
-UserRepositoryImpl --> User : manages
+UserRepositoryImpl --> User : 1
 
 ' Cross-cutting Dependencies
-UserServiceImpl --> JwtTokenProvider : uses
-UserServiceImpl --> FileStorageService : uses
-UserController --> RegisterRequest : uses
-UserController --> LoginRequest : uses
-UserController --> UpdateProfileRequest : uses
-UserController --> ChangePasswordRequest : uses
-UserController --> RegisterResponse : creates
-UserController --> LoginResponse : creates
-UserController --> UserProfile : creates
+UserServiceImpl --> JwtTokenProvider : 1
+UserServiceImpl --> FileStorageService : 1
+UserController ..> RegisterRequest : uses
+UserController ..> LoginRequest : uses
+UserController ..> UpdateProfileRequest : uses
+UserController ..> ChangePasswordRequest : uses
+UserController ..> RegisterResponse : uses
+UserController ..> LoginResponse : uses
+UserController ..> UserProfile : uses
 
-User --> UserStatus : has
+User --> UserStatus : 1
 
-UserConfig --> JwtTokenProvider : creates
-UserConfig --> FileStorageService : creates
+UserConfig --> JwtTokenProvider : 1
+UserConfig --> FileStorageService : 1
 
 note top of UserController : "Presentation Layer\n- HTTP 요청/응답 처리\n- 데이터 검증\n- 보안 인증"
 

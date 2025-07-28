@@ -8,81 +8,81 @@ title Location 서비스 간단 클래스 설계서 (Layered Architecture)
 ' ======================================
 package "Controller Layer" {
     class LocationController {
-        +searchNearbyPlaces()
-        +searchByKeyword()
-        +getPlaceDetails()
-        +getPlaceRecommendations()
-        +getBusinessHours()
+        +searchNearbyPlaces(): 주변 장소 검색
+        +searchByKeyword(): 키워드로 장소 검색
+        +getPlaceDetails(): 장소 상세 정보 조회
+        +getPlaceRecommendations(): 장소 추천 정보 조회
+        +getBusinessHours(): 영업시간 정보 조회
     }
 }
 
 package "Service Layer" {
     interface LocationService {
-        +getPlaceDetails()
-        +getPlaceRecommendations()
-        +getBusinessHours()
+        +getPlaceDetails(): 장소 상세 정보 조회
+        +getPlaceRecommendations(): 장소 추천 정보 조회
+        +getBusinessHours(): 영업시간 정보 조회
     }
     
     interface LocationSearchService {
-        +searchNearbyPlaces()
-        +searchByKeyword()
+        +searchNearbyPlaces(): 주변 장소 검색
+        +searchByKeyword(): 키워드로 장소 검색
     }
     
     class LocationServiceImpl {
-        +getPlaceDetails()
-        +getPlaceRecommendations()
-        +getBusinessHours()
+        +getPlaceDetails(): 장소 상세 정보 조회 비즈니스 로직
+        +getPlaceRecommendations(): 장소 추천 생성 비즈니스 로직
+        +getBusinessHours(): 영업시간 조회 비즈니스 로직
     }
     
     class LocationSearchServiceImpl {
-        +searchNearbyPlaces()
-        +searchByKeyword()
+        +searchNearbyPlaces(): 주변 장소 검색 비즈니스 로직
+        +searchByKeyword(): 키워드 검색 비즈니스 로직
     }
     
     class ExternalApiService {
-        +getPlaceDetailsFromExternal()
-        +getBusinessHoursFromExternal()
+        +getPlaceDetailsFromExternal(): 외부 API로 장소 상세 정보 조회
+        +getBusinessHoursFromExternal(): 외부 API로 영업시간 조회
     }
     
     class CacheService {
-        +getPlaceDetails()
-        +cachePlace()
-        +getRecommendations()
+        +getPlaceDetails(): 캐시된 장소 정보 조회
+        +cachePlace(): 장소 정보 캐싱
+        +getRecommendations(): 캐시된 추천 정보 조회
     }
 }
 
 package "Repository Layer" {
     interface PlaceRepository {
-        +findByPlaceId()
-        +findNearbyPlaces()
-        +searchByKeyword()
+        +findByPlaceId(): 장소 ID로 장소 조회
+        +findNearbyPlaces(): 주변 장소 조회
+        +searchByKeyword(): 키워드로 장소 검색
     }
     
     interface PlaceDetailRepository {
-        +findByPlaceId()
-        +save()
+        +findByPlaceId(): 장소 ID로 상세 정보 조회
+        +save(): 장소 상세 정보 저장
     }
     
     interface PlaceRecommendationRepository {
-        +findByPlaceId()
-        +save()
+        +findByPlaceId(): 장소 ID로 추천 정보 조회
+        +save(): 추천 정보 저장
     }
 }
 
 package "External Clients" {
     interface AiServiceClient {
-        +generatePlaceRecommendations()
-        +isRecommendationReady()
+        +generatePlaceRecommendations(): AI 장소 추천 생성 요청
+        +isRecommendationReady(): 추천 생성 완료 여부 확인
     }
     
     interface GooglePlacesApiClient {
-        +getPlaceDetails()
-        +searchNearbyPlaces()
+        +getPlaceDetails(): 구글 Places API 장소 상세 정보 조회
+        +searchNearbyPlaces(): 구글 Places API 주변 장소 검색
     }
     
     interface KakaoMapApiClient {
-        +searchPlaces()
-        +getDirections()
+        +searchPlaces(): 카카오맵 API 장소 검색
+        +getDirections(): 카카오맵 API 경로 조회
     }
 }
 
@@ -90,33 +90,13 @@ package "External Clients" {
 ' Core Domain Models
 ' ======================================
 package "Domain Models" {
-    class Place {
-        -String placeId
-        -String name
-        -PlaceCategory category
-        -Location location
-        -Double rating
-    }
+    class Place
     
-    class PlaceDetail {
-        -String placeId
-        -List<String> images
-        -ContactInfo contact
-        -BusinessHours businessHours
-    }
+    class PlaceDetail
     
-    class PlaceRecommendation {
-        -String placeId
-        -String recommendReason
-        -AITips tips
-        -LocalDateTime generatedAt
-    }
+    class PlaceRecommendation
     
-    class Location {
-        -Double latitude
-        -Double longitude
-        -String address
-    }
+    class Location
     
     enum PlaceCategory {
         ALL, TOURIST, RESTAURANT, LAUNDRY
@@ -127,62 +107,48 @@ package "Domain Models" {
 ' Key DTOs
 ' ======================================
 package "DTOs" {
-    class NearbySearchRequest {
-        -Location origin
-        -String transportMode
-        -Integer timeRange
-    }
+    class NearbySearchRequest
     
-    class PlaceDetails {
-        -String placeId
-        -String name
-        -LocationInfo location
-        -AIRecommendation aiRecommendation
-    }
+    class PlaceDetails
     
-    class PlaceCard {
-        -String placeId
-        -String name
-        -Double rating
-        -Integer distance
-    }
+    class PlaceCard
 }
 
 ' ======================================
 ' Layer Dependencies (Layered Architecture)
 ' ======================================
-LocationController --> LocationService : uses
-LocationController --> LocationSearchService : uses
+LocationController --> LocationService : 1
+LocationController --> LocationSearchService : 1
 
 LocationService <|.. LocationServiceImpl : implements
 LocationSearchService <|.. LocationSearchServiceImpl : implements
 
-LocationServiceImpl --> PlaceRepository : uses
-LocationServiceImpl --> PlaceDetailRepository : uses
-LocationServiceImpl --> PlaceRecommendationRepository : uses
-LocationServiceImpl --> ExternalApiService : uses
-LocationServiceImpl --> CacheService : uses
-LocationServiceImpl --> AiServiceClient : uses
+LocationServiceImpl --> PlaceRepository : 1
+LocationServiceImpl --> PlaceDetailRepository : 1
+LocationServiceImpl --> PlaceRecommendationRepository : 1
+LocationServiceImpl --> ExternalApiService : 1
+LocationServiceImpl --> CacheService : 1
+LocationServiceImpl --> AiServiceClient : 1
 
-LocationSearchServiceImpl --> PlaceRepository : uses
-LocationSearchServiceImpl --> CacheService : uses
+LocationSearchServiceImpl --> PlaceRepository : 1
+LocationSearchServiceImpl --> CacheService : 1
 
-ExternalApiService --> GooglePlacesApiClient : uses
-ExternalApiService --> KakaoMapApiClient : uses
+ExternalApiService --> GooglePlacesApiClient : 1
+ExternalApiService --> KakaoMapApiClient : 1
 
 ' ======================================
 ' Domain Relationships
 ' ======================================
-Place --> Location : contains
-Place --> PlaceCategory : uses
-PlaceDetail --> Place : belongs to
-PlaceRecommendation --> Place : belongs to
+Place --> Location : 1
+Place --> PlaceCategory : 1
+PlaceDetail --> Place : 1
+PlaceRecommendation --> Place : 1
 
 ' ======================================
 ' DTO Relationships
 ' ======================================
-NearbySearchRequest --> Location : contains
-PlaceDetails --> Place : converts from
-PlaceCard --> Place : converts from
+NearbySearchRequest --> Location : 1
+PlaceDetails ..> Place : uses
+PlaceCard ..> Place : uses
 
 @enduml
