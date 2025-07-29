@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripGen - 뮌헨 맥주축제 여행</title>
+    <style>
+        /* CSS Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Colors from Style Guide */
+            --primary-blue: #2563EB;
+            --primary-orange: #F97316;
+            --deep-blue: #1E40AF;
+            --light-orange: #FED7AA;
+            --success-green: #10B981;
+            --warning-yellow: #F59E0B;
+            --error-red: #EF4444;
+            --info-blue: #3B82F6;
+            
+            /* Text Colors */
+            --text-primary: #111827;
+            --text-secondary: #374151;
+            --text-tertiary: #6B7280;
+            --text-disabled: #9CA3AF;
+            
+            /* Background Colors */
+            --bg-white: #FFFFFF;
+            --bg-off-white: #F9FAFB;
+            --bg-light-gray: #F3F4F6;
+            --border-gray: #E5E7EB;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--bg-off-white);
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-gray);
+            padding: var(--spacing-md) var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+            text-align: center;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .action-btn {
+            background: var(--primary-blue);
+            color: var(--bg-white);
+            border: none;
+            border-radius: 8px;
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--deep-blue);
+        }
+
+        .action-btn.secondary {
+            background: var(--bg-light-gray);
+            color: var(--text-primary);
+        }
+
+        .action-btn.secondary:hover {
+            background: var(--border-gray);
+        }
+
+        /* Day Tabs */
+        .day-tabs {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-gray);
+            display: flex;
+            overflow-x: auto;
+            padding: 0 var(--spacing-lg);
+        }
+
+        .day-tab {
+            flex: 0 0 auto;
+            padding: var(--spacing-lg);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            text-align: center;
+            min-width: 120px;
+            position: relative;
+        }
+
+        .day-tab.active {
+            border-bottom-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .day-number {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .day-city {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .weather-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .regenerate-day {
+            position: absolute;
+            top: var(--spacing-sm);
+            right: var(--spacing-sm);
+            background: var(--primary-orange);
+            color: var(--bg-white);
+            border: none;
+            border-radius: 4px;
+            padding: var(--spacing-xs);
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .day-tab.active .regenerate-day {
+            display: block;
+        }
+
+        /* Main Content */
+        .main {
+            padding: var(--spacing-lg);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Schedule Items */
+        .schedule-item {
+            background: var(--bg-white);
+            border-radius: 12px;
+            margin-bottom: var(--spacing-lg);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .schedule-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .schedule-item.selected {
+            border: 2px solid var(--primary-blue);
+        }
+
+        .schedule-item.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+        }
+
+        .place-card {
+            padding: var(--spacing-lg);
+        }
+
+        .place-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .time-badge {
+            background: var(--primary-blue);
+            color: var(--bg-white);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .place-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .place-category {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .place-duration {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .health-considerations {
+            background: var(--bg-light-gray);
+            border-radius: 8px;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .health-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .health-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+        }
+
+        .health-tag {
+            background: var(--success-green);
+            color: var(--bg-white);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .health-tag.rest {
+            background: var(--info-blue);
+        }
+
+        .health-tag.accessible {
+            background: var(--warning-yellow);
+        }
+
+        .place-actions {
+            display: none;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .schedule-item.selected .place-actions {
+            display: flex;
+        }
+
+        .place-action-btn {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-info {
+            background: var(--bg-light-gray);
+            color: var(--text-primary);
+        }
+
+        .btn-info:hover {
+            background: var(--info-blue);
+            color: var(--bg-white);
+        }
+
+        .btn-direction {
+            background: var(--bg-light-gray);
+            color: var(--text-primary);
+        }
+
+        .btn-direction:hover {
+            background: var(--success-green);
+            color: var(--bg-white);
+        }
+
+        .btn-delete {
+            background: var(--bg-light-gray);
+            color: var(--text-primary);
+        }
+
+        .btn-delete:hover {
+            background: var(--error-red);
+            color: var(--bg-white);
+        }
+
+        /* Transportation Info */
+        .transport-info {
+            background: var(--bg-off-white);
+            border-radius: 12px;
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .transport-icon {
+            font-size: 24px;
+        }
+
+        .transport-details {
+            flex: 1;
+        }
+
+        .transport-method {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .transport-route {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+
+        /* Weather Alert */
+        .weather-alert {
+            background: var(--light-orange);
+            border: 1px solid var(--primary-orange);
+            border-radius: 12px;
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .weather-alert-icon {
+            font-size: 24px;
+        }
+
+        .weather-alert-content {
+            flex: 1;
+        }
+
+        .weather-alert-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .weather-alert-message {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .weather-alert-button {
+            background: var(--primary-orange);
+            color: var(--bg-white);
+            border: none;
+            border-radius: 6px;
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Drag and Drop Styles */
+        .drag-handle {
+            position: absolute;
+            left: var(--spacing-sm);
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: grab;
+            color: var(--text-disabled);
+            font-size: 16px;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .drop-zone {
+            height: 4px;
+            background: var(--primary-blue);
+            border-radius: 2px;
+            margin: var(--spacing-sm) 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .drop-zone.active {
+            opacity: 1;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-3xl);
+            color: var(--text-tertiary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .day-tabs {
+                justify-content: center;
+            }
+            
+            .day-tab {
+                min-width: 150px;
+            }
+            
+            .header-actions {
+                gap: var(--spacing-md);
+            }
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        *:focus {
+            outline: 2px solid var(--primary-blue);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <button class="back-button" onclick="goBack()" aria-label="뒤로가기">←</button>
+        <h1 class="header-title">뮌헨 맥주축제 여행</h1>
+        <div class="header-actions">
+            <button class="action-btn secondary" onclick="regenerateAll()">🔄 일정 재생성</button>
+            <button class="action-btn" onclick="exportSchedule()">📥 내보내기</button>
+        </div>
+    </header>
+
+    <!-- Day Tabs -->
+    <nav class="day-tabs" role="tablist" aria-label="일자별 일정">
+        <div class="day-tab active" role="tab" aria-selected="true" onclick="selectDay(1)" data-day="1">
+            <div class="day-number">1</div>
+            <div class="day-date">1월 25일 (토)</div>
+            <div class="day-city">뮌헨</div>
+            <div class="weather-info">
+                <span>☁️</span>
+                <span>8°C</span>
+            </div>
+            <button class="regenerate-day" onclick="regenerateDay(1, event)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" role="tab" aria-selected="false" onclick="selectDay(2)" data-day="2">
+            <div class="day-number">2</div>
+            <div class="day-date">1월 26일 (일)</div>
+            <div class="day-city">퓌센</div>
+            <div class="weather-info">
+                <span>🌨️</span>
+                <span>-2°C</span>
+            </div>
+            <button class="regenerate-day" onclick="regenerateDay(2, event)">🔄 다시 생성</button>
+        </div>
+        <div class="day-tab" role="tab" aria-selected="false" onclick="selectDay(3)" data-day="3">
+            <div class="day-number">3</div>
+            <div class="day-date">1월 27일 (월)</div>
+            <div class="day-city">뮌헨</div>
+            <div class="weather-info">
+                <span>☀️</span>
+                <span>12°C</span>
+            </div>
+            <button class="regenerate-day" onclick="regenerateDay(3, event)">🔄 다시 생성</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main" role="main">
+        <!-- Weather Alert -->
+        <div class="weather-alert" id="weatherAlert" style="display: none;">
+            <div class="weather-alert-icon">⚠️</div>
+            <div class="weather-alert-content">
+                <div class="weather-alert-title">날씨 변화 알림</div>
+                <div class="weather-alert-message">2일차에 눈 예보가 추가되었습니다. 실내 활동 중심으로 일정을 재생성하시겠습니까?</div>
+            </div>
+            <button class="weather-alert-button" onclick="handleWeatherAlert()">일정 재생성</button>
+        </div>
+
+        <!-- Schedule Content -->
+        <div class="schedule-content" id="scheduleContent">
+            <!-- Day 1 Schedule -->
+            <div class="day-schedule" data-day="1">
+                <!-- 9:00 - 뮌헨 중앙역 -->
+                <div class="schedule-item" data-place-id="1" onclick="selectPlace(1)" draggable="true">
+                    <div class="drag-handle">⋮⋮</div>
+                    <div class="place-card">
+                        <div class="place-header">
+                            <div class="time-badge">09:00</div>
+                        </div>
+                        <div class="place-name">뮌헨 중앙역 (München Hauptbahnhof)</div>
+                        <div class="place-category">교통 허브</div>
+                        <div class="place-duration">소요시간: 30분</div>
+                        
+                        <div class="health-considerations">
+                            <div class="health-title">건강상태 고려사항</div>
+                            <div class="health-tags">
+                                <span class="health-tag accessible">♿ 엘리베이터 이용 가능</span>
+                                <span class="health-tag rest">🪑 휴식 공간 다수</span>
+                            </div>
+                        </div>
+                        
+                        <div class="place-actions">
+                            <button class="place-action-btn btn-info" onclick="viewPlaceDetails(1, event)">상세정보</button>
+                            <button class="place-action-btn btn-direction" onclick="getDirections(1, event)">길찾기</button>
+                            <button class="place-action-btn btn-delete" onclick="deletePlace(1, event)">삭제</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transportation -->
+                <div class="transport-info">
+                    <div class="transport-icon">🚶</div>
+                    <div class="transport-details">
+                        <div class="transport-method">도보 10분 이동</div>
+                        <div class="transport-route">뮌헨 중앙역 → 마리엔플라츠</div>
+                    </div>
+                </div>
+
+                <!-- 10:00 - 마리엔플라츠 -->
+                <div class="schedule-item" data-place-id="2" onclick="selectPlace(2)" draggable="true">
+                    <div class="drag-handle">⋮⋮</div>
+                    <div class="place-card">
+                        <div class="place-header">
+                            <div class="time-badge">10:00</div>
+                        </div>
+                        <div class="place-name">마리엔플라츠 (Marienplatz)</div>
+                        <div class="place-category">관광명소</div>
+                        <div class="place-duration">소요시간: 1시간 30분</div>
+                        
+                        <div class="health-considerations">
+                            <div class="health-title">건강상태 고려사항</div>
+                            <div class="health-tags">
+                                <span class="health-tag">📸 베스트 포토 스팟</span>
+                                <span class="health-tag rest">☕ 주변 카페 다수</span>
+                                <span class="health-tag accessible">♿ 평탄한 광장</span>
+                            </div>
+                        </div>
+                        
+                        <div class="place-actions">
+                            <button class="place-action-btn btn-info" onclick="viewPlaceDetails(2, event)">상세정보</button>
+                            <button class="place-action-btn btn-direction" onclick="getDirections(2, event)">길찾기</button>
+                            <button class="place-action-btn btn-delete" onclick="deletePlace(2, event)">삭제</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transportation -->
+                <div class="transport-info">
+                    <div class="transport-icon">🚶</div>
+                    <div class="transport-details">
+                        <div class="transport-method">도보 5분 이동</div>
+                        <div class="transport-route">마리엔플라츠 → 호프브로이하우스</div>
+                    </div>
+                </div>
+
+                <!-- 12:00 - 호프브로이하우스 -->
+                <div class="schedule-item" data-place-id="3" onclick="selectPlace(3)" draggable="true">
+                    <div class="drag-handle">⋮⋮</div>
+                    <div class="place-card">
+                        <div class="place-header">
+                            <div class="time-badge">12:00</div>
+                        </div>
+                        <div class="place-name">호프브로이하우스 (Hofbräuhaus)</div>
+                        <div class="place-category">맥주홀 / 레스토랑</div>
+                        <div class="place-duration">소요시간: 2시간</div>
+                        
+                        <div class="health-considerations">
+                            <div class="health-title">건강상태 고려사항</div>
+                            <div class="health-tags">
+                                <span class="health-tag">🍺 뮌헨 대표 맥주홀</span>
+                                <span class="health-tag rest">🪑 실내 좌석</span>
+                                <span class="health-tag accessible">♿ 1층 접근 가능</span>
+                            </div>
+                        </div>
+                        
+                        <div class="place-actions">
+                            <button class="place-action-btn btn-info" onclick="viewPlaceDetails(3, event)">상세정보</button>
+                            <button class="place-action-btn btn-direction" onclick="getDirections(3, event)">길찾기</button>
+                            <button class="place-action-btn btn-delete" onclick="deletePlace(3, event)">삭제</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other days would be similar structure -->
+            <div class="day-schedule" data-day="2" style="display: none;">
+                <div class="empty-state">
+                    <div class="empty-icon">🏔️</div>
+                    <h3>2일차 일정</h3>
+                    <p>노이슈반슈타인 성 투어</p>
+                </div>
+            </div>
+
+            <div class="day-schedule" data-day="3" style="display: none;">
+                <div class="empty-state">
+                    <div class="empty-icon">🎨</div>
+                    <h3>3일차 일정</h3>
+                    <p>뮌헨 박물관 투어</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let currentDay = 1;
+        let selectedPlaceId = null;
+        let draggedItem = null;
+
+        // Sample data
+        const scheduleData = {
+            tripName: '뮌헨 맥주축제 여행',
+            days: [
+                {
+                    day: 1,
+                    date: '1월 25일 (토)',
+                    city: '뮌헨',
+                    weather: { icon: '☁️', temp: '8°C' },
+                    places: [
+                        { id: 1, name: '뮌헨 중앙역', time: '09:00', duration: '30분' },
+                        { id: 2, name: '마리엔플라츠', time: '10:00', duration: '1시간 30분' },
+                        { id: 3, name: '호프브로이하우스', time: '12:00', duration: '2시간' }
+                    ]
+                },
+                {
+                    day: 2,
+                    date: '1월 26일 (일)',
+                    city: '퓌센',
+                    weather: { icon: '🌨️', temp: '-2°C' },
+                    places: []
+                },
+                {
+                    day: 3,
+                    date: '1월 27일 (월)',
+                    city: '뮌헨',
+                    weather: { icon: '☀️', temp: '12°C' },
+                    places: []
+                }
+            ]
+        };
+
+        // Day selection
+        function selectDay(dayNumber) {
+            currentDay = dayNumber;
+            
+            // Update tab styles
+            document.querySelectorAll('.day-tab').forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-selected', 'false');
+            });
+            
+            const activeTab = document.querySelector(`[data-day="${dayNumber}"]`);
+            activeTab.classList.add('active');
+            activeTab.setAttribute('aria-selected', 'true');
+            
+            // Show corresponding schedule
+            document.querySelectorAll('.day-schedule').forEach(schedule => {
+                schedule.style.display = 'none';
+            });
+            
+            const activeSchedule = document.querySelector(`.day-schedule[data-day="${dayNumber}"]`);
+            if (activeSchedule) {
+                activeSchedule.style.display = 'block';
+            }
+            
+            // Clear selection
+            selectedPlaceId = null;
+            document.querySelectorAll('.schedule-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        // Place selection
+        function selectPlace(placeId) {
+            // Clear previous selection
+            document.querySelectorAll('.schedule-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Select new place
+            const placeElement = document.querySelector(`[data-place-id="${placeId}"]`);
+            if (placeElement) {
+                placeElement.classList.add('selected');
+                selectedPlaceId = placeId;
+            }
+        }
+
+        // Place actions
+        function viewPlaceDetails(placeId, event) {
+            event.stopPropagation();
+            // 장소 상세정보 화면으로 이동
+            window.location.href = '10-장소상세정보.html?id=' + placeId;
+        }
+
+        function getDirections(placeId, event) {
+            event.stopPropagation();
+            alert(`길찾기: ${placeId}`);
+            // Open navigation app
+        }
+
+        function deletePlace(placeId, event) {
+            event.stopPropagation();
+            
+            if (confirm('이 장소를 일정에서 삭제하시겠습니까?')) {
+                const placeElement = document.querySelector(`[data-place-id="${placeId}"]`);
+                if (placeElement) {
+                    placeElement.remove();
+                    selectedPlaceId = null;
+                    showAutoSaveIndicator();
+                }
+            }
+        }
+
+        // Schedule regeneration
+        function regenerateAll() {
+            if (confirm('전체 일정을 다시 생성하시겠습니까? 현재 일정이 모두 새로 변경됩니다.')) {
+                alert('AI일정생성 화면으로 이동');
+                // window.location.href = '07-AI일정생성.html';
+            }
+        }
+
+        function regenerateDay(dayNumber, event) {
+            event.stopPropagation();
+            
+            if (confirm(`${dayNumber}일차 일정을 다시 생성하시겠습니까?`)) {
+                // Show loading state
+                const daySchedule = document.querySelector(`.day-schedule[data-day="${dayNumber}"]`);
+                if (daySchedule) {
+                    daySchedule.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">⏳</div>
+                            <h3>일정 생성 중...</h3>
+                            <p>${dayNumber}일차 일정을 새로 생성하고 있습니다.</p>
+                        </div>
+                    `;
+                }
+                
+                // Simulate API call
+                setTimeout(() => {
+                    alert(`${dayNumber}일차 일정이 새로 생성되었습니다.`);
+                    location.reload();
+                }, 2000);
+            }
+        }
+
+        // Export functionality
+        function exportSchedule() {
+            const options = ['PDF로 내보내기', '이미지로 내보내기', '취소'];
+            const choice = prompt(`내보내기 형식을 선택하세요:\n1. ${options[0]}\n2. ${options[1]}\n0. ${options[2]}\n\n번호를 입력하세요:`);
+            
+            switch(choice) {
+                case '1':
+                    alert('PDF 파일이 다운로드됩니다.');
+                    break;
+                case '2':
+                    alert('이미지 파일이 다운로드됩니다.');
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // Weather alert
+        function handleWeatherAlert() {
+            if (confirm('날씨 변화에 맞춰 일정을 재생성하시겠습니까?')) {
+                document.getElementById('weatherAlert').style.display = 'none';
+                regenerateDay(2, new Event('click'));
+            }
+        }
+
+        // Drag and drop functionality
+        function setupDragAndDrop() {
+            const scheduleItems = document.querySelectorAll('.schedule-item');
+            
+            scheduleItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            draggedItem = null;
+            
+            // Remove all drop zones
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                zone.remove();
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            // Show drop zone
+            if (!this.querySelector('.drop-zone')) {
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone active';
+                this.parentNode.insertBefore(dropZone, this);
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            
+            if (draggedItem && draggedItem !== this) {
+                // Reorder items
+                const parent = this.parentNode;
+                const draggedNextSibling = draggedItem.nextSibling;
+                
+                parent.insertBefore(draggedItem, this);
+                parent.insertBefore(this, draggedNextSibling);
+                
+                showAutoSaveIndicator();
+            }
+        }
+
+        // Auto-save indicator
+        function showAutoSaveIndicator() {
+            // Create and show auto-save indicator
+            let indicator = document.getElementById('autoSaveIndicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'autoSaveIndicator';
+                indicator.textContent = '일정이 자동 저장되었습니다';
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--success-green);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    z-index: 1000;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                `;
+                document.body.appendChild(indicator);
+            }
+            
+            indicator.style.opacity = '1';
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+            }, 2000);
+        }
+
+        // Navigation
+        function goBack() {
+            window.location.href = '03-대시보드.html';
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            
+            // Show weather alert after 3 seconds
+            setTimeout(() => {
+                document.getElementById('weatherAlert').style.display = 'flex';
+            }, 3000);
+            
+            console.log('생성된일정조회 페이지 로드 완료');
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft' && currentDay > 1) {
+                selectDay(currentDay - 1);
+            } else if (e.key === 'ArrowRight' && currentDay < 3) {
+                selectDay(currentDay + 1);
+            } else if (e.key === 'Delete' && selectedPlaceId) {
+                deletePlace(selectedPlaceId, e);
+            }
+        });
+    </script>
+</body>
+</html>

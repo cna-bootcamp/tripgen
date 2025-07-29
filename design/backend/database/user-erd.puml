@@ -1,0 +1,97 @@
+@startuml
+!theme mono
+
+title User 서비스 ERD (Entity Relationship Diagram)
+
+' =====================================
+' 테이블 정의
+' =====================================
+
+entity "users" as users {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **user_id** : VARCHAR(36) <<UK>> <<Not Null>>
+    * **username** : VARCHAR(50) <<UK>> <<Not Null>>
+    * **password** : VARCHAR(255) <<Not Null>>
+    * **name** : VARCHAR(100) <<Not Null>>
+    * **email** : VARCHAR(255) <<UK>> <<Not Null>>
+    --
+    phone : VARCHAR(20)
+    avatar_url : VARCHAR(500)
+    status : VARCHAR(20) <<Not Null>> <<Default: 'ACTIVE'>>
+    login_attempts : INTEGER <<Not Null>> <<Default: 0>>
+    locked_until : TIMESTAMP WITH TIME ZONE
+    last_login_at : TIMESTAMP WITH TIME ZONE
+    --
+    created_by : VARCHAR(36)
+    updated_by : VARCHAR(36)
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+' =====================================
+' 인덱스 정보
+' =====================================
+
+note right of users : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (user_id)\n• UNIQUE (username)\n• UNIQUE (email)\n• INDEX (username, status)\n• INDEX (locked_until)\n• INDEX (last_login_at)\n• INDEX (created_at)
+
+' =====================================
+' 제약조건 정보
+' =====================================
+
+note left of users : **제약조건**\n• status ∈ {'ACTIVE', 'INACTIVE', 'SUSPENDED', 'LOCKED', 'DELETED'}\n• login_attempts ≥ 0\n• LENGTH(username) ≥ 5\n• email 형식 체크\n• LENGTH(name) ≥ 2
+
+' =====================================
+' 트리거 정보
+' =====================================
+
+note bottom of users : **트리거**\n• user_id 자동 생성 (UUID)\n• updated_at 자동 갱신\n• 로그인 시도 횟수 관리
+
+' =====================================
+' 캐시 구조 (Redis)
+' =====================================
+
+package "Redis Cache" {
+    class "user:session:{user_id}" as session_cache {
+        JWT Token 정보
+        TTL: 24시간
+    }
+    
+    class "user:profile:{user_id}" as profile_cache {
+        UserProfile DTO
+        TTL: 1시간
+    }
+    
+    class "user:login_attempts:{username}" as attempts_cache {
+        로그인 시도 횟수
+        TTL: 30분
+    }
+    
+    class "jwt:blacklist:{token_jti}" as blacklist_cache {
+        블랙리스트 토큰
+        TTL: JWT 만료시간
+    }
+}
+
+' =====================================
+' 관계 정의
+' =====================================
+
+users ||--o{ session_cache : "캐시"
+users ||--o{ profile_cache : "캐시"
+users ||--o{ attempts_cache : "캐시"
+
+' =====================================
+' 범례
+' =====================================
+
+legend bottom right
+    |= 기호 |= 의미 |
+    | **PK** | Primary Key |
+    | **UK** | Unique Key |
+    | **FK** | Foreign Key |
+    | **Not Null** | 필수 필드 |
+    | **Default** | 기본값 |
+endlegend
+
+@enduml

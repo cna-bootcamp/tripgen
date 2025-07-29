@@ -1,0 +1,199 @@
+@startuml
+!theme mono
+
+title Location 서비스 ERD (Entity Relationship Diagram)
+
+' =====================================
+' 테이블 정의
+' =====================================
+
+entity "places" as places {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **place_id** : VARCHAR(100) <<UK>> <<Not Null>>
+    * **name** : VARCHAR(255) <<Not Null>>
+    * **category** : VARCHAR(50) <<Not Null>>
+    * **latitude** : DECIMAL(10,8) <<Not Null>>
+    * **longitude** : DECIMAL(11,8) <<Not Null>>
+    * **region_type** : VARCHAR(20) <<Not Null>>
+    --
+    description : TEXT
+    rating : DECIMAL(2,1)
+    review_count : INTEGER <<Default: 0>>
+    price_level : INTEGER
+    address : VARCHAR(500)
+    search_keyword : VARCHAR(255)
+    parking_keyword : VARCHAR(255)
+    location_point : GEOMETRY(POINT, 4326)
+    last_accessed_at : TIMESTAMP WITH TIME ZONE
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "place_details" as place_details {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **place_id** : VARCHAR(100) <<UK>> <<Not Null>> <<FK>>
+    --
+    images : JSONB
+    contact_phone : VARCHAR(50)
+    contact_website : VARCHAR(500)
+    business_hours : JSONB
+    reviews : JSONB
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "place_recommendations" as place_recommendations {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **place_id** : VARCHAR(100) <<Not Null>> <<FK>>
+    * **recommend_reason** : TEXT <<Not Null>>
+    * **tips_data** : JSONB <<Not Null>>
+    --
+    trip_id : VARCHAR(36)
+    from_cache : BOOLEAN <<Not Null>> <<Default: FALSE>>
+    generated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    expires_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+' =====================================
+' 관계 정의
+' =====================================
+
+places ||--|| place_details : "place_id로 1:1 관계"
+places ||--o{ place_recommendations : "place_id로 1:N 관계"
+
+' =====================================
+' 인덱스 정보
+' =====================================
+
+note right of places : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (place_id)\n• INDEX (latitude, longitude)\n• INDEX (category)\n• INDEX (region_type, category)\n• INDEX (rating DESC)\n• GIST INDEX (location_point)\n• GIN INDEX (name 전문검색)
+
+note right of place_details : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (place_id)\n• GIN INDEX (images)\n• GIN INDEX (business_hours)\n• FK INDEX (place_id)
+
+note right of place_recommendations : **인덱스**\n• PRIMARY KEY (id)\n• INDEX (place_id)\n• INDEX (trip_id)\n• INDEX (expires_at)\n• INDEX (generated_at)\n• GIN INDEX (tips_data)\n• FK INDEX (place_id)
+
+' =====================================
+' 제약조건 정보
+' =====================================
+
+note left of places : **제약조건**\n• category ∈ {'ALL', 'TOURIST', 'RESTAURANT', 'LAUNDRY'}\n• rating ∈ [0.0, 5.0]\n• price_level ∈ [1, 4]\n• region_type ∈ {'DOMESTIC', 'INTERNATIONAL'}\n• latitude ∈ [-90, 90]\n• longitude ∈ [-180, 180]
+
+note left of place_recommendations : **제약조건**\n• expires_at > created_at\n• FK: place_id → places(place_id)
+
+note left of place_details : **제약조건**\n• FK: place_id → places(place_id)\n• CASCADE DELETE
+
+' =====================================
+' PostGIS 공간 데이터
+' =====================================
+
+package "PostGIS 확장" {
+    class "공간 인덱스" as spatial {
+        location_point: GEOMETRY(POINT, 4326)
+        SRID: 4326 (WGS84)
+        공간 연산 지원
+    }
+}
+
+places ||--|| spatial : "공간 데이터"
+
+' =====================================
+' 캐시 구조 (Redis)
+' =====================================
+
+package "Redis Cache" {
+    class "location:place:{place_id}" as place_cache {
+        PlaceDetails JSON
+        TTL: 1시간
+    }
+    
+    class "location:nearby:{lat}:{lng}:{radius}:{category}" as nearby_cache {
+        List<Place> JSON
+        TTL: 30분
+    }
+    
+    class "location:search:{keyword}:{location_hash}" as search_cache {
+        List<Place> JSON
+        TTL: 30분
+    }
+    
+    class "location:recommendation:{place_id}:{trip_id}" as rec_cache {
+        PlaceRecommendation JSON
+        TTL: 24시간
+    }
+    
+    class "location:business_hours:{place_id}" as hours_cache {
+        BusinessHours JSON
+        TTL: 6시간
+    }
+}
+
+' =====================================
+' 외부 API 연동
+' =====================================
+
+package "외부 API" {
+    class "Google Places API" as google_api {
+        해외 장소 정보
+        상세 정보 제공
+        리뷰 데이터
+    }
+    
+    class "Kakao Map API" as kakao_api {
+        국내 장소 정보
+        주소 변환
+        주변 검색
+    }
+}
+
+' =====================================
+' 관계 정의 (캐시 및 API)
+' =====================================
+
+places ||--o{ place_cache : "캐시"
+places ||--o{ nearby_cache : "캐시"
+places ||--o{ search_cache : "캐시"
+place_recommendations ||--o{ rec_cache : "캐시"
+place_details ||--o{ hours_cache : "캐시"
+
+places ||--o{ google_api : "해외 장소"
+places ||--o{ kakao_api : "국내 장소"
+
+' =====================================
+' JSON 스키마 예시
+' =====================================
+
+note bottom of place_details : **business_hours JSON 스키마**\n{\n  "is_open": boolean,\n  "current_status": "string",\n  "today_hours": "string",\n  "weekly_hours": [\n    {\n      "day": "string",\n      "hours": "string",\n      "is_today": boolean\n    }\n  ]\n}
+
+note bottom of place_recommendations : **tips_data JSON 스키마**\n{\n  "description": "string",\n  "special_events": "string",\n  "best_visit_time": "string",\n  "estimated_duration": "string",\n  "photo_spots": ["string"],\n  "practical_tips": ["string"],\n  "weather_tips": "string",\n  "alternative_places": [\n    {\n      "name": "string",\n      "reason": "string",\n      "distance": "string"\n    }\n  ]\n}
+
+' =====================================
+' 트리거 정보
+' =====================================
+
+note top of places : **트리거**\n• updated_at 자동 갱신\n• location_point 자동 생성\n• last_accessed_at 갱신
+
+note top of place_recommendations : **트리거**\n• expires_at 자동 설정 (24시간)\n• updated_at 자동 갱신
+
+' =====================================
+' 범례
+' =====================================
+
+legend bottom right
+    |= 기호 |= 의미 |
+    | **PK** | Primary Key |
+    | **UK** | Unique Key |
+    | **FK** | Foreign Key |
+    | **Not Null** | 필수 필드 |
+    | **Default** | 기본값 |
+    | **JSONB** | JSON Binary 타입 |
+    | **GEOMETRY** | PostGIS 공간 타입 |
+endlegend
+
+@enduml

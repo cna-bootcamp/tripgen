@@ -1,0 +1,290 @@
+@startuml
+!theme mono
+
+title Trip 서비스 ERD (Entity Relationship Diagram)
+
+' =====================================
+' 테이블 정의
+' =====================================
+
+entity "trips" as trips {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **trip_id** : VARCHAR(36) <<UK>> <<Not Null>>
+    * **user_id** : VARCHAR(36) <<Not Null>>
+    * **trip_name** : VARCHAR(200) <<Not Null>>
+    * **transport_mode** : VARCHAR(20) <<Not Null>>
+    * **status** : VARCHAR(20) <<Not Null>> <<Default: 'PLANNING'>>
+    --
+    current_step : VARCHAR(50)
+    start_date : DATE
+    end_date : DATE
+    progress : INTEGER <<Not Null>> <<Default: 0>>
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "members" as members {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **member_id** : VARCHAR(36) <<UK>> <<Not Null>>
+    * **trip_id** : VARCHAR(36) <<Not Null>> <<FK>>
+    * **name** : VARCHAR(100) <<Not Null>>
+    * **age** : INTEGER <<Not Null>>
+    * **gender** : VARCHAR(10) <<Not Null>>
+    * **health_status** : VARCHAR(20) <<Not Null>>
+    --
+    preferences : JSONB
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "destinations" as destinations {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **destination_id** : VARCHAR(36) <<UK>> <<Not Null>>
+    * **trip_id** : VARCHAR(36) <<Not Null>> <<FK>>
+    * **destination_name** : VARCHAR(200) <<Not Null>>
+    * **nights** : INTEGER <<Not Null>>
+    * **order_seq** : INTEGER <<Not Null>>
+    --
+    start_date : DATE
+    end_date : DATE
+    accommodation : VARCHAR(300)
+    check_in_time : VARCHAR(10)
+    check_out_time : VARCHAR(10)
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "schedules" as schedules {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **schedule_id** : VARCHAR(36) <<UK>> <<Not Null>>
+    * **trip_id** : VARCHAR(36) <<Not Null>> <<FK>>
+    * **day** : INTEGER <<Not Null>>
+    * **date** : DATE <<Not Null>>
+    * **city** : VARCHAR(100) <<Not Null>>
+    --
+    weather_condition : VARCHAR(50)
+    min_temperature : DECIMAL(5,2)
+    max_temperature : DECIMAL(5,2)
+    weather_icon : VARCHAR(50)
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "schedule_places" as schedule_places {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **schedule_id** : VARCHAR(36) <<Not Null>> <<FK>>
+    * **place_id** : VARCHAR(100) <<Not Null>>
+    * **place_name** : VARCHAR(255) <<Not Null>>
+    * **category** : VARCHAR(50) <<Not Null>>
+    * **start_time** : VARCHAR(10) <<Not Null>>
+    * **duration** : INTEGER <<Not Null>>
+    * **order_seq** : INTEGER <<Not Null>>
+    --
+    transport_type : VARCHAR(20)
+    transport_duration : INTEGER
+    transport_distance : DECIMAL(10,3)
+    transport_route : TEXT
+    rest_points : JSONB
+    accessibility : JSONB
+    walking_distance : DECIMAL(8,3)
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+' =====================================
+' 관계 정의
+' =====================================
+
+trips ||--o{ members : "trip_id로 1:N 관계"
+trips ||--o{ destinations : "trip_id로 1:N 관계"
+trips ||--o{ schedules : "trip_id로 1:N 관계"
+schedules ||--o{ schedule_places : "schedule_id로 1:N 관계"
+
+' =====================================
+' 인덱스 정보
+' =====================================
+
+note right of trips : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (trip_id)\n• INDEX (user_id)\n• INDEX (user_id, status)\n• INDEX (status)\n• INDEX (created_at)\n• INDEX (start_date)
+
+note right of members : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (member_id)\n• INDEX (trip_id)\n• INDEX (health_status)\n• INDEX (age)\n• GIN INDEX (preferences)\n• FK INDEX (trip_id)
+
+note right of destinations : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (destination_id)\n• INDEX (trip_id)\n• INDEX (trip_id, order_seq)\n• INDEX (start_date)\n• FK INDEX (trip_id)
+
+note right of schedules : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (schedule_id)\n• UNIQUE (trip_id, day)\n• INDEX (trip_id)\n• INDEX (date)\n• INDEX (city)\n• FK INDEX (trip_id)
+
+note right of schedule_places : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (schedule_id, order_seq)\n• INDEX (schedule_id)\n• INDEX (place_id)\n• INDEX (category)\n• INDEX (start_time)\n• GIN INDEX (rest_points)\n• GIN INDEX (accessibility)\n• FK INDEX (schedule_id)
+
+' =====================================
+' 제약조건 정보
+' =====================================
+
+note left of trips : **제약조건**\n• transport_mode ∈ {'PUBLIC', 'CAR'}\n• status ∈ {'PLANNING', 'ONGOING', 'COMPLETED'}\n• progress ∈ [0, 100]\n• end_date ≥ start_date OR NULL\n• trip_name 길이 [2, 200]
+
+note left of members : **제약조건**\n• gender ∈ {'MALE', 'FEMALE'}\n• health_status ∈ {'EXCELLENT', 'GOOD', 'CAUTION', 'LIMITED'}\n• age ∈ [0, 150]\n• name 길이 [2, 100]\n• FK: trip_id → trips(trip_id)
+
+note left of destinations : **제약조건**\n• nights ∈ [0, 365]\n• end_date ≥ start_date OR NULL\n• check_in_time HH:mm 형식\n• check_out_time HH:mm 형식\n• destination_name 길이 [2, 200]\n• order_seq ≥ 1\n• FK: trip_id → trips(trip_id)
+
+note left of schedules : **제약조건**\n• day ∈ [1, 365]\n• city 길이 [1, 100]\n• min_temperature ≤ max_temperature OR NULL\n• UNIQUE (trip_id, day)\n• FK: trip_id → trips(trip_id)
+
+note left of schedule_places : **제약조건**\n• start_time HH:mm 형식\n• duration ∈ [0, 1440] (분)\n• transport_type ∈ {'WALK', 'CAR', 'PUBLIC'}\n• transport_duration ∈ [0, 1440] (분)\n• category ∈ {'ALL', 'TOURIST', 'RESTAURANT', 'LAUNDRY'}\n• place_name 길이 [1, 255]\n• order_seq ≥ 1\n• UNIQUE (schedule_id, order_seq)\n• FK: schedule_id → schedules(schedule_id)
+
+' =====================================
+' 트리거 정보
+' =====================================
+
+note top of trips : **트리거**\n• trip_id 자동 생성 (UUID)\n• updated_at 자동 갱신\n• 진행률 자동 계산 (멤버/목적지/일정 변경시)
+
+note top of members : **트리거**\n• member_id 자동 생성 (UUID)\n• updated_at 자동 갱신\n• 여행 진행률 업데이트
+
+note top of destinations : **트리거**\n• destination_id 자동 생성 (UUID)\n• updated_at 자동 갱신\n• 목적지 날짜 자동 계산\n• 여행 진행률 업데이트
+
+note top of schedules : **트리거**\n• schedule_id 자동 생성 (UUID)\n• updated_at 자동 갱신\n• 여행 진행률 업데이트
+
+note top of schedule_places : **트리거**\n• updated_at 자동 갱신
+
+' =====================================
+' 캐시 구조 (Redis)
+' =====================================
+
+package "Redis Cache" {
+    class "trip:list:{user_id}:{status}:{page}" as trip_list_cache {
+        TripListResponse JSON
+        TTL: 5분
+    }
+    
+    class "trip:detail:{trip_id}" as trip_detail_cache {
+        TripDetailResponse JSON
+        TTL: 30분
+    }
+    
+    class "trip:members:{trip_id}" as trip_members_cache {
+        List<MemberResponse> JSON
+        TTL: 30분
+    }
+    
+    class "trip:destinations:{trip_id}" as trip_destinations_cache {
+        List<DestinationResponse> JSON
+        TTL: 30분
+    }
+    
+    class "trip:schedules:{trip_id}:{day}" as trip_schedules_cache {
+        ScheduleResponse JSON
+        TTL: 1시간
+    }
+    
+    class "trip:schedules:all:{trip_id}" as trip_all_schedules_cache {
+        List<ScheduleResponse> JSON
+        TTL: 1시간
+    }
+}
+
+' =====================================
+' 외부 서비스 연결
+' =====================================
+
+package "외부 서비스" {
+    class "User Service" as user_service {
+        user_id 검증
+        사용자 정보 조회
+    }
+    
+    class "AI Service" as ai_service {
+        일정 생성 요청
+        진행 상태 조회
+        장소 추천 정보
+    }
+    
+    class "Location Service" as location_service {
+        장소 정보 조회
+        날씨 정보 조회
+        경로 정보 조회
+    }
+}
+
+' =====================================
+' 관계 정의 (캐시 및 외부 서비스)
+' =====================================
+
+trips ||--o{ trip_list_cache : "캐시"
+trips ||--o{ trip_detail_cache : "캐시"
+members ||--o{ trip_members_cache : "캐시"
+destinations ||--o{ trip_destinations_cache : "캐시"
+schedules ||--o{ trip_schedules_cache : "캐시"
+schedules ||--o{ trip_all_schedules_cache : "캐시"
+
+trips ||--o{ user_service : "user_id 검증"
+schedules ||--o{ ai_service : "일정 생성"
+schedule_places ||--o{ location_service : "장소/날씨 정보"
+
+' =====================================
+' JSON 스키마 예시
+' =====================================
+
+note bottom of members : **preferences JSON 스키마**\n[\n  "SIGHTSEEING",\n  "SHOPPING",\n  "CULTURE",\n  "NATURE",\n  "SPORTS",\n  "REST"\n]
+
+note bottom of schedule_places : **rest_points JSON 스키마**\n[\n  "카페 A",\n  "벤치 구역",\n  "휴게소"\n]\n\n**accessibility JSON 스키마**\n[\n  "ELEVATOR",\n  "RAMP",\n  "WHEELCHAIR"\n]
+
+' =====================================
+' 비즈니스 로직 플로우
+' =====================================
+
+package "비즈니스 플로우" {
+    class "1. 여행 생성" as flow1 {
+        trips 테이블 생성
+        progress = 20%
+    }
+    
+    class "2. 멤버 추가" as flow2 {
+        members 테이블 추가
+        progress = 40%
+    }
+    
+    class "3. 목적지 설정" as flow3 {
+        destinations 테이블 추가
+        날짜 자동 계산
+        progress = 60%
+    }
+    
+    class "4. 날짜 확정" as flow4 {
+        trips.start_date, end_date 설정
+        progress = 80%
+    }
+    
+    class "5. 일정 생성" as flow5 {
+        schedules, schedule_places 생성
+        AI 서비스 연동
+        progress = 100%
+    }
+}
+
+flow1 --> flow2 : "멤버 추가"
+flow2 --> flow3 : "목적지 설정"
+flow3 --> flow4 : "날짜 확정"
+flow4 --> flow5 : "일정 생성"
+
+' =====================================
+' 범례
+' =====================================
+
+legend bottom right
+    |= 기호 |= 의미 |
+    | **PK** | Primary Key |
+    | **UK** | Unique Key |
+    | **FK** | Foreign Key |
+    | **Not Null** | 필수 필드 |
+    | **Default** | 기본값 |
+    | **JSONB** | JSON Binary 타입 |
+    | **CASCADE** | 연쇄 삭제 |
+endlegend
+
+@enduml

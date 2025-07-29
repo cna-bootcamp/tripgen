@@ -1,0 +1,143 @@
+graph TB
+    %% Production Environment Physical Architecture
+    %% Enterprise-grade Azure Cloud Architecture
+    
+    Users[Mobile/Web Users] --> WAF[Azure Application Gateway<br/>with WAF v2]
+    
+    subgraph "Azure Cloud - Production Environment"
+        WAF --> PrivateLink[Azure Private Link]
+        
+        subgraph "Network Layer"
+            PrivateLink --> AppGateway[Application Gateway<br/>Zone Redundant]
+            AppGateway --> Firewall[Azure Firewall]
+        end
+        
+        subgraph "Azure Kubernetes Service - Production"
+            direction TB
+            Firewall --> IstioGateway[Istio Gateway]
+            
+            subgraph "Application Subnet (10.0.1.0/24)"
+                IstioGateway --> UserService[User Service<br/>2-5 Replicas]
+                IstioGateway --> TravelService[Travel Service<br/>3-8 Replicas]
+                IstioGateway --> ScheduleService[AI Service<br/>2-6 Replicas]
+                IstioGateway --> LocationService[Location Service<br/>2-5 Replicas]
+            end
+            
+            subgraph "Service Mesh"
+                ServiceMesh[Istio Service Mesh<br/>mTLS Enabled]
+                UserService -.-> ServiceMesh
+                TravelService -.-> ServiceMesh
+                ScheduleService -.-> ServiceMesh
+                LocationService -.-> ServiceMesh
+            end
+        end
+        
+        subgraph "Data Layer"
+            direction TB
+            
+            subgraph "Database Subnet (10.0.2.0/24)"
+                PostgreSQLCluster[Azure Database for PostgreSQL<br/>Flexible Server<br/>Zone Redundant + Read Replicas]
+            end
+            
+            subgraph "Cache Subnet (10.0.3.0/24)"
+                RedisCluster[Azure Cache for Redis<br/>Premium P1 Cluster<br/>6GB Memory]
+            end
+        end
+        
+        subgraph "Messaging Layer"
+            ServiceBusPremium[Azure Service Bus<br/>Premium Tier<br/>Geo-DR Enabled]
+            EventHubs[Azure Event Hubs<br/>Analytics Pipeline]
+        end
+        
+        subgraph "Security & Management"
+            KeyVault[Azure Key Vault<br/>Secrets Management]
+            AAD[Azure Active Directory<br/>Identity & Access]
+            Monitor[Azure Monitor<br/>+ Application Insights]
+        end
+        
+        %% Data Flow Connections
+        UserService --> PostgreSQLCluster
+        TravelService --> PostgreSQLCluster
+        ScheduleService --> PostgreSQLCluster
+        LocationService --> PostgreSQLCluster
+        
+        UserService --> RedisCluster
+        TravelService --> RedisCluster
+        ScheduleService --> RedisCluster
+        LocationService --> RedisCluster
+        
+        TravelService --> ServiceBusPremium
+        ScheduleService --> ServiceBusPremium
+        LocationService --> ServiceBusPremium
+        
+        TravelService --> EventHubs
+        ScheduleService --> EventHubs
+        
+        %% Security Connections
+        UserService -.-> KeyVault
+        TravelService -.-> KeyVault
+        ScheduleService -.-> KeyVault
+        LocationService -.-> KeyVault
+        
+        UserService -.-> AAD
+        TravelService -.-> AAD
+        ScheduleService -.-> AAD
+        LocationService -.-> AAD
+        
+        %% Monitoring Connections
+        UserService -.-> Monitor
+        TravelService -.-> Monitor
+        ScheduleService -.-> Monitor
+        LocationService -.-> Monitor
+    end
+    
+    %% External Integrations
+    subgraph "External Services"
+        ExternalAPI[External APIs<br/>OpenAI GPT-4<br/>Google Maps<br/>Weather APIs]
+        CDN[Azure CDN<br/>Static Content]
+    end
+    
+    %% External Connections
+    ExternalAPI --> ScheduleService
+    ExternalAPI --> LocationService
+    CDN --> Users
+    
+    %% DevOps & CI/CD
+    subgraph "DevOps Infrastructure"
+        GitHubActions[GitHub Actions<br/>CI Pipeline]
+        ArgoCD[ArgoCD<br/>GitOps CD]
+        ContainerRegistry[Azure Container Registry<br/>Premium]
+        LogAnalytics[Azure Log Analytics<br/>Centralized Logging]
+    end
+    
+    %% DevOps Connections
+    GitHubActions --> ContainerRegistry
+    ArgoCD --> AKS
+    AKS --> LogAnalytics
+    
+    %% Backup & DR
+    subgraph "Backup & Disaster Recovery"
+        BackupVault[Azure Backup Vault]
+        DRSite[DR Site<br/>(Secondary Region)]
+    end
+    
+    PostgreSQLCluster -.-> BackupVault
+    RedisCluster -.-> BackupVault
+    BackupVault -.-> DRSite
+    
+    %% Styling
+    classDef azureService fill:#0078d4,stroke:#333,stroke-width:2px,color:#fff
+    classDef microservice fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
+    classDef database fill:#4ecdc4,stroke:#333,stroke-width:2px,color:#fff
+    classDef security fill:#feca57,stroke:#333,stroke-width:2px,color:#333
+    classDef external fill:#95e1d3,stroke:#333,stroke-width:2px,color:#333
+    classDef devops fill:#a55eea,stroke:#333,stroke-width:2px,color:#fff
+    classDef backup fill:#fd79a8,stroke:#333,stroke-width:2px,color:#fff
+    
+    class WAF,AppGateway,Firewall,PrivateLink,ServiceBusPremium,EventHubs,ContainerRegistry,LogAnalytics azureService
+    class UserService,TravelService,ScheduleService,LocationService,IstioGateway,ServiceMesh microservice
+    class PostgreSQLCluster,RedisCluster database
+    class KeyVault,AAD,Monitor security
+    class Users,ExternalAPI,CDN external
+    class GitHubActions,ArgoCD devops
+    class BackupVault,DRSite backup

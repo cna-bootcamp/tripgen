@@ -3,1559 +3,850 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주변장소검색 - TripGen</title>
-    <link rel="stylesheet" href="assets/css/common.css">
+    <title>TripGen - 주변 장소 검색</title>
     <style>
-        /* 페이지 헤더 스타일 */
-        .page-header-section {
-            margin-top: 8px;
-            margin-bottom: var(--space-6);
+        /* CSS Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .page-title-row {
+        :root {
+            /* Colors from Style Guide */
+            --primary-blue: #2563EB;
+            --primary-orange: #F97316;
+            --deep-blue: #1E40AF;
+            --light-orange: #FED7AA;
+            --success-green: #10B981;
+            --warning-yellow: #F59E0B;
+            --error-red: #EF4444;
+            --info-blue: #3B82F6;
+            
+            /* Text Colors */
+            --text-primary: #111827;
+            --text-secondary: #374151;
+            --text-tertiary: #6B7280;
+            --text-disabled: #9CA3AF;
+            
+            /* Background Colors */
+            --bg-white: #FFFFFF;
+            --bg-off-white: #F9FAFB;
+            --bg-light-gray: #F3F4F6;
+            --border-gray: #E5E7EB;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--bg-off-white);
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-gray);
+            padding: var(--spacing-md) var(--spacing-lg);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: var(--space-3);
-            min-height: 40px;
         }
 
-        .page-title-row h1 {
-            margin: 0;
-            font-size: var(--text-3xl);
-            font-weight: var(--font-bold);
-            color: var(--gray-900);
-            flex: 1;
-            min-width: 0;
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            color: var(--text-primary);
         }
 
-        .page-subtitle {
-            color: var(--gray-600);
-            font-size: var(--text-lg);
-            line-height: 1.6;
-            margin: 0;
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        /* 주변장소검색 특화 스타일 */
-        .location-search-container {
-            display: flex;
-            flex-direction: column;
-            min-height: 600px;
-            background: #f8fafc;
+        .placeholder {
+            width: 40px;
         }
 
-
-        .current-location {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            margin-top: var(--space-4);
-            padding: var(--space-3) var(--space-4);
-            background: linear-gradient(135deg, #e0f2fe 0%, #f3e5f5 100%);
-            border-radius: 16px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            position: relative;
-            overflow: hidden;
+        /* Search Section */
+        .search-section {
+            background: var(--bg-white);
+            padding: var(--spacing-xl) var(--spacing-lg);
+            border-bottom: 1px solid var(--border-gray);
         }
 
-        .current-location::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+        .search-conditions {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .condition-group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .condition-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .condition-input {
             width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .location-icon {
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(135deg, var(--primary-blue), #8b5cf6);
-            border-radius: 50%;
-            display: inline-block;
+            border: 2px solid var(--border-gray);
+            border-radius: 8px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            font-size: 16px;
+            background: var(--bg-white);
+            transition: border-color 0.2s ease;
             position: relative;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
 
-        .location-icon::after {
-            content: '📍';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 12px;
-        }
-
-        .search-box {
-            display: flex;
-            align-items: center;
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            margin-bottom: 4px;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: var(--space-4) var(--space-12) var(--space-4) var(--space-4);
-            border: 1px solid var(--gray-300);
-            border-radius: 30px;
-            font-size: var(--text-base);
+        .condition-input:focus {
             outline: none;
-            transition: all 0.3s ease;
-            background: var(--gray-50);
-        }
-        
-        .search-input:focus {
             border-color: var(--primary-blue);
-            background: white;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
-        
-        .search-icon {
+
+        .location-input-group {
+            position: relative;
+        }
+
+        .current-location-btn {
             position: absolute;
-            right: var(--space-4);
+            right: var(--spacing-sm);
             top: 50%;
             transform: translateY(-50%);
-            font-size: 20px;
-            color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: var(--bg-white);
+            border: none;
+            border-radius: 4px;
+            padding: var(--spacing-xs);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .radio-input {
+            margin-right: var(--spacing-sm);
+            accent-color: var(--primary-blue);
+        }
+
+        .radio-label {
+            font-size: 16px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        /* Keyword Search */
+        .keyword-search {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            border: 2px solid var(--border-gray);
+            border-radius: 12px;
+            padding: var(--spacing-lg);
+            font-size: 16px;
+            background: var(--bg-light-gray);
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            background: var(--bg-white);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--spacing-lg);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 18px;
             pointer-events: none;
         }
 
-        /* 이동시간 선택 바 */
-        .time-selector-bar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: var(--space-4) var(--space-5);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        .search-input {
+            padding-left: var(--spacing-3xl);
+        }
+
+        /* Filters Section */
+        .filters-section {
+            background: var(--bg-white);
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-gray);
+        }
+
+        .filter-categories {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: var(--space-4);
-            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .time-label {
-            font-weight: var(--font-semibold);
-            color: var(--gray-700);
-            font-size: var(--text-sm);
-            white-space: nowrap;
-        }
-
-        .time-buttons {
-            display: flex;
-            gap: var(--space-2);
-            flex-wrap: nowrap;
-        }
-
-        .time-btn {
-            padding: var(--space-2) var(--space-4);
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 16px;
-            font-size: var(--text-sm);
-            font-weight: 500;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            color: var(--gray-700);
-        }
-
-        .time-btn.active {
-            background: linear-gradient(135deg, var(--primary-blue), #8b5cf6);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .time-btn:hover:not(.active) {
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            border-color: rgba(59, 130, 246, 0.3);
-            transform: translateY(-1px);
-        }
-
-        /* 필터 바 */
-        .filter-bar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: var(--space-4) var(--space-5);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: var(--space-3);
+            gap: var(--spacing-sm);
             overflow-x: auto;
-            overflow-y: visible;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-            white-space: nowrap;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            min-height: 60px;
+            padding-bottom: var(--spacing-sm);
         }
 
-        .filter-bar::-webkit-scrollbar {
-            display: none;
-        }
-
-        .filter-chip {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            padding: var(--space-3) var(--space-4);
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border: 1px solid rgba(0, 0, 0, 0.08);
+        .filter-category {
+            flex: 0 0 auto;
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border: 2px solid var(--border-gray);
             border-radius: 20px;
-            font-size: var(--text-sm);
-            font-weight: 500;
+            background: var(--bg-white);
             cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
             white-space: nowrap;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: fit-content;
-            position: relative;
-            overflow: hidden;
-            height: 36px;
-            flex-shrink: 0;
         }
 
-        .filter-chip::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-            transition: left 0.5s;
+        .filter-category.active {
+            background: var(--primary-blue);
+            color: var(--bg-white);
+            border-color: var(--primary-blue);
         }
 
-        .filter-chip:hover::before {
-            left: 100%;
+        .filter-category:hover:not(.active) {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
         }
 
-        .filter-chip.active {
-            background: linear-gradient(135deg, var(--primary-blue), #8b5cf6);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-            transform: translateY(-1px);
-        }
-
-        .filter-chip:hover:not(.active) {
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            border-color: rgba(59, 130, 246, 0.3);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-
-        /* 컨텐츠 영역 */
-        .content-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-
-        /* 결과 목록 */
-        .results-container {
-            flex: 1;
-            overflow-y: auto;
-            background: var(--gray-50);
-            display: block;
+        /* Results Section */
+        .results-section {
+            padding: var(--spacing-lg);
         }
 
         .results-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: var(--space-4);
-            background: white;
-            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: var(--spacing-lg);
         }
 
         .results-count {
-            color: var(--gray-600);
-            font-size: var(--text-sm);
+            font-size: 14px;
+            color: var(--text-tertiary);
         }
 
         .sort-select {
-            padding: var(--space-2) var(--space-3);
-            border: 1px solid var(--gray-300);
+            border: 1px solid var(--border-gray);
             border-radius: 6px;
-            font-size: var(--text-sm);
-            background: white;
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 14px;
+            background: var(--bg-white);
+            cursor: pointer;
         }
 
-        .results-list {
-            padding: var(--space-2);
-            flex: 1;
-            overflow-y: auto;
-            max-height: calc(100vh - 400px);
+        /* Place Cards */
+        .place-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
         }
 
         .place-card {
-            background: white;
-            border-radius: 20px;
-            margin-bottom: var(--space-4);
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            position: relative;
-        }
-
-        .place-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-orange), #8b5cf6);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            background: var(--bg-white);
+            border: 1px solid var(--border-gray);
+            border-radius: 12px;
+            padding: var(--spacing-lg);
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .place-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-        }
-
-        .place-card:hover::before {
-            opacity: 1;
-        }
-
-
-        @keyframes float {
-            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
-            50% { transform: translate(-45%, -45%) rotate(180deg); }
-        }
-
-        .place-content {
-            padding: var(--space-6);
+            border-color: var(--primary-blue);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
         }
 
         .place-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: var(--space-2);
+            margin-bottom: var(--spacing-md);
         }
 
         .place-name {
-            font-size: var(--text-lg);
-            font-weight: var(--font-semibold);
-            color: var(--gray-800);
-            margin: 0;
-        }
-
-        .place-distance {
-            font-size: var(--text-sm);
-            color: var(--gray-500);
-            background: var(--gray-100);
-            padding: var(--space-1) var(--space-2);
-            border-radius: 4px;
-        }
-
-        .place-category {
-            display: inline-flex;
-            align-items: center;
-            padding: var(--space-2) var(--space-3);
-            background: linear-gradient(135deg, var(--secondary-orange), #f59e0b);
-            color: white;
-            font-size: var(--text-xs);
+            font-size: 18px;
             font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .travel-time {
+            font-size: 14px;
+            color: var(--primary-blue);
+            font-weight: 500;
+            background: rgba(37, 99, 235, 0.1);
+            padding: var(--spacing-xs) var(--spacing-sm);
             border-radius: 12px;
-            margin-bottom: var(--space-3);
-            box-shadow: 0 2px 8px rgba(251, 146, 60, 0.3);
-            letter-spacing: 0.5px;
         }
 
         .place-rating {
             display: flex;
             align-items: center;
-            gap: var(--space-1);
-            margin-bottom: var(--space-2);
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
         }
 
         .stars {
-            color: var(--secondary-yellow);
+            color: var(--warning-yellow);
+            font-size: 16px;
         }
 
         .rating-text {
-            font-size: var(--text-sm);
-            color: var(--gray-600);
+            font-size: 14px;
+            color: var(--text-tertiary);
         }
 
         .place-address {
-            color: var(--gray-600);
-            font-size: var(--text-sm);
-            margin-bottom: var(--space-3);
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-lg);
         }
 
         .place-actions {
             display: flex;
-            gap: var(--space-2);
+            gap: var(--spacing-sm);
         }
 
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--gray-300);
-            color: var(--gray-700);
-            padding: var(--space-2) var(--space-4);
-            border-radius: 12px;
-            font-size: var(--text-sm);
+        .action-button {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: 6px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-outline::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn-outline:hover::before {
-            left: 100%;
-        }
-
-        .btn-outline:hover {
-            border-color: var(--primary-blue);
-            color: var(--primary-blue);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-
-        /* 카테고리 탭 */
-        .category-tabs {
-            display: flex;
-            background: white;
-            border-bottom: 1px solid var(--gray-200);
-            overflow-x: auto;
-        }
-
-        .category-tab {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            padding: var(--space-3) var(--space-4);
-            background: none;
-            border: none;
-            color: var(--gray-600);
-            font-weight: var(--font-medium);
-            cursor: pointer;
-            white-space: nowrap;
-            border-bottom: 2px solid transparent;
             transition: all 0.2s ease;
+            border: none;
         }
 
-        .category-tab.active {
-            color: var(--primary-blue);
-            border-bottom-color: var(--primary-blue);
+        .btn-details {
+            background: var(--bg-light-gray);
+            color: var(--text-primary);
         }
 
-        .category-icon {
-            width: 16px;
-            height: 16px;
-            background: currentColor;
-            border-radius: 2px;
+        .btn-details:hover {
+            background: var(--info-blue);
+            color: var(--bg-white);
         }
 
-        /* 로딩 상태 */
-        .loading-skeleton {
-            padding: var(--space-2);
+        .btn-directions {
+            background: var(--bg-light-gray);
+            color: var(--text-primary);
         }
 
-        .skeleton-card {
-            background: white;
-            border-radius: 12px;
-            padding: var(--space-4);
-            margin-bottom: var(--space-3);
+        .btn-directions:hover {
+            background: var(--success-green);
+            color: var(--bg-white);
         }
 
-        .skeleton-line {
-            height: 12px;
-            background: var(--gray-200);
-            border-radius: 6px;
-            margin-bottom: var(--space-2);
-        }
-
-        .skeleton-line.short {
-            width: 60%;
-        }
-
-        .skeleton-line.medium {
-            width: 80%;
-        }
-
-        /* 빈 상태 */
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-16);
+        /* Loading State */
+        .loading {
             text-align: center;
-            color: var(--gray-500);
+            padding: var(--spacing-2xl);
+            color: var(--text-tertiary);
+        }
+
+        .loading-spinner {
+            font-size: 32px;
+            animation: spin 1s linear infinite;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-3xl);
+            color: var(--text-tertiary);
         }
 
         .empty-icon {
-            width: 64px;
-            height: 64px;
-            background: var(--gray-300);
-            border-radius: 50%;
-            margin-bottom: var(--space-4);
+            font-size: 48px;
+            margin-bottom: var(--spacing-lg);
         }
 
-        /* 사용자 메뉴 스타일 */
-        .user-menu {
-            position: relative;
-        }
-        
-        /* 하단 네비게이션 바 스타일 */
+        /* Bottom Navigation */
         .bottom-nav {
+            background: var(--bg-white);
+            border-top: 1px solid var(--border-gray);
+            padding: var(--spacing-sm) 0;
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: white;
-            border-top: 1px solid var(--gray-200);
             display: flex;
             justify-content: space-around;
-            align-items: center;
-            padding: var(--space-3) 0;
-            z-index: 1000;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
         }
-        
-        .bottom-nav-item {
+
+        .nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            padding: var(--spacing-sm);
+            min-width: 48px;
             text-decoration: none;
-            color: var(--gray-600);
-            padding: var(--space-2) var(--space-4);
-            transition: all 0.2s ease;
-            flex: 1;
-            max-width: 100px;
+            color: var(--text-tertiary);
+            transition: color 0.2s ease;
         }
-        
-        .bottom-nav-item:hover {
+
+        .nav-item.active {
             color: var(--primary-blue);
         }
-        
-        .bottom-nav-item.active {
-            color: var(--primary-blue);
-        }
-        
+
         .nav-icon {
             font-size: 24px;
-        }
-        
-        /* 하단 네비게이션 바를 위한 여백 */
-        body {
-            padding-bottom: 70px;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary-blue);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: var(--font-medium);
-            cursor: pointer;
-        }
-        
-        .notification-badge {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 12px;
-            height: 12px;
-            background: var(--error);
-            border-radius: 50%;
-            border: 2px solid white;
-        }
-        
-        /* 모바일 메뉴 오버레이 스타일 */
-        .menu-overlay {
-            display: none;
-            position: fixed;
-            top: 70px; /* 헤더 높이만큼 아래로 */
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.98);
-            z-index: 999;
-            overflow-y: auto;
-            padding: var(--space-6);
-            backdrop-filter: blur(10px);
-        }
-        
-        .menu-overlay.active {
-            display: block;
-        }
-        
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: var(--space-4);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .menu-card {
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 16px;
-            padding: var(--space-6) var(--space-4);
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            color: var(--gray-700);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--space-3);
-            min-height: 120px;
-            position: relative;
-        }
-        
-        .menu-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            border-color: var(--primary-blue);
-        }
-        
-        .menu-card.new {
-            border: 2px dashed var(--gray-300);
-            color: var(--gray-500);
-        }
-        
-        .menu-icon {
-            font-size: 32px;
-            line-height: 1;
-        }
-        
-        .menu-label {
-            font-size: var(--text-sm);
-            font-weight: var(--font-medium);
-        }
-        
-        .menu-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: var(--error);
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: var(--text-xs);
-            font-weight: var(--font-bold);
+            margin-bottom: var(--spacing-xs);
         }
 
-        /* 반응형 */
+        .nav-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Responsive */
         @media (min-width: 768px) {
-            .results-container {
-                width: 100%;
+            .radio-group {
+                gap: var(--spacing-2xl);
             }
+            
+            .filter-categories {
+                justify-content: center;
+            }
+            
+            .place-list {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-xl);
+            }
+            
+            .bottom-nav {
+                display: none;
+            }
+        }
 
-            .place-card {
-                margin-bottom: var(--space-4);
+        @media (min-width: 1024px) {
+            .place-list {
+                grid-template-columns: repeat(3, 1fr);
             }
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        *:focus {
+            outline: 2px solid var(--primary-blue);
+            outline-offset: 2px;
         }
     </style>
 </head>
 <body>
-    <!-- 헤더 -->
+    <!-- Header -->
     <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="01-대시보드.html" class="nav-brand">TripGen</a>
-                <ul class="nav-menu">
-                    <li><a href="01-대시보드.html" class="nav-link">홈</a></li>
-                    <li><a href="02-기본설정.html" class="nav-link">새 여행 계획</a></li>
-                    <li><a href="javascript:showTravelListInfo()" class="nav-link">여행보기</a></li>
-                    <li><a href="09-주변장소검색.html" class="nav-link">주변장소 검색</a></li>
-                </ul>
-                
-                <div class="nav-actions flex items-center gap-4">
-                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='02-기본설정.html'">새 여행 시작</button>
-                    <div class="user-menu">
-                        <div class="user-avatar">
-                            김
-                            <span class="notification-badge"></span>
-                        </div>
-                    </div>
-                    <button class="mobile-menu-toggle" aria-label="메뉴 열기">☰</button>
-                </div>
-            </nav>
-        </div>
-        <div class="mobile-overlay"></div>
+        <button class="back-button" onclick="goBack()" aria-label="뒤로가기">←</button>
+        <h1 class="header-title">주변 장소 검색</h1>
+        <div class="placeholder"></div>
     </header>
 
-    <!-- 메뉴 오버레이 -->
-    <div class="menu-overlay" id="menuOverlay">
-        <div class="menu-grid">
-            <a href="01-대시보드.html" class="menu-card" onclick="closeMenuOverlay();">
-                <span class="menu-icon">🏠</span>
-                <span class="menu-label">홈</span>
-            </a>
-            <a href="javascript:showMyPageInfo()" class="menu-card" onclick="closeMenuOverlay();">
-                <span class="menu-icon">👤</span>
-                <span class="menu-label">마이 페이지</span>
-            </a>
-            <a href="javascript:startNewTrip()" class="menu-card" onclick="closeMenuOverlay();">
-                <span class="menu-icon">✈️</span>
-                <span class="menu-label">새 여행</span>
-            </a>
-            <a href="09-주변장소검색.html" class="menu-card" onclick="closeMenuOverlay();">
-                <span class="menu-icon">📍</span>
-                <span class="menu-label">장소검색</span>
-            </a>
-            <a href="javascript:showTravelListInfo()" class="menu-card" onclick="closeMenuOverlay();">
-                <span class="menu-icon">📋</span>
-                <span class="menu-label">여행목록</span>
-            </a>
-            <a href="06-생성된일정조회.html" class="menu-card" onclick="closeMenuOverlay();">
-                <span class="menu-icon">🗓️</span>
-                <span class="menu-label">현재 여행</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- 메인 컨텐츠 -->
-    <main class="main">
-        <div class="container">
-            <!-- 페이지 제목 -->
-            <div class="page-header-section">
-                <div class="page-title-row">
-                    <h1>주변장소검색</h1>
-                    <button onclick="history.back()" class="btn btn-secondary" style="padding: var(--space-2) var(--space-3); font-size: var(--text-sm);">
-                        ← 이전
-                    </button>
+    <!-- Search Section -->
+    <section class="search-section">
+        <div class="search-conditions">
+            <!-- 출발지 -->
+            <div class="condition-group">
+                <label class="condition-label" for="startLocation">출발지</label>
+                <div class="location-input-group">
+                    <input type="text" id="startLocation" class="condition-input" value="Munich Central Station" placeholder="출발지를 입력하세요">
+                    <button class="current-location-btn" onclick="useCurrentLocation()" title="현재 위치">📍</button>
                 </div>
             </div>
 
-            <!-- 주변장소검색 컨테이너 -->
-            <div class="location-search-container">
-                <!-- 검색 입력 -->
-                <div style="background: white; border-bottom: 1px solid var(--gray-200);">
-                    <div class="search-box">
-                        <input type="text" class="search-input" id="searchInput" placeholder="✨ 찾을 장소 종류/이름 입력">
-                        <span class="search-icon">🔍</span>
+            <!-- 이동수단 -->
+            <div class="condition-group">
+                <label class="condition-label">이동수단</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="transport1" name="transport" value="대중교통" class="radio-input" checked onchange="searchPlaces()">
+                        <label for="transport1" class="radio-label">대중교통</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="transport2" name="transport" value="차량" class="radio-input" onchange="searchPlaces()">
+                        <label for="transport2" class="radio-label">차량</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="transport3" name="transport" value="도보" class="radio-input" onchange="searchPlaces()">
+                        <label for="transport3" class="radio-label">도보</label>
                     </div>
                 </div>
+            </div>
 
-                <!-- 출발지 및 이동수단 설정 -->
-                <div class="search-options" style="padding: var(--space-4) var(--space-6); background: white; border-bottom: 1px solid var(--gray-200);">
-                    <div class="option-row" style="display: flex; align-items: center; gap: var(--space-6); margin-bottom: var(--space-4);">
-                        <div class="option-item" style="display: flex; align-items: center; gap: var(--space-3); flex: 1;">
-                            <label for="startLocation" style="font-weight: var(--font-medium); color: var(--gray-700); white-space: nowrap;">출발지</label>
-                            <div style="position: relative; flex: 1; display: flex; align-items: center;">
-                                <input type="text" id="startLocation" placeholder="현재 위치" value="Munich Central Station" style="
-                                    flex: 1;
-                                    padding: var(--space-2) var(--space-3);
-                                    padding-right: 40px;
-                                    border: 1px solid var(--gray-300);
-                                    border-radius: 8px;
-                                    font-size: var(--text-base);
-                                ">
-                                <button onclick="getCurrentLocation()" style="
-                                    position: absolute;
-                                    right: 8px;
-                                    background: none;
-                                    border: none;
-                                    padding: var(--space-1);
-                                    cursor: pointer;
-                                    color: var(--primary-blue);
-                                    font-size: 20px;
-                                " title="현재 위치 탐색">
-                                    📍
-                                </button>
-                            </div>
-                        </div>
+            <!-- 시간 범위 -->
+            <div class="condition-group">
+                <label class="condition-label">시간 범위</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="time1" name="timeRange" value="10분내" class="radio-input" onchange="searchPlaces()">
+                        <label for="time1" class="radio-label">10분내</label>
                     </div>
-                    
-                    <div class="option-row" style="display: flex; justify-content: center; align-items: center; gap: var(--space-6);">
-                        <div class="option-item" style="display: flex; align-items: center; gap: var(--space-3);">
-                            <div class="transport-buttons" style="display: flex; gap: var(--space-2);">
-                                <button class="transport-btn" data-transport="public" style="
-                                    padding: var(--space-2) var(--space-4);
-                                    border: 1px solid var(--gray-300);
-                                    border-radius: 20px;
-                                    background: white;
-                                    color: var(--gray-700);
-                                    font-size: var(--text-sm);
-                                    cursor: pointer;
-                                    transition: all 0.2s ease;
-                                ">대중교통</button>
-                                <button class="transport-btn active" data-transport="car" style="
-                                    padding: var(--space-2) var(--space-4);
-                                    border: 1px solid var(--primary-blue);
-                                    border-radius: 20px;
-                                    background: var(--primary-blue);
-                                    color: white;
-                                    font-size: var(--text-sm);
-                                    cursor: pointer;
-                                    transition: all 0.2s ease;
-                                ">차량</button>
-                                <button class="transport-btn" data-transport="walk" style="
-                                    padding: var(--space-2) var(--space-4);
-                                    border: 1px solid var(--gray-300);
-                                    border-radius: 20px;
-                                    background: white;
-                                    color: var(--gray-700);
-                                    font-size: var(--text-sm);
-                                    cursor: pointer;
-                                    transition: all 0.2s ease;
-                                ">도보</button>
-                            </div>
-                        </div>
+                    <div class="radio-item">
+                        <input type="radio" id="time2" name="timeRange" value="30분내" class="radio-input" checked onchange="searchPlaces()">
+                        <label for="time2" class="radio-label">30분내</label>
                     </div>
-                </div>
-
-                <!-- 이동시간 선택 -->
-                <div class="time-selector-bar">
-                    <div class="time-buttons">
-                        <button class="time-btn active" data-time="10">10분내</button>
-                        <button class="time-btn" data-time="30">30분내</button>
-                        <button class="time-btn" data-time="60">60분내</button>
-                    </div>
-                </div>
-
-                <!-- 필터 바 -->
-                <div class="filter-bar">
-                    <div class="filter-chip active" data-category="all">
-                        전체
-                    </div>
-                    <div class="filter-chip" data-category="tourist">
-                        관광지
-                    </div>
-                    <div class="filter-chip" data-category="restaurant">
-                        맛집
-                    </div>
-                    <div class="filter-chip" data-category="laundry">
-                        빨래방
-                    </div>
-                </div>
-
-                <!-- 컨텐츠 영역 -->
-                <div class="content-area">
-                    <!-- 결과 컨테이너 -->
-                    <div class="results-container" id="resultsContainer">
-                        <!-- 결과 헤더 -->
-                        <div class="results-header">
-                            <div class="results-count">
-                                <span id="resultsCount">13</span>개 장소 찾음
-                            </div>
-                            <select class="sort-select" id="sortSelect">
-                                <option value="distance">시간순</option>
-                                <option value="rating">평점순</option>
-                                <option value="name">이름순</option>
-                                <option value="review">리뷰순</option>
-                            </select>
-                        </div>
-
-                        <!-- 결과 목록 -->
-                        <div class="results-list" id="resultsList">
-                            <!-- 장소 카드들 -->
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">마리엔플라츠</h3>
-                                        <span class="place-distance">5분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.3 (5,234개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Marienplatz 1, 80331 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(1)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(1)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">노이슈반슈타인성</h3>
-                                        <span class="place-distance">2시간</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★★</span>
-                                        <span class="rating-text">4.6 (15,432개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Neuschwansteinstraße 20, 87645 Schwangau</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(2)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(2)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">영국정원</h3>
-                                        <span class="place-distance">31분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.4 (3,125개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Englischer Garten, 80538 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(3)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(3)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">뮌헨 레지덴츠</h3>
-                                        <span class="place-distance">12분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.2 (2,876개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Residenzstraße 1, 80333 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(4)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(4)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">빅투알리엔마르크트</h3>
-                                        <span class="place-distance">7분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.1 (1,985개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Viktualienmarkt 3, 80331 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(5)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(5)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">프라우엔키르헤</h3>
-                                        <span class="place-distance">9분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.0 (1,245개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Frauenplatz 12, 80331 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(6)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(6)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">님펜부르크 궁전</h3>
-                                        <span class="place-distance">13분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.3 (3,456개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Schloß Nymphenburg 1, 80638 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(7)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(7)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">호프브로이하우스</h3>
-                                        <span class="place-distance">8분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.1 (8,923개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Platzl 9, 80331 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(8)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(8)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">뮌헨 맥주 박물관</h3>
-                                        <span class="place-distance">11분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.2 (1,654개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Münzstraße 8, 80331 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(9)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(9)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">BMW 박물관</h3>
-                                        <span class="place-distance">18분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.4 (6,789개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Am Olympiapark 2, 80809 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(10)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(10)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">올림피아파크</h3>
-                                        <span class="place-distance">16분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.5 (4,321개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Spiridon-Louis-Ring 21, 80809 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(11)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(11)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">아지엔교회</h3>
-                                        <span class="place-distance">27분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.3 (2,567개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Salvatorplatz 17, 80333 München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(12)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(12)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="place-card">
-                                <div class="place-content">
-                                    <div class="place-header">
-                                        <h3 class="place-name">이자르 강변</h3>
-                                        <span class="place-distance">48분</span>
-                                    </div>
-                                    <div class="place-rating">
-                                        <span class="stars">★★★★☆</span>
-                                        <span class="rating-text">4.1 (1,876개 리뷰)</span>
-                                    </div>
-                                    <p class="place-address">Isar River, München</p>
-                                    <div class="place-actions">
-                                        <button class="btn-outline" onclick="showPlaceDetails(13)">상세정보</button>
-                                        <button class="btn-outline" onclick="showRoute(13)">길찾기</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="radio-item">
+                        <input type="radio" id="time3" name="timeRange" value="60분내" class="radio-input" onchange="searchPlaces()">
+                        <label for="time3" class="radio-label">60분내</label>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
 
-    <!-- 하단 네비게이션 바 -->
-    <nav class="bottom-nav">
-        <a href="01-대시보드.html" class="bottom-nav-item">
-            <span class="nav-icon">🏠</span>
+        <!-- 키워드 검색 -->
+        <div class="keyword-search">
+            <div style="position: relative;">
+                <span class="search-icon">✨</span>
+                <input type="text" class="search-input" placeholder="찾을 장소 종류/이름 입력" oninput="handleKeywordSearch(this.value)">
+            </div>
+        </div>
+    </section>
+
+    <!-- Filters Section -->
+    <section class="filters-section">
+        <div class="filter-categories">
+            <button class="filter-category active" onclick="filterByCategory('전체')" data-category="전체">전체</button>
+            <button class="filter-category" onclick="filterByCategory('관광지')" data-category="관광지">관광지</button>
+            <button class="filter-category" onclick="filterByCategory('맛집')" data-category="맛집">맛집</button>
+            <button class="filter-category" onclick="filterByCategory('빨래방')" data-category="빨래방">빨래방</button>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section">
+        <div class="results-header">
+            <div class="results-count" id="resultsCount">24곳을 찾았습니다</div>
+            <select class="sort-select" onchange="sortResults(this.value)">
+                <option value="time">시간순</option>
+                <option value="rating">평점순</option>
+                <option value="name">이름순</option>
+                <option value="review">리뷰순</option>
+            </select>
+        </div>
+
+        <!-- Place List -->
+        <div class="place-list" id="placeList">
+            <!-- Place Card 1 -->
+            <div class="place-card" onclick="viewPlaceDetails(1)">
+                <div class="place-header">
+                    <div>
+                        <div class="place-name">마리엔플라츠 (Marienplatz)</div>
+                        <div class="place-rating">
+                            <span class="stars">★★★★☆</span>
+                            <span class="rating-text">4.3 (5,234개 리뷰)</span>
+                        </div>
+                    </div>
+                    <div class="travel-time">대중교통 12분</div>
+                </div>
+                <div class="place-address">Marienplatz 1, 80331 München, Germany</div>
+                <div class="place-actions">
+                    <button class="action-button btn-details" onclick="viewPlaceDetails(1, event)">상세정보</button>
+                    <button class="action-button btn-directions" onclick="getDirections(1, event)">길찾기</button>
+                </div>
+            </div>
+
+            <!-- Place Card 2 -->
+            <div class="place-card" onclick="viewPlaceDetails(2)">
+                <div class="place-header">
+                    <div>
+                        <div class="place-name">호프브로이하우스 (Hofbräuhaus)</div>
+                        <div class="place-rating">
+                            <span class="stars">★★★★☆</span>
+                            <span class="rating-text">4.1 (8,942개 리뷰)</span>
+                        </div>
+                    </div>
+                    <div class="travel-time">대중교통 15분</div>
+                </div>
+                <div class="place-address">Platzl 9, 80331 München, Germany</div>
+                <div class="place-actions">
+                    <button class="action-button btn-details" onclick="viewPlaceDetails(2, event)">상세정보</button>
+                    <button class="action-button btn-directions" onclick="getDirections(2, event)">길찾기</button>
+                </div>
+            </div>
+
+            <!-- Place Card 3 -->
+            <div class="place-card" onclick="viewPlaceDetails(3)">
+                <div class="place-header">
+                    <div>
+                        <div class="place-name">뮌헨 레지덴츠 (München Residenz)</div>
+                        <div class="place-rating">
+                            <span class="stars">★★★★★</span>
+                            <span class="rating-text">4.5 (3,721개 리뷰)</span>
+                        </div>
+                    </div>
+                    <div class="travel-time">대중교통 18분</div>
+                </div>
+                <div class="place-address">Residenzstraße 1, 80333 München, Germany</div>
+                <div class="place-actions">
+                    <button class="action-button btn-details" onclick="viewPlaceDetails(3, event)">상세정보</button>
+                    <button class="action-button btn-directions" onclick="getDirections(3, event)">길찾기</button>
+                </div>
+            </div>
+
+            <!-- Place Card 4 -->
+            <div class="place-card" onclick="viewPlaceDetails(4)">
+                <div class="place-header">
+                    <div>
+                        <div class="place-name">프라우엔키르헨 (Frauenkirche)</div>
+                        <div class="place-rating">
+                            <span class="stars">★★★★☆</span>
+                            <span class="rating-text">4.2 (2,156개 리뷰)</span>
+                        </div>
+                    </div>
+                    <div class="travel-time">대중교통 20분</div>
+                </div>
+                <div class="place-address">Frauenplatz 12, 80331 München, Germany</div>
+                <div class="place-actions">
+                    <button class="action-button btn-details" onclick="viewPlaceDetails(4, event)">상세정보</button>
+                    <button class="action-button btn-directions" onclick="getDirections(4, event)">길찾기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loadingState" style="display: none;">
+            <div class="loading-spinner">⏳</div>
+            <p>더 많은 장소를 찾는 중...</p>
+        </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" aria-label="하단 네비게이션">
+        <a href="#" class="nav-item" onclick="goToHome()">
+            <div class="nav-icon">🏠</div>
+            <span class="nav-label">홈</span>
         </a>
-        <a href="javascript:startNewTrip()" class="bottom-nav-item">
-            <span class="nav-icon">✈️</span>
+        <a href="#" class="nav-item" onclick="goToNewTrip()">
+            <div class="nav-icon">✈️</div>
+            <span class="nav-label">새 여행</span>
         </a>
-        <a href="09-주변장소검색.html" class="bottom-nav-item active">
-            <span class="nav-icon">📍</span>
+        <a href="#" class="nav-item active" onclick="goToSearch()">
+            <div class="nav-icon">📍</div>
+            <span class="nav-label">장소검색</span>
         </a>
-        <a href="javascript:showTravelListInfo()" class="bottom-nav-item">
-            <span class="nav-icon">📋</span>
+        <a href="#" class="nav-item" onclick="goToTripList()">
+            <div class="nav-icon">📋</div>
+            <span class="nav-label">여행목록</span>
         </a>
     </nav>
 
-    <!-- JavaScript -->
-    <script src="assets/js/common.js"></script>
     <script>
-        // 메뉴 오버레이 닫기
-        function closeMenuOverlay() {
-            const overlay = document.getElementById('menuOverlay');
-            overlay.classList.remove('active');
-        }
+        // Global variables
+        let currentCategory = '전체';
+        let currentKeyword = '';
+        let isLoading = false;
+        let currentPage = 1;
 
-        // 메뉴 오버레이 토글
-        function toggleMenuOverlay() {
-            const overlay = document.getElementById('menuOverlay');
-            overlay.classList.toggle('active');
-        }
-
-        // 현재 선택된 카테고리
-        let currentCategory = 'all';
-        let currentTime = 10; // 분 단위
-        let currentTransport = 'car'; // 기본값: 차량
-
-        // 더미 데이터
-        const places = [
+        // Sample place data
+        const samplePlaces = [
             {
                 id: 1,
-                name: '마리엔플라츠',
-                category: 'tourist',
-                distance: 300,
+                name: '마리엔플라츠 (Marienplatz)',
+                category: '관광지',
                 rating: 4.3,
                 reviewCount: 5234,
-                address: 'Marienplatz 1, 80331 München',
-                image: null
+                travelTime: '대중교통 12분',
+                address: 'Marienplatz 1, 80331 München, Germany'
             },
             {
                 id: 2,
-                name: '노이슈반슈타인성',
-                category: 'tourist',
-                distance: 120000,
-                rating: 4.6,
-                reviewCount: 15432,
-                address: 'Neuschwansteinstraße 20, 87645 Schwangau',
-                image: null
+                name: '호프브로이하우스 (Hofbräuhaus)',
+                category: '맛집',
+                rating: 4.1,
+                reviewCount: 8942,
+                travelTime: '대중교통 15분',
+                address: 'Platzl 9, 80331 München, Germany'
             },
             {
                 id: 3,
-                name: '영국정원',
-                category: 'park',
-                distance: 2100,
-                rating: 4.4,
-                reviewCount: 3125,
-                address: 'Englischer Garten, 80538 München',
-                image: null
+                name: '뮌헨 레지덴츠 (München Residenz)',
+                category: '관광지',
+                rating: 4.5,
+                reviewCount: 3721,
+                travelTime: '대중교통 18분',
+                address: 'Residenzstraße 1, 80333 München, Germany'
             },
             {
                 id: 4,
-                name: '뮌헨 레지덴츠',
-                category: 'museum',
-                distance: 800,
+                name: '프라우엔키르헨 (Frauenkirche)',
+                category: '관광지',
                 rating: 4.2,
-                reviewCount: 2876,
-                address: 'Residenzstraße 1, 80333 München',
-                image: null
-            },
-            {
-                id: 5,
-                name: '빅투알리엔마르크트',
-                category: 'market',
-                distance: 450,
-                rating: 4.1,
-                reviewCount: 1985,
-                address: 'Viktualienmarkt 3, 80331 München',
-                image: null
-            },
-            {
-                id: 6,
-                name: '프라우엔키르헤',
-                category: 'church',
-                distance: 600,
-                rating: 4.0,
-                reviewCount: 1245,
-                address: 'Frauenplatz 12, 80331 München',
-                image: null
-            },
-            {
-                id: 7,
-                name: '님펜부르크 궁전',
-                category: 'palace',
-                distance: 8500,
-                rating: 4.3,
-                reviewCount: 3456,
-                address: 'Schloß Nymphenburg 1, 80638 München',
-                image: null
-            },
-            {
-                id: 8,
-                name: '호프브로이하우스',
-                category: 'restaurant',
-                distance: 550,
-                rating: 4.1,
-                reviewCount: 8923,
-                address: 'Platzl 9, 80331 München',
-                image: null
-            },
-            {
-                id: 9,
-                name: '뮌헨 맥주 박물관',
-                category: 'museum',
-                distance: 720,
-                rating: 4.2,
-                reviewCount: 1654,
-                address: 'Münzstraße 8, 80331 München',
-                image: null
-            },
-            {
-                id: 10,
-                name: 'BMW 박물관',
-                category: 'museum',
-                distance: 12000,
-                rating: 4.4,
-                reviewCount: 6789,
-                address: 'Am Olympiapark 2, 80809 München',
-                image: null
-            },
-            {
-                id: 11,
-                name: '올림피아파크',
-                category: 'park',
-                distance: 11000,
-                rating: 4.5,
-                reviewCount: 4321,
-                address: 'Spiridon-Louis-Ring 21, 80809 München',
-                image: null
-            },
-            {
-                id: 12,
-                name: '아지엔교회',
-                category: 'church',
-                distance: 1800,
-                rating: 4.3,
-                reviewCount: 2567,
-                address: 'Salvatorplatz 17, 80333 München',
-                image: null
-            },
-            {
-                id: 13,
-                name: '이자르 강변',
-                category: 'nature',
-                distance: 3200,
-                rating: 4.1,
-                reviewCount: 1876,
-                address: 'Isar River, München',
-                image: null
+                reviewCount: 2156,
+                travelTime: '대중교통 20분',
+                address: 'Frauenplatz 12, 80331 München, Germany'
             }
         ];
 
-        // 페이지 로드 시 초기화
-        document.addEventListener('DOMContentLoaded', function() {
-            bindEvents();
-            // 초기 로드시 거리순 정렬된 결과 표시
-            const initialPlaces = getCurrentPlaces();
-            initialPlaces.sort((a, b) => a.distance - b.distance);
-            renderResults(initialPlaces);
-        });
-
-        // 이벤트 바인딩
-        function bindEvents() {
-            // 검색 입력
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', TripGen.Utils.debounce(handleSearch, 300));
-
-            // 이동시간 선택
-            const timeButtons = document.querySelectorAll('.time-btn');
-            timeButtons.forEach(btn => {
-                btn.addEventListener('click', () => handleTimeChange(btn));
-            });
-
-            // 카테고리 필터
-            const filterChips = document.querySelectorAll('.filter-chip');
-            filterChips.forEach(chip => {
-                chip.addEventListener('click', () => handleCategoryFilter(chip));
-            });
-
-            // 정렬 선택
-            const sortSelect = document.getElementById('sortSelect');
-            sortSelect.addEventListener('change', handleSortChange);
-            
-            // 이동수단 버튼
-            const transportButtons = document.querySelectorAll('.transport-btn');
-            transportButtons.forEach(btn => {
-                btn.addEventListener('click', () => handleTransportChange(btn));
-            });
-        }
-
-
-        // 검색 처리
-        function handleSearch(event) {
-            const query = event.target.value.trim();
-            if (query.length >= 2) {
-                searchPlaces(query);
-            } else if (query.length === 0) {
-                renderResults();
+        // Current location functionality
+        function useCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    alert(`현재 위치가 설정되었습니다.\n위도: ${position.coords.latitude}\n경도: ${position.coords.longitude}`);
+                    document.getElementById('startLocation').value = '현재 위치';
+                    searchPlaces();
+                }, function(error) {
+                    alert('위치 정보를 가져올 수 없습니다. 수동으로 입력해주세요.');
+                });
+            } else {
+                alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
             }
         }
 
-        // 장소 검색
-        function searchPlaces(query) {
+        // Search functionality
+        function searchPlaces() {
+            const startLocation = document.getElementById('startLocation').value;
+            const transport = document.querySelector('input[name="transport"]:checked').value;
+            const timeRange = document.querySelector('input[name="timeRange"]:checked').value;
+            
+            console.log('검색 조건:', {
+                startLocation,
+                transport,
+                timeRange,
+                category: currentCategory,
+                keyword: currentKeyword
+            });
+            
+            // Simulate API call
             showLoading();
-            
-            // 실제로는 API 호출
             setTimeout(() => {
-                const filteredPlaces = places.filter(place => 
-                    place.name.toLowerCase().includes(query.toLowerCase()) ||
-                    place.address.toLowerCase().includes(query.toLowerCase())
-                );
-                
-                renderResults(filteredPlaces);
                 hideLoading();
-                
-                TripGen.showToast(`'${query}' 검색 완료`, 'success');
-            }, 800);
-        }
-
-        // 이동시간 변경
-        function handleTimeChange(btn) {
-            // 기존 활성 버튼 해제
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-            
-            // 새 버튼 활성화
-            btn.classList.add('active');
-            currentTime = parseInt(btn.dataset.time);
-            
-            searchNearbyPlaces();
-        }
-
-        // 주변 장소 검색
-        function searchNearbyPlaces() {
-            showLoading();
-            
-            // 실제로는 위치 기반 API 호출
-            setTimeout(() => {
-                // 이동시간을 거리로 변환 (이동수단별 속도 적용)
-                const maxDistance = getMaxDistance(currentTime, currentTransport);
-                
-                const filteredPlaces = places.filter(place => 
-                    place.distance <= maxDistance &&
-                    (currentCategory === 'all' || place.category === currentCategory)
-                );
-                
-                // 거리순(시간순)으로 정렬
-                filteredPlaces.sort((a, b) => a.distance - b.distance);
-                
-                renderResults(filteredPlaces);
-                hideLoading();
+                updateResults();
             }, 1000);
         }
 
-        // 카테고리 필터
-        function handleCategoryFilter(chip) {
-            // 기존 활성 카테고리 해제
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            
-            // 새 카테고리 활성화
-            chip.classList.add('active');
-            currentCategory = chip.dataset.category;
-            
-            searchNearbyPlaces();
-        }
-        
-        // 이동수단 변경
-        function handleTransportChange(btn) {
-            // 기존 활성 버튼 스타일 해제
-            document.querySelectorAll('.transport-btn').forEach(b => {
-                b.classList.remove('active');
-                b.style.background = 'white';
-                b.style.color = 'var(--gray-700)';
-                b.style.border = '1px solid var(--gray-300)';
-            });
-            
-            // 새 버튼 활성화
-            btn.classList.add('active');
-            btn.style.background = 'var(--primary-blue)';
-            btn.style.color = 'white';
-            btn.style.border = '1px solid var(--primary-blue)';
-            currentTransport = btn.dataset.transport;
-            
-            searchNearbyPlaces();
-        }
-
-        // 정렬 변경
-        function handleSortChange(event) {
-            const sortBy = event.target.value;
-            const currentPlaces = getCurrentPlaces();
-            
-            let sortedPlaces = [...currentPlaces];
-            
-            switch (sortBy) {
-                case 'distance':
-                    sortedPlaces.sort((a, b) => a.distance - b.distance);
-                    break;
-                case 'rating':
-                    sortedPlaces.sort((a, b) => b.rating - a.rating);
-                    break;
-                case 'name':
-                    sortedPlaces.sort((a, b) => a.name.localeCompare(b.name));
-                    break;
-                case 'review':
-                    sortedPlaces.sort((a, b) => b.reviewCount - a.reviewCount);
-                    break;
-            }
-            
-            renderResults(sortedPlaces);
-        }
-
-        // 현재 표시된 장소들 가져오기
-        function getCurrentPlaces() {
-            const maxDistance = getMaxDistance(currentTime, currentTransport);
-            return places.filter(place => 
-                place.distance <= maxDistance &&
-                (currentCategory === 'all' || place.category === currentCategory)
-            );
-        }
-        
-        // 이동수단별 최대 거리 계산
-        function getMaxDistance(time, transport) {
-            // 이동수단별 평균 속도 (m/분)
-            const speeds = {
-                walk: 67,      // 도보: 4km/h = 약 67m/분
-                public: 333,   // 대중교통: 20km/h = 약 333m/분
-                car: 667       // 차량: 40km/h = 약 667m/분
-            };
-            
-            return time * (speeds[transport] || speeds.car);
-        }
-        
-        // 거리를 이동시간으로 변환
-        function distanceToTime(distance, transport) {
-            const speeds = {
-                walk: 67,      // 도보: 4km/h = 약 67m/분
-                public: 333,   // 대중교통: 20km/h = 약 333m/분
-                car: 667       // 차량: 40km/h = 약 667m/분
-            };
-            
-            const speed = speeds[transport] || speeds.car;
-            const time = Math.ceil(distance / speed);
-            
-            if (time >= 60) {
-                const hours = Math.floor(time / 60);
-                const minutes = time % 60;
-                if (minutes === 0) {
-                    return hours + '시간';
+        // Keyword search with debounce
+        let keywordTimeout;
+        function handleKeywordSearch(keyword) {
+            clearTimeout(keywordTimeout);
+            keywordTimeout = setTimeout(() => {
+                currentKeyword = keyword;
+                if (keyword.length > 0) {
+                    searchPlaces();
                 } else {
-                    return hours + '시간 ' + minutes + '분';
+                    updateResults();
                 }
-            }
-            
-            return time + '분';
+            }, 500);
         }
 
-        // 결과 렌더링
-        function renderResults(placesToShow = null) {
-            const resultsList = document.getElementById('resultsList');
-            const resultsCount = document.getElementById('resultsCount');
+        // Category filtering
+        function filterByCategory(category) {
+            currentCategory = category;
             
-            const displayPlaces = placesToShow || getCurrentPlaces();
+            // Update active category
+            document.querySelectorAll('.filter-category').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
             
-            resultsCount.textContent = displayPlaces.length;
+            updateResults();
+        }
+
+        // Sort results
+        function sortResults(sortBy) {
+            console.log('정렬 기준:', sortBy);
+            // Implement sorting logic here
+            updateResults();
+        }
+
+        // Update results display
+        function updateResults() {
+            let filteredPlaces = samplePlaces;
             
-            if (displayPlaces.length === 0) {
-                resultsList.innerHTML = `
+            // Filter by category
+            if (currentCategory !== '전체') {
+                filteredPlaces = filteredPlaces.filter(place => place.category === currentCategory);
+            }
+            
+            // Filter by keyword
+            if (currentKeyword) {
+                filteredPlaces = filteredPlaces.filter(place => 
+                    place.name.toLowerCase().includes(currentKeyword.toLowerCase())
+                );
+            }
+            
+            // Update results count
+            document.getElementById('resultsCount').textContent = `${filteredPlaces.length}곳을 찾았습니다`;
+            
+            // Update place list
+            const placeList = document.getElementById('placeList');
+            
+            if (filteredPlaces.length === 0) {
+                placeList.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon"></div>
+                        <div class="empty-icon">🔍</div>
                         <h3>검색 결과가 없습니다</h3>
-                        <p>다른 키워드나 더 넓은 반경으로 검색해보세요.</p>
+                        <p>다른 검색 조건을 시도해보세요</p>
                     </div>
                 `;
-                return;
-            }
-            
-            resultsList.innerHTML = displayPlaces.map(place => `
-                <div class="place-card">
-                    <div class="place-content">
+            } else {
+                placeList.innerHTML = filteredPlaces.map(place => `
+                    <div class="place-card" onclick="viewPlaceDetails(${place.id})">
                         <div class="place-header">
-                            <h3 class="place-name">${place.name}</h3>
-                            <span class="place-distance">${distanceToTime(place.distance, currentTransport)}</span>
+                            <div>
+                                <div class="place-name">${place.name}</div>
+                                <div class="place-rating">
+                                    <span class="stars">${generateStars(place.rating)}</span>
+                                    <span class="rating-text">${place.rating} (${place.reviewCount.toLocaleString()}개 리뷰)</span>
+                                </div>
+                            </div>
+                            <div class="travel-time">${place.travelTime}</div>
                         </div>
-                        <div class="place-rating">
-                            <span class="stars">${generateStars(place.rating)}</span>
-                            <span class="rating-text">${place.rating} (${TripGen.Utils.formatNumber(place.reviewCount)}개 리뷰)</span>
-                        </div>
-                        <p class="place-address">${place.address}</p>
+                        <div class="place-address">${place.address}</div>
                         <div class="place-actions">
-                            <button class="btn-outline" onclick="showPlaceDetails(${place.id})">상세정보</button>
-                            <button class="btn-outline" onclick="showRoute(${place.id})">길찾기</button>
+                            <button class="action-button btn-details" onclick="viewPlaceDetails(${place.id}, event)">상세정보</button>
+                            <button class="action-button btn-directions" onclick="getDirections(${place.id}, event)">길찾기</button>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            }
         }
 
-        // 카테고리 이름 변환
-        function getCategoryName(category) {
-            const categoryMap = {
-                'tourist': '관광지',
-                'park': '공원',
-                'museum': '박물관',
-                'market': '시장',
-                'church': '교회',
-                'palace': '궁전',
-                'restaurant': '맥주홀',
-                'nature': '자연'
-            };
-            return categoryMap[category] || '기타';
-        }
-
-        // 별점 생성
+        // Generate star rating display
         function generateStars(rating) {
             const fullStars = Math.floor(rating);
             const hasHalfStar = rating % 1 >= 0.5;
@@ -1566,71 +857,109 @@
                    '☆'.repeat(emptyStars);
         }
 
-
-        // 장소 상세정보
-        function showPlaceDetails(placeId) {
-            const place = places.find(p => p.id === placeId);
-            if (place) {
-                // 실제로는 장소 상세정보 페이지로 이동
-                TripGen.showToast(`${place.name} 상세정보를 확인합니다.`, 'info');
-                setTimeout(() => {
-                    window.location.href = '07-장소상세정보.html';
-                }, 1000);
+        // Place actions
+        function viewPlaceDetails(placeId, event) {
+            if (event) {
+                event.stopPropagation();
             }
+            // 장소 상세정보 화면으로 이동
+            window.location.href = '10-장소상세정보.html?id=' + placeId;
         }
 
-        // 길찾기
-        function showRoute(placeId) {
-            const place = places.find(p => p.id === placeId);
-            if (place) {
-                TripGen.showToast(`${place.name}까지의 경로를 확인합니다.`, 'info');
-                // Google Maps 길찾기 새 탭에서 바로 열기
-                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place.name)}`;
-                window.open(mapsUrl, '_blank');
-            }
-        }
-
-
-        // 로딩 표시
-        function showLoading() {
-            const resultsList = document.getElementById('resultsList');
-            resultsList.innerHTML = `
-                <div class="loading-skeleton">
-                    ${Array(3).fill().map(() => `
-                        <div class="skeleton-card">
-                            <div class="skeleton-line"></div>
-                            <div class="skeleton-line short"></div>
-                            <div class="skeleton-line medium"></div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        // 로딩 숨기기
-        function hideLoading() {
-            // renderResults 함수에서 처리됨
-        }
-        
-        // 현재 위치 탐색
-        function getCurrentLocation() {
-            const startLocationInput = document.getElementById('startLocation');
+        function getDirections(placeId, event) {
+            event.stopPropagation();
             
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        startLocationInput.value = '현재 위치';
-                        TripGen.showToast('현재 위치를 탐색했습니다.', 'success');
-                        searchNearbyPlaces();
-                    },
-                    (error) => {
-                        TripGen.showToast('위치 정보를 가져올 수 없습니다.', 'error');
-                    }
-                );
-            } else {
-                TripGen.showToast('브라우저가 위치 정보를 지원하지 않습니다.', 'error');
+            const place = samplePlaces.find(p => p.id === placeId);
+            if (place) {
+                alert(`${place.name}으로 길찾기를 시작합니다.`);
+                // Open navigation app (Kakao Map for domestic, Google Maps for international)
             }
         }
+
+        // Loading states
+        function showLoading() {
+            isLoading = true;
+            document.getElementById('loadingState').style.display = 'block';
+        }
+
+        function hideLoading() {
+            isLoading = false;
+            document.getElementById('loadingState').style.display = 'none';
+        }
+
+        // Infinite scroll
+        function setupInfiniteScroll() {
+            window.addEventListener('scroll', function() {
+                if (isLoading) return;
+                
+                const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+                
+                if (scrollTop + clientHeight >= scrollHeight - 5) {
+                    loadMoreResults();
+                }
+            });
+        }
+
+        function loadMoreResults() {
+            if (isLoading) return;
+            
+            showLoading();
+            currentPage++;
+            
+            // Simulate API call for next page
+            setTimeout(() => {
+                hideLoading();
+                console.log(`페이지 ${currentPage} 로드 완료`);
+            }, 1000);
+        }
+
+        // Navigation
+        function goBack() {
+            window.location.href = '03-대시보드.html';
+        }
+
+        function goToHome() {
+            window.location.href = '03-대시보드.html';
+        }
+
+        function goToNewTrip() {
+            alert('새 여행 계획하기 화면으로 이동');
+            // window.location.href = '05-기본설정.html';
+        }
+
+        function goToSearch() {
+            alert('장소검색 화면 (현재 페이지)');
+        }
+
+        function goToTripList() {
+            alert('여행 목록 화면으로 이동');
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupInfiniteScroll();
+            searchPlaces(); // Initial search
+            
+            console.log('주변장소검색 페이지 로드 완료');
+        });
+
+        // Handle form submissions
+        document.getElementById('startLocation').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchPlaces();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const focusedElement = document.activeElement;
+                if (focusedElement.classList.contains('place-card')) {
+                    e.preventDefault();
+                    focusedElement.click();
+                }
+            }
+        });
     </script>
 </body>
 </html>

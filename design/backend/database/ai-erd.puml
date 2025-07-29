@@ -1,0 +1,156 @@
+@startuml
+!theme mono
+
+title AI 서비스 ERD (Entity Relationship Diagram)
+
+' =====================================
+' 테이블 정의
+' =====================================
+
+entity "ai_schedules" as ai_schedules {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **request_id** : VARCHAR(36) <<UK>> <<Not Null>>
+    * **trip_id** : VARCHAR(36) <<Not Null>>
+    * **status** : VARCHAR(20) <<Not Null>>
+    --
+    schedule_data : JSONB
+    generated_at : TIMESTAMP WITH TIME ZONE
+    expired_at : TIMESTAMP WITH TIME ZONE
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "ai_jobs" as ai_jobs {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **request_id** : VARCHAR(36) <<UK>> <<Not Null>>
+    * **job_type** : VARCHAR(30) <<Not Null>>
+    * **status** : VARCHAR(20) <<Not Null>>
+    * **payload** : JSONB <<Not Null>>
+    --
+    result : JSONB
+    progress : INTEGER <<Not Null>> <<Default: 0>>
+    current_step : VARCHAR(100)
+    error_message : TEXT
+    started_at : TIMESTAMP WITH TIME ZONE
+    completed_at : TIMESTAMP WITH TIME ZONE
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+entity "ai_recommendations" as ai_recommendations {
+    * **id** : BIGSERIAL <<PK>>
+    --
+    * **place_id** : VARCHAR(100) <<Not Null>>
+    * **profile_hash** : VARCHAR(64) <<Not Null>>
+    * **recommendation_data** : JSONB <<Not Null>>
+    --
+    generated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    expired_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    --
+    created_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+    updated_at : TIMESTAMP WITH TIME ZONE <<Not Null>>
+}
+
+' =====================================
+' 관계 정의
+' =====================================
+
+ai_jobs ||--o| ai_schedules : "request_id로 연결"
+
+' =====================================
+' 인덱스 정보
+' =====================================
+
+note right of ai_schedules : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (request_id)\n• INDEX (trip_id)\n• INDEX (status)\n• INDEX (expired_at)\n• GIN INDEX (schedule_data)
+
+note right of ai_jobs : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (request_id)\n• INDEX (status)\n• INDEX (job_type, status)\n• INDEX (created_at)\n• GIN INDEX (result)
+
+note right of ai_recommendations : **인덱스**\n• PRIMARY KEY (id)\n• UNIQUE (place_id, profile_hash)\n• INDEX (place_id)\n• INDEX (expired_at)\n• GIN INDEX (recommendation_data)
+
+' =====================================
+' 제약조건 정보
+' =====================================
+
+note left of ai_schedules : **제약조건**\n• status ∈ {'QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'}\n• expired_at > generated_at OR NULL
+
+note left of ai_jobs : **제약조건**\n• job_type ∈ {'SCHEDULE_GENERATION', 'SCHEDULE_REGENERATION', 'RECOMMENDATION_GENERATION', 'WEATHER_IMPACT_ANALYSIS'}\n• status ∈ {'QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'}\n• progress ∈ [0, 100]
+
+note left of ai_recommendations : **제약조건**\n• expired_at > created_at\n• UNIQUE (place_id, profile_hash)
+
+' =====================================
+' 캐시 구조 (Redis)
+' =====================================
+
+package "Redis Cache" {
+    class "ai:job:status:{request_id}" as job_cache {
+        JobStatus JSON
+        TTL: 1시간
+    }
+    
+    class "ai:schedule:{trip_id}" as schedule_cache {
+        Schedule JSON
+        TTL: 7일
+    }
+    
+    class "ai:recommendation:{place_id}:{profile_hash}" as rec_cache {
+        Recommendation JSON
+        TTL: 24시간
+    }
+    
+    class "ai:model:response:{request_hash}" as model_cache {
+        AI Raw Response
+        TTL: 1시간
+    }
+}
+
+' =====================================
+' 메시지 큐 구조
+' =====================================
+
+package "Message Queue" {
+    class "ai.schedule.generation" as queue {
+        request_id: string
+        job_type: string
+        payload: object
+        priority: integer
+        max_retries: integer
+    }
+}
+
+' =====================================
+' 관계 정의 (캐시)
+' =====================================
+
+ai_jobs ||--o{ job_cache : "캐시"
+ai_schedules ||--o{ schedule_cache : "캐시"
+ai_recommendations ||--o{ rec_cache : "캐시"
+
+ai_jobs ||--o{ queue : "작업 큐"
+
+' =====================================
+' JSON 스키마 예시
+' =====================================
+
+note bottom of ai_schedules : **schedule_data JSON 스키마**\n{\n  "trip_id": "string",\n  "schedules": [\n    {\n      "day": integer,\n      "date": "YYYY-MM-DD",\n      "city": "string",\n      "weather": {...},\n      "places": [...]\n    }\n  ],\n  "metadata": {...}\n}
+
+note bottom of ai_recommendations : **recommendation_data JSON 스키마**\n{\n  "place_id": "string",\n  "recommendations": {\n    "reasons": [...],\n    "tips": {...}\n  },\n  "context": {...}\n}
+
+' =====================================
+' 범례
+' =====================================
+
+legend bottom right
+    |= 기호 |= 의미 |
+    | **PK** | Primary Key |
+    | **UK** | Unique Key |
+    | **FK** | Foreign Key |
+    | **Not Null** | 필수 필드 |
+    | **Default** | 기본값 |
+    | **JSONB** | JSON Binary 타입 |
+endlegend
+
+@enduml

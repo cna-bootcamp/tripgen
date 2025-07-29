@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripGen - 기본설정</title>
+    <style>
+        /* CSS Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Colors from Style Guide */
+            --primary-blue: #2563EB;
+            --primary-orange: #F97316;
+            --deep-blue: #1E40AF;
+            --light-orange: #FED7AA;
+            --success-green: #10B981;
+            --warning-yellow: #F59E0B;
+            --error-red: #EF4444;
+            --info-blue: #3B82F6;
+            
+            /* Text Colors */
+            --text-primary: #111827;
+            --text-secondary: #374151;
+            --text-tertiary: #6B7280;
+            --text-disabled: #9CA3AF;
+            
+            /* Background Colors */
+            --bg-white: #FFFFFF;
+            --bg-off-white: #F9FAFB;
+            --bg-light-gray: #F3F4F6;
+            --border-gray: #E5E7EB;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--bg-off-white);
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-gray);
+            padding: var(--spacing-md) var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .placeholder {
+            width: 40px;
+        }
+
+        /* Progress Stepper */
+        .progress-stepper {
+            background: var(--bg-white);
+            padding: var(--spacing-xl) var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 50%;
+            left: var(--spacing-lg);
+            right: var(--spacing-lg);
+            height: 2px;
+            background: var(--border-gray);
+            z-index: 1;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+        }
+
+        .step.current .step-circle {
+            background: var(--primary-blue);
+            color: var(--bg-white);
+        }
+
+        .step.completed .step-circle {
+            background: var(--success-green);
+            color: var(--bg-white);
+        }
+
+        .step.pending .step-circle {
+            background: var(--bg-white);
+            color: var(--text-tertiary);
+            border: 2px solid var(--border-gray);
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-align: center;
+        }
+
+        .step.current .step-label {
+            color: var(--primary-blue);
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .main {
+            padding: var(--spacing-xl) var(--spacing-lg);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-section {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .form-input {
+            width: 100%;
+            border: 2px solid var(--border-gray);
+            border-radius: 8px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            font-size: 16px;
+            background: var(--bg-white);
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-input.error {
+            border-color: var(--error-red);
+        }
+
+        .error-message {
+            color: var(--error-red);
+            font-size: 12px;
+            margin-top: var(--spacing-xs);
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-align: right;
+            margin-top: var(--spacing-xs);
+        }
+
+        /* Radio Group */
+        .radio-group {
+            display: flex;
+            gap: var(--spacing-lg);
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .radio-input {
+            margin-right: var(--spacing-sm);
+            accent-color: var(--primary-blue);
+        }
+
+        .radio-label {
+            font-size: 16px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        /* Member Management */
+        .member-list {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .member-card {
+            background: var(--bg-light-gray);
+            border-radius: 12px;
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .member-card:hover {
+            background: var(--border-gray);
+        }
+
+        .member-card.selected {
+            border: 2px solid var(--primary-blue);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .member-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .member-detail {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+
+        .member-preferences {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+        }
+
+        .preference-tag {
+            background: var(--primary-blue);
+            color: var(--bg-white);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .member-actions {
+            position: absolute;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            display: none;
+            gap: var(--spacing-sm);
+        }
+
+        .member-card.selected .member-actions {
+            display: flex;
+        }
+
+        .action-button {
+            background: var(--bg-white);
+            border: 1px solid var(--border-gray);
+            border-radius: 6px;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-button.edit:hover {
+            background: var(--info-blue);
+            color: var(--bg-white);
+            border-color: var(--info-blue);
+        }
+
+        .action-button.delete:hover {
+            background: var(--error-red);
+            color: var(--bg-white);
+            border-color: var(--error-red);
+        }
+
+        .add-member-button {
+            width: 100%;
+            border: 2px dashed var(--border-gray);
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: var(--spacing-xl);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-tertiary);
+            font-size: 16px;
+        }
+
+        .add-member-button:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        /* Member Form Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: var(--spacing-2xl);
+            max-width: 480px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-tertiary);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-sm);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-input {
+            margin-right: var(--spacing-sm);
+            accent-color: var(--primary-blue);
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            gap: var(--spacing-lg);
+            padding: var(--spacing-xl) var(--spacing-lg);
+            background: var(--bg-white);
+            border-top: 1px solid var(--border-gray);
+            position: sticky;
+            bottom: 0;
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-lg);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .nav-button.secondary {
+            background: var(--bg-light-gray);
+            color: var(--text-primary);
+        }
+
+        .nav-button.secondary:hover {
+            background: var(--border-gray);
+        }
+
+        .nav-button.primary {
+            background: var(--primary-blue);
+            color: var(--bg-white);
+        }
+
+        .nav-button.primary:hover {
+            background: var(--deep-blue);
+        }
+
+        .nav-button:disabled {
+            background: var(--text-disabled);
+            color: var(--bg-white);
+            cursor: not-allowed;
+        }
+
+        /* Auto-save indicator */
+        .auto-save {
+            position: fixed;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            background: var(--success-green);
+            color: var(--bg-white);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .auto-save.show {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .radio-group {
+                gap: var(--spacing-2xl);
+            }
+            
+            .member-info {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .checkbox-group {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auto-save indicator -->
+    <div class="auto-save" id="autoSaveIndicator">자동 저장됨</div>
+
+    <!-- Header -->
+    <header class="header">
+        <button class="back-button" onclick="goBack()" aria-label="뒤로가기">←</button>
+        <h1 class="header-title">새 여행 계획</h1>
+        <div class="placeholder"></div>
+    </header>
+
+    <!-- Progress Stepper -->
+    <div class="progress-stepper">
+        <div class="progress-line"></div>
+        <div class="step current">
+            <div class="step-circle">1</div>
+            <div class="step-label">기본설정</div>
+        </div>
+        <div class="step pending">
+            <div class="step-circle">2</div>
+            <div class="step-label">여행지설정</div>
+        </div>
+        <div class="step pending">
+            <div class="step-circle">3</div>
+            <div class="step-label">AI일정생성</div>
+        </div>
+        <div class="step pending">
+            <div class="step-circle">4</div>
+            <div class="step-label">일정조회</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- 여행 기본정보 -->
+        <section class="form-section">
+            <h2 class="section-title">여행 기본정보</h2>
+            
+            <div class="form-group">
+                <label class="form-label" for="tripName">여행명 *</label>
+                <input type="text" id="tripName" class="form-input" placeholder="여행명을 입력하세요" maxlength="16" oninput="validateTripName()">
+                <div class="char-count">
+                    <span id="tripNameCount">0</span>/16
+                </div>
+                <div class="error-message" id="tripNameError"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">이동수단 *</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="transport1" name="transport" value="대중교통" class="radio-input" checked onchange="autoSave()">
+                        <label for="transport1" class="radio-label">대중교통</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="transport2" name="transport" value="자동차" class="radio-input" onchange="autoSave()">
+                        <label for="transport2" class="radio-label">자동차</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 멤버 관리 -->
+        <section class="form-section">
+            <h2 class="section-title">멤버 관리</h2>
+            
+            <div class="member-list" id="memberList">
+                <!-- 기본 멤버 (본인) -->
+                <div class="member-card" data-member-id="1" onclick="selectMember(1)">
+                    <div class="member-info">
+                        <div class="member-name">김여행</div>
+                        <div class="member-detail">35세, 남성</div>
+                        <div class="member-detail">건강상태: 우수</div>
+                        <div class="member-detail"></div>
+                    </div>
+                    <div class="member-preferences">
+                        <span class="preference-tag">관광</span>
+                        <span class="preference-tag">문화체험</span>
+                        <span class="preference-tag">자연체험</span>
+                    </div>
+                    <div class="member-actions">
+                        <button class="action-button edit" onclick="editMember(1, event)">수정</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 멤버 추가 버튼 -->
+            <button class="add-member-button" onclick="showAddMemberModal()">
+                + 멤버 추가 (최대 10명)
+            </button>
+        </section>
+    </main>
+
+    <!-- Member Form Modal -->
+    <div class="modal-overlay" id="memberModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">새 멤버 추가</h3>
+                <button class="close-button" onclick="closeMemberModal()">&times;</button>
+            </div>
+            
+            <form id="memberForm">
+                <div class="form-group">
+                    <label class="form-label" for="memberName">이름 *</label>
+                    <input type="text" id="memberName" class="form-input" placeholder="이름을 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="memberAge">나이 *</label>
+                    <input type="number" id="memberAge" class="form-input" placeholder="나이를 입력하세요" min="1" max="120" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">성별 *</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="gender1" name="gender" value="남성" class="radio-input" required>
+                            <label for="gender1" class="radio-label">남성</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="gender2" name="gender" value="여성" class="radio-input" required>
+                            <label for="gender2" class="radio-label">여성</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">건강상태 *</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="health1" name="health" value="우수" class="radio-input" required>
+                            <label for="health1" class="radio-label">우수</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="health2" name="health" value="양호" class="radio-input" required>
+                            <label for="health2" class="radio-label">양호</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="health3" name="health" value="주의" class="radio-input" required>
+                            <label for="health3" class="radio-label">주의</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="health4" name="health" value="제한" class="radio-input" required>
+                            <label for="health4" class="radio-label">제한</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">활동 선호도</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="pref1" value="관광" class="checkbox-input">
+                            <label for="pref1" class="checkbox-label">관광</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="pref2" value="쇼핑" class="checkbox-input">
+                            <label for="pref2" class="checkbox-label">쇼핑</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="pref3" value="문화체험" class="checkbox-input">
+                            <label for="pref3" class="checkbox-label">문화체험</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="pref4" value="자연체험" class="checkbox-input">
+                            <label for="pref4" class="checkbox-label">자연체험</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="pref5" value="스포츠" class="checkbox-input">
+                            <label for="pref5" class="checkbox-label">스포츠</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="pref6" value="휴식" class="checkbox-input">
+                            <label for="pref6" class="checkbox-label">휴식</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-buttons">
+                    <button type="button" class="nav-button secondary" onclick="closeMemberModal()">취소</button>
+                    <button type="submit" class="nav-button primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons">
+        <button class="nav-button secondary" onclick="goBack()">이전</button>
+        <button class="nav-button primary" id="nextButton" onclick="goNext()" disabled>다음 단계</button>
+    </div>
+
+    <script>
+        // Global variables
+        let members = [
+            {
+                id: 1,
+                name: '김여행',
+                age: 35,
+                gender: '남성',
+                health: '우수',
+                preferences: ['관광', '문화체험', '자연체험']
+            }
+        ];
+        let selectedMemberId = null;
+        let editingMemberId = null;
+        let nextMemberId = 2;
+
+        // Auto-save functionality
+        let autoSaveTimeout;
+
+        function autoSave() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                // Simulate saving to localStorage
+                const formData = {
+                    tripName: document.getElementById('tripName').value,
+                    transport: document.querySelector('input[name="transport"]:checked')?.value,
+                    members: members
+                };
+                localStorage.setItem('tripBasicSettings', JSON.stringify(formData));
+                
+                // Show auto-save indicator
+                const indicator = document.getElementById('autoSaveIndicator');
+                indicator.classList.add('show');
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 2000);
+            }, 3000);
+        }
+
+        // Trip name validation
+        function validateTripName() {
+            const input = document.getElementById('tripName');
+            const count = document.getElementById('tripNameCount');
+            const error = document.getElementById('tripNameError');
+            const nextButton = document.getElementById('nextButton');
+            
+            count.textContent = input.value.length;
+            
+            if (input.value.length === 0) {
+                error.textContent = '여행명을 입력해주세요.';
+                input.classList.add('error');
+            } else if (input.value.length > 16) {
+                error.textContent = '여행명은 16자 이하로 입력해주세요.';
+                input.classList.add('error');
+            } else {
+                error.textContent = '';
+                input.classList.remove('error');
+            }
+            
+            validateForm();
+            autoSave();
+        }
+
+        // Form validation
+        function validateForm() {
+            const tripName = document.getElementById('tripName').value;
+            const transport = document.querySelector('input[name="transport"]:checked');
+            const nextButton = document.getElementById('nextButton');
+            
+            const isValid = tripName.length > 0 && tripName.length <= 16 && transport && members.length >= 1;
+            nextButton.disabled = !isValid;
+        }
+
+        // Member management
+        function selectMember(memberId) {
+            // Remove previous selection
+            document.querySelectorAll('.member-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked member
+            const memberCard = document.querySelector(`[data-member-id="${memberId}"]`);
+            if (memberCard) {
+                memberCard.classList.add('selected');
+                selectedMemberId = memberId;
+            }
+        }
+
+        function showAddMemberModal() {
+            if (members.length >= 10) {
+                alert('최대 10명까지만 추가 가능합니다.');
+                return;
+            }
+            
+            document.getElementById('modalTitle').textContent = '새 멤버 추가';
+            document.getElementById('memberForm').reset();
+            document.getElementById('memberModal').classList.add('show');
+            editingMemberId = null;
+        }
+
+        function editMember(memberId, event) {
+            event.stopPropagation();
+            
+            const member = members.find(m => m.id === memberId);
+            if (!member) return;
+            
+            // Fill form with member data
+            document.getElementById('modalTitle').textContent = '멤버 정보 수정';
+            document.getElementById('memberName').value = member.name;
+            document.getElementById('memberAge').value = member.age;
+            document.querySelector(`input[name="gender"][value="${member.gender}"]`).checked = true;
+            document.querySelector(`input[name="health"][value="${member.health}"]`).checked = true;
+            
+            // Set preferences
+            document.querySelectorAll('.checkbox-input').forEach(checkbox => {
+                checkbox.checked = member.preferences.includes(checkbox.value);
+            });
+            
+            document.getElementById('memberModal').classList.add('show');
+            editingMemberId = memberId;
+        }
+
+        function deleteMember(memberId, event) {
+            event.stopPropagation();
+            
+            if (members.length <= 1) {
+                alert('최소 1명의 멤버가 필요합니다.');
+                return;
+            }
+            
+            if (confirm('멤버를 삭제하시겠습니까?')) {
+                members = members.filter(m => m.id !== memberId);
+                renderMembers();
+                validateForm();
+                autoSave();
+            }
+        }
+
+        function closeMemberModal() {
+            document.getElementById('memberModal').classList.remove('show');
+            selectedMemberId = null;
+            editingMemberId = null;
+        }
+
+        function renderMembers() {
+            const memberList = document.getElementById('memberList');
+            memberList.innerHTML = '';
+            
+            members.forEach(member => {
+                const memberCard = document.createElement('div');
+                memberCard.className = 'member-card';
+                memberCard.setAttribute('data-member-id', member.id);
+                memberCard.onclick = () => selectMember(member.id);
+                
+                const preferencesTags = member.preferences.map(pref => 
+                    `<span class="preference-tag">${pref}</span>`
+                ).join('');
+                
+                memberCard.innerHTML = `
+                    <div class="member-info">
+                        <div class="member-name">${member.name}</div>
+                        <div class="member-detail">${member.age}세, ${member.gender}</div>
+                        <div class="member-detail">건강상태: ${member.health}</div>
+                        <div class="member-detail"></div>
+                    </div>
+                    <div class="member-preferences">${preferencesTags}</div>
+                    <div class="member-actions">
+                        <button class="action-button edit" onclick="editMember(${member.id}, event)">수정</button>
+                        ${member.id !== 1 ? `<button class="action-button delete" onclick="deleteMember(${member.id}, event)">삭제</button>` : ''}
+                    </div>
+                `;
+                
+                memberList.appendChild(memberCard);
+            });
+        }
+
+        // Member form submission
+        document.getElementById('memberForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const preferences = Array.from(document.querySelectorAll('.checkbox-input:checked')).map(cb => cb.value);
+            
+            const memberData = {
+                name: formData.get('memberName') || document.getElementById('memberName').value,
+                age: parseInt(formData.get('memberAge') || document.getElementById('memberAge').value),
+                gender: formData.get('gender'),
+                health: formData.get('health'),
+                preferences: preferences
+            };
+            
+            if (editingMemberId) {
+                // Edit existing member
+                const memberIndex = members.findIndex(m => m.id === editingMemberId);
+                if (memberIndex !== -1) {
+                    members[memberIndex] = { ...members[memberIndex], ...memberData };
+                }
+            } else {
+                // Add new member
+                memberData.id = nextMemberId++;
+                members.push(memberData);
+            }
+            
+            renderMembers();
+            closeMemberModal();
+            validateForm();
+            autoSave();
+        });
+
+        // Navigation
+        function goBack() {
+            if (confirm('입력한 정보가 저장되지 않을 수 있습니다. 뒤로 가시겠습니까?')) {
+                window.location.href = '03-대시보드.html';
+            }
+        }
+
+        function goNext() {
+            if (document.getElementById('nextButton').disabled) {
+                return;
+            }
+            
+            // Final validation
+            const tripName = document.getElementById('tripName').value;
+            const transport = document.querySelector('input[name="transport"]:checked');
+            
+            if (!tripName || !transport || members.length === 0) {
+                alert('모든 필수 항목을 입력해주세요.');
+                return;
+            }
+            
+            // Save data
+            const formData = {
+                tripName: tripName,
+                transport: transport.value,
+                members: members
+            };
+            localStorage.setItem('tripBasicSettings', JSON.stringify(formData));
+            
+            // 여행지설정 화면이 없으므로 일정조회 화면으로 이동
+            window.location.href = '06-여행지설정.html';
+        }
+
+        // Load saved data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedData = localStorage.getItem('tripBasicSettings');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                
+                if (data.tripName) {
+                    document.getElementById('tripName').value = data.tripName;
+                    validateTripName();
+                }
+                
+                if (data.transport) {
+                    document.querySelector(`input[name="transport"][value="${data.transport}"]`).checked = true;
+                }
+                
+                if (data.members && data.members.length > 0) {
+                    members = data.members;
+                    nextMemberId = Math.max(...members.map(m => m.id)) + 1;
+                    renderMembers();
+                }
+            }
+            
+            validateForm();
+        });
+
+        // Initialize page
+        renderMembers();
+        validateForm();
+    </script>
+</body>
+</html>
