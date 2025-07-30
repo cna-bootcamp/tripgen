@@ -18,6 +18,7 @@
 - 마스터 아키텍처: design/backend/physical/physical-architecture.md
 - 개발환경: design/backend/physical/physical-architecture-dev.md
 - HighLevel아키텍처정의서: design/high-level-architecture.md
+- 배포아키텍처: design/backend/deployment/deployment-architecture-prod.md
 
 ## 2. 운영환경 아키텍처 개요
 
@@ -140,6 +141,14 @@ hpa_configuration:
 ## 4. 네트워크 아키텍처
 
 ### 4.1 네트워크 토폴로지
+
+📄 **[운영환경 네트워크 다이어그램](./network-prod.mmd)**
+
+**네트워크 흐름:**
+- 인터넷 → Azure Front Door + CDN → Application Gateway + WAF
+- Application Gateway → AKS Premium (Multi-Zone) → Application Services
+- Application Services → Private Endpoints → Azure PostgreSQL/Redis
+- 비동기 메시징: Services → Private Endpoint → Azure Service Bus Premium
 
 #### 4.1.1 Virtual Network 구성
 
@@ -655,70 +664,18 @@ apm_configuration:
       - message_queue_depth
 ```
 
-## 9. CI/CD 및 배포 전략
+## 9. 배포 관련 참조
 
-### 9.1 운영환경 CI/CD
+배포 및 CI/CD 관련 상세 내용은 별도 배포 아키텍처 문서에서 다룹니다.
 
-#### 9.1.1 배포 파이프라인
-```yaml
-deployment_pipeline:
-  trigger: tag creation (v*.*.*)
-  
-  stages:
-    quality_gates:
-      - unit_tests: 80% coverage required
-      - integration_tests: all pass
-      - security_scan: no critical vulnerabilities
-      - performance_test: baseline comparison
-      
-    deployment_strategy:
-      - canary: 10% traffic
-      - monitoring: 15분 관찰
-      - full_deployment: 90% → 100%
-      - auto_rollback: error rate > 1%
-```
+📄 **[배포 아키텍처 설계서 - 운영환경](../deployment/deployment-architecture-prod.md)**
 
-#### 9.1.2 Blue-Green 배포
-```yaml
-blue_green_deployment:
-  strategy: Blue-Green with validation
-  
-  phases:
-    preparation:
-      - green_environment: 100% ready
-      - database_migration: if required
-      - configuration_sync: environment variables
-      
-    switch:
-      - traffic_routing: Application Gateway
-      - validation_tests: automated health checks
-      - monitoring: 30분 관찰기간
-      
-    rollback:
-      - trigger: error_rate > 0.5% OR response_time > 10초
-      - action: immediate traffic switch
-      - notification: teams + pagerduty
-```
-
-### 9.2 GitOps 워크플로우
-
-#### 9.2.1 ArgoCD 구성
-```yaml
-argocd_configuration:
-  namespace: argocd-system
-  
-  applications:
-    - name: tripgen-prod
-      repo: https://github.com/tripgen/k8s-manifests
-      path: environments/production
-      sync_policy: automated
-      
-  sync_windows:
-    - kind: allow
-      schedule: "0 2-4 * * 1-5"  # 월-금 02:00-04:00
-      duration: 2h
-      applications: ["tripgen-prod"]
-```
+**주요 포함 내용:**
+- Blue-Green 및 Canary 배포 전략
+- GitOps 워크플로우 및 ArgoCD 구성
+- 품질 게이트 및 보안 스캔
+- 자동 롤백 및 모니터링 시스템
+- 재해복구 및 고가용성 전략
 
 ## 10. 재해복구 및 고가용성
 
