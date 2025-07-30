@@ -29,27 +29,16 @@
 - **보안**: 엔터프라이즈급 다층 보안
 
 ### 2.2 전체 아키텍처
-```
-[사용자]
-  ↓ (HTTPS)
-[Azure Front Door + CDN]
-  ↓
-[Azure Application Gateway + WAF]
-  ↓
-[Azure Private Link]
-  ↓
-[AKS 클러스터 - Multi-Zone]
-  ├── Application Subnet (10.0.1.0/24)
-  │   ├── User Service (3 replicas)
-  │   ├── Trip Service (3 replicas)
-  │   ├── AI Service (2 replicas)
-  │   └── Location Service (2 replicas)
-  ├── Database Subnet (10.0.2.0/24)
-  │   └── Azure Database for PostgreSQL Flexible
-  ├── Cache Subnet (10.0.3.0/24)
-  │   └── Azure Cache for Redis Premium
-  └── Azure Service Bus Premium
-```
+
+📄 **[운영환경 물리 아키텍처 다이어그램](./physical-architecture-prod.mmd)**
+
+**주요 구성 요소:**
+- **프론트엔드**: Azure Front Door + CDN → Application Gateway + WAF
+- **네트워크**: Azure Private Link → Multi-Zone AKS 클러스터
+- **애플리케이션**: Application Subnet (10.0.1.0/24) - 고가용성 리플리카
+- **데이터**: Database Subnet (10.0.2.0/24) - Azure PostgreSQL Flexible
+- **캐시**: Cache Subnet (10.0.3.0/24) - Azure Redis Premium
+- **메시징**: Azure Service Bus Premium
 
 ## 3. 컴퓨팅 아키텍처
 

@@ -28,20 +28,14 @@
 - **보안**: 기본 보안 (복잡한 보안 설정 최소화)
 
 ### 2.2 전체 아키텍처
-```
-[개발자] 
-  ↓ (HTTP/HTTPS)
-[Kubernetes Ingress Controller (NGINX)]
-  ↓
-[AKS 클러스터 - 단일 서브넷]
-  ├── User Service Pod
-  ├── Trip Service Pod  
-  ├── AI Service Pod
-  ├── Location Service Pod
-  ├── PostgreSQL Pod (Local Storage)
-  ├── Redis Pod (Memory Only)
-  └── Service Bus 연결 (Basic Tier)
-```
+
+📄 **[개발환경 물리 아키텍처 다이어그램](./physical-architecture-dev.mmd)**
+
+**주요 구성 요소:**
+- NGINX Ingress Controller → AKS 기본 클러스터
+- 애플리케이션 Pod: User, Trip, AI, Location Service
+- 백킹서비스 Pod: PostgreSQL (Local Storage), Redis (Memory Only)
+- Azure Service Bus Basic Tier 연결
 
 ## 3. 컴퓨팅 아키텍처
 
@@ -90,15 +84,13 @@
 ### 4.1 네트워크 구성
 
 #### 4.1.1 네트워크 토폴로지
-```
-[인터넷]
-  ↓ (LoadBalancer Service)
-[NGINX Ingress Controller]
-  ↓ (ClusterIP)
-[Application Services]
-  ↓ (ClusterIP)
-[Database Services]
-```
+
+📄 **[개발환경 네트워크 다이어그램](./network-dev.mmd)**
+
+**네트워크 흐름:**
+- 인터넷 → LoadBalancer Service → NGINX Ingress Controller
+- Ingress → ClusterIP → Application Services  
+- Application Services → ClusterIP → Database Services
 
 #### 4.1.2 네트워크 보안
 
