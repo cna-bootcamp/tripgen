@@ -118,7 +118,7 @@ graph TB
     %% Backup & DR
     subgraph "Backup & Disaster Recovery"
         BackupVault[Azure Backup Vault]
-        DRSite[DR Site<br/>(Secondary Region)]
+        DRSite[DR Site<br/>Secondary Region]
     end
     
     PostgreSQLCluster -.-> BackupVault
