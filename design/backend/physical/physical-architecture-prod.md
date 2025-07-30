@@ -219,48 +219,42 @@ waf_configuration:
 ### 4.3 Network Policies
 
 #### 4.3.1 마이크로서비스 간 통신 제어
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: production-network-policy
-spec:
-  podSelector:
-    matchLabels:
-      tier: application
-  policyTypes:
-  - Ingress
-  - Egress
-  
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: kube-system  # Ingress Controller
-    ports:
-    - protocol: TCP
-      port: 8080
-      
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app: postgresql
-    ports:
-    - protocol: TCP
-      port: 5432
-  - to:
-    - podSelector:
-        matchLabels:
-          app: redis
-    ports:
-    - protocol: TCP
-      port: 6379
-  - to: []  # External API calls
-    ports:
-    - protocol: TCP
-      port: 443
-```
+
+**Network Policy 기본 설정:**
+| 설정 항목 | 값 | 설명 |
+|-----------|----|---------|
+| API 버전 | networking.k8s.io/v1 | Kubernetes Network Policy v1 |
+| Policy 이름 | production-network-policy | 운영환경 보안 정책 |
+| Pod 선택자 | tier: application | 애플리케이션 Pod만 적용 |
+| 정책 유형 | Ingress, Egress | 인바운드/아웃바운드 모두 제어 |
+
+**Ingress 규칙:**
+| 소스 | 허용 포트 | 설명 |
+|------|----------|----------|
+| kube-system 네임스페이스 | TCP:8080 | Ingress Controller에서 접근 |
+
+**Egress 규칙:**
+| 대상 | 허용 포트 | 용도 |
+|------|----------|------|
+| app: postgresql | TCP:5432 | 데이터베이스 연결 |
+| app: redis | TCP:6379 | 캐시 서버 연결 |
+| 외부 전체 | TCP:443 | 외부 API 호출 |
+
+### 4.4 서비스 디스커버리
+
+| 서비스 | 내부 주소 | 포트 | 용도 |
+|--------|-----------|------|------|
+| User Service | user-service.{namespace-name}.svc.cluster.local | 8080 | 사용자 관리 API |
+| Trip Service | trip-service.{namespace-name}.svc.cluster.local | 8080 | 여행 계획 API |
+| AI Service | ai-service.{namespace-name}.svc.cluster.local | 8080 | AI 일정 생성 API |
+| Location Service | location-service.{namespace-name}.svc.cluster.local | 8080 | 위치 정보 API |
+| Azure PostgreSQL | postgresql-server.postgres.database.azure.com | 5432 | 관리형 데이터베이스 |
+| Azure Redis | redis-cache.redis.cache.windows.net | 6380 | 관리형 캐시 서버 |
+
+**비고:**
+- `{namespace-name}`: 실제 배포 시 환경별 네임스페이스로 대체 (예: `production`, `staging`)
+- 관리형 서비스는 Azure 내부 FQDN 사용
+- TLS 암호화 및 Private Endpoint를 통한 보안 연결
 
 ## 5. 데이터 아키텍처
 

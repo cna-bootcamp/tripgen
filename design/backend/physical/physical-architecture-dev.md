@@ -111,12 +111,12 @@
 
 | 서비스 | 내부 주소 | 포트 | 용도 |
 |--------|-----------|------|------|
-| User Service | user-service.default.svc.cluster.local | 8080 | 사용자 관리 API |
-| Trip Service | trip-service.default.svc.cluster.local | 8080 | 여행 계획 API |
-| AI Service | ai-service.default.svc.cluster.local | 8080 | AI 일정 생성 API |
-| Location Service | location-service.default.svc.cluster.local | 8080 | 위치 정보 API |
-| PostgreSQL | postgresql.default.svc.cluster.local | 5432 | 메인 데이터베이스 |
-| Redis | redis.default.svc.cluster.local | 6379 | 캐시 서버 |
+| User Service | user-service.{namespace-name}.svc.cluster.local | 8080 | 사용자 관리 API |
+| Trip Service | trip-service.{namespace-name}.svc.cluster.local | 8080 | 여행 계획 API |
+| AI Service | ai-service.{namespace-name}.svc.cluster.local | 8080 | AI 일정 생성 API |
+| Location Service | location-service.{namespace-name}.svc.cluster.local | 8080 | 위치 정보 API |
+| PostgreSQL | postgresql.{namespace-name}.svc.cluster.local | 5432 | 메인 데이터베이스 |
+| Redis | redis.{namespace-name}.svc.cluster.local | 6379 | 캐시 서버 |
 
 ## 5. 데이터 아키텍처
 
