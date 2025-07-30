@@ -231,25 +231,19 @@ physical-architecture.md (마스터 인덱스)
 
 ## 8. 전환 및 확장 계획
 
-### 8.1 개발환경 → 운영환경 전환
+### 8.1 개발환경 → 운영환경 전환 체크리스트
 
-#### 8.1.1 전환 체크리스트
-```yaml
-data_migration:
-  - [ ] 개발 데이터 백업
-  - [ ] 스키마 마이그레이션 스크립트
-  - [ ] Azure Database 프로비저닝
-  
-configuration:
-  - [ ] 환경 변수 분리
-  - [ ] Azure Key Vault 설정
-  - [ ] Managed Identity 구성
-  
-monitoring:
-  - [ ] Azure Monitor 설정
-  - [ ] 알림 정책 수립
-  - [ ] 대시보드 구축
-```
+| 카테고리 | 체크 항목 | 상태 | 우선순위 | 비고 |
+|---------|-----------|------|----------|------|
+| **데이터 마이그레이션** | 개발 데이터 백업 | ☐ | 높음 | pg_dump 사용 |
+| **데이터 마이그레이션** | 스키마 마이그레이션 스크립트 | ☐ | 높음 | Flyway/Liquibase 고려 |
+| **데이터 마이그레이션** | Azure Database 프로비저닝 | ☐ | 높음 | Flexible Server 구성 |
+| **설정 변경** | 환경 변수 분리 | ☐ | 높음 | ConfigMap/Secret 분리 |
+| **설정 변경** | Azure Key Vault 설정 | ☐ | 높음 | HSM 보안 모듈 |
+| **설정 변경** | Managed Identity 구성 | ☐ | 높음 | 키 없는 인증 |
+| **모니터링** | Azure Monitor 설정 | ☐ | 중간 | Log Analytics 연동 |
+| **모니터링** | 알림 정책 수립 | ☐ | 중간 | PagerDuty/Teams 연동 |
+| **모니터링** | 대시보드 구축 | ☐ | 낮음 | Application Insights |
 
 ### 8.2 단계별 확장 로드맵
 
