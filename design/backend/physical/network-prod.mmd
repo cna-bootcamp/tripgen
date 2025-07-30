@@ -54,10 +54,10 @@ graph TB
                     
                     %% Internal Load Balancer
                     subgraph InternalLB["⚖️ Internal Services"]
-                        UserServiceLB["user-service.prod.svc.cluster.local:8080"]
-                        TripServiceLB["trip-service.prod.svc.cluster.local:8080"]
-                        AIServiceLB["ai-service.prod.svc.cluster.local:8080"]
-                        LocationServiceLB["location-service.prod.svc.cluster.local:8080"]
+                        UserServiceLB["user-service:8080"]
+                        TripServiceLB["trip-service:8080"]
+                        AIServiceLB["ai-service:8080"]
+                        LocationServiceLB["location-service:8080"]
                     end
                 end
             end

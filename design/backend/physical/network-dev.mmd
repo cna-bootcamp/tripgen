@@ -47,12 +47,12 @@ graph TB
                     
                     %% Cluster Internal Services
                     subgraph ClusterServices["🔗 ClusterIP Services"]
-                        UserServiceDNS["user-service.dev.svc.cluster.local:8080"]
-                        TripServiceDNS["trip-service.dev.svc.cluster.local:8080"]
-                        AIServiceDNS["ai-service.dev.svc.cluster.local:8080"]
-                        LocationServiceDNS["location-service.dev.svc.cluster.local:8080"]
-                        PostgreSQLDNS["postgresql.dev.svc.cluster.local:5432"]
-                        RedisDNS["redis.dev.svc.cluster.local:6379"]
+                        UserServiceDNS["user-service:8080"]
+                        TripServiceDNS["trip-service:8080"]
+                        AIServiceDNS["ai-service:8080"]
+                        LocationServiceDNS["location-service:8080"]
+                        PostgreSQLDNS["postgresql:5432"]
+                        RedisDNS["redis:6379"]
                     end
                 end
             end
