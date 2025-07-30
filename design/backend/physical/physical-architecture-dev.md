@@ -17,6 +17,7 @@
 - 마스터 아키텍처: design/backend/physical/physical-architecture.md
 - HighLevel아키텍처정의서: design/high-level-architecture.md
 - 논리아키텍처: design/backend/logical/logical-architecture.md
+- 배포아키텍처: design/backend/deployment/deployment-architecture-dev.md
 
 ## 2. 개발환경 아키텍처 개요
 
@@ -87,10 +88,6 @@
 
 📄 **[개발환경 네트워크 다이어그램](./network-dev.mmd)**
 
-**네트워크 흐름:**
-- 인터넷 → LoadBalancer Service → NGINX Ingress Controller
-- Ingress → ClusterIP → Application Services  
-- Application Services → ClusterIP → Database Services
 
 #### 4.1.2 네트워크 보안
 
@@ -169,12 +166,221 @@
 ### 5.2 데이터 관리 전략
 
 #### 5.2.1 데이터 초기화
+
+**데이터 초기화 시스템 개요:**
+- 개발환경에서 즉시 테스트 가능한 데이터 셋 자동 구성
+- Kubernetes Job 기반의 초기화 프로세스
+- PostgreSQL Pod와 연계된 자동화된 데이터베이스 설정
+
+##### 5.2.1.1 쿠버네티스 매니페스트 구조
+
+```
+k8s/data-init/
+├── 01-configmap-init-scripts.yaml      # 초기화 SQL 스크립트
+├── 02-configmap-sample-data.yaml       # 샘플 데이터 JSON
+├── 03-secret-db-init-credentials.yaml  # 초기화용 DB 인증 정보
+├── 04-job-database-init.yaml           # 데이터베이스 초기화 Job
+├── 05-job-sample-data-load.yaml        # 샘플 데이터 로딩 Job
+└── 06-service-monitor.yaml             # 초기화 상태 모니터링
+```
+
+##### 5.2.1.2 실행 프로세스
+
+**단계별 초기화 흐름:**
+
 ```bash
-# 개발 데이터 자동 생성
+# 1. 전체 초기화 실행
 kubectl apply -f k8s/data-init/
-# - 테스트 사용자 데이터
-# - 샘플 여행지 데이터
-# - AI 서비스 테스트 데이터
+
+# 2. 개별 초기화 단계 (필요시)
+kubectl apply -f k8s/data-init/01-configmap-init-scripts.yaml
+kubectl apply -f k8s/data-init/04-job-database-init.yaml
+```
+
+**Job 실행 순서:**
+1. **Database Schema Job** (database-schema-init)
+   - 테이블 스키마 생성
+   - 인덱스 및 제약조건 설정
+   - 기본 권한 설정
+
+2. **Sample Data Job** (sample-data-load)
+   - 테스트 사용자 데이터 삽입
+   - 샘플 여행지 정보 로딩
+   - AI 서비스 테스트 데이터 생성
+
+3. **Validation Job** (data-validation)
+   - 데이터 무결성 검증
+   - 연결 테스트 수행
+
+##### 5.2.1.3 초기화 데이터 상세 구성
+
+**테스트 사용자 데이터:**
+| 사용자 ID | 이름 | 권한 | 용도 | 샘플 여행 수 |
+|-----------|------|------|------|-------------|
+| admin | 관리자 | ADMIN | 전체 기능 테스트 | 5개 |
+| testuser1 | 일반사용자1 | USER | 기본 기능 테스트 | 3개 |
+| testuser2 | 일반사용자2 | USER | 다중 사용자 테스트 | 2개 |
+| poweruser | 파워사용자 | POWER_USER | 고급 기능 테스트 | 7개 |
+
+**샘플 여행지 데이터:**
+| 지역 | 도시 수 | 관광지 수 | 카테고리 | 좌표 정확도 |
+|------|---------|-----------|----------|-------------|
+| 서울 | 25개 구 | 150개 | 문화/쇼핑/음식 | GPS 정확 |
+| 부산 | 16개 구 | 80개 | 해양/문화/음식 | GPS 정확 |
+| 제주 | 2개 시 | 100개 | 자연/레저/문화 | GPS 정확 |
+| 해외 | 10개 도시 | 200개 | 종합 | GPS 정확 |
+
+**AI 서비스 테스트 데이터:**
+| 데이터 유형 | 샘플 수 | 용도 | 복잡도 |
+|------------|---------|------|---------|
+| 사용자 선호도 프로필 | 50개 | AI 추천 테스트 | 다양함 |
+| 기존 여행 일정 템플릿 | 30개 | 일정 생성 학습 | 1-7일 |
+| 리뷰 및 평점 데이터 | 500개 | 추천 시스템 훈련 | 1-5점 |
+| 계절별 여행 패턴 | 12개월 | 시즌 추천 | 월별 |
+
+##### 5.2.1.4 Job 실행 설정
+
+**Database Schema Init Job:**
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-schema-init
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: postgres-client
+        image: bitnami/postgresql:16
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-init-secret
+              key: password
+        command: ["/bin/bash"]
+        args: 
+        - -c
+        - |
+          echo "Starting database schema initialization..."
+          psql -h postgresql.tripgen-dev.svc.cluster.local -U postgres -d tripgen -f /scripts/schema.sql
+          echo "Schema initialization completed."
+        volumeMounts:
+        - name: init-scripts
+          mountPath: /scripts
+      volumes:
+      - name: init-scripts
+        configMap:
+          name: database-init-scripts
+```
+
+**Sample Data Load Job:**
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-data-load
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: data-loader
+        image: bitnami/postgresql:16
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-init-secret
+              key: password
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          echo "Loading sample data..."
+          psql -h postgresql.tripgen-dev.svc.cluster.local -U postgres -d tripgen -f /data/users.sql
+          psql -h postgresql.tripgen-dev.svc.cluster.local -U postgres -d tripgen -f /data/locations.sql
+          psql -h postgresql.tripgen-dev.svc.cluster.local -U postgres -d tripgen -f /data/ai-test-data.sql
+          echo "Sample data loading completed."
+        volumeMounts:
+        - name: sample-data
+          mountPath: /data
+      volumes:
+      - name: sample-data
+        configMap:
+          name: sample-data-scripts
+```
+
+##### 5.2.1.5 초기화 상태 모니터링
+
+**초기화 상태 확인:**
+```bash
+# Job 실행 상태 확인
+kubectl get jobs -n tripgen-dev
+
+# Job 로그 확인
+kubectl logs job/database-schema-init -n tripgen-dev
+kubectl logs job/sample-data-load -n tripgen-dev
+
+# 데이터 초기화 검증
+kubectl exec -it postgresql-0 -n tripgen-dev -- psql -U postgres -d tripgen -c "SELECT COUNT(*) FROM users;"
+```
+
+**자동 검증 스크립트:**
+```bash
+#!/bin/bash
+# data-validation.sh
+
+echo "=== 데이터 초기화 검증 시작 ==="
+
+# 1. 사용자 데이터 검증
+USER_COUNT=$(kubectl exec postgresql-0 -n tripgen-dev -- psql -U postgres -d tripgen -t -c "SELECT COUNT(*) FROM users;")
+echo "사용자 데이터: $USER_COUNT개"
+
+# 2. 여행지 데이터 검증
+LOCATION_COUNT=$(kubectl exec postgresql-0 -n tripgen-dev -- psql -U postgres -d tripgen -t -c "SELECT COUNT(*) FROM locations;")
+echo "여행지 데이터: $LOCATION_COUNT개"
+
+# 3. AI 테스트 데이터 검증
+AI_DATA_COUNT=$(kubectl exec postgresql-0 -n tripgen-dev -- psql -U postgres -d tripgen -t -c "SELECT COUNT(*) FROM user_preferences;")
+echo "AI 테스트 데이터: $AI_DATA_COUNT개"
+
+echo "=== 검증 완료 ==="
+```
+
+##### 5.2.1.6 에러 처리 및 재시도 로직
+
+**실패 시 대응 방안:**
+| 실패 유형 | 원인 | 해결방안 | 재시도 정책 |
+|-----------|------|----------|-------------|
+| Job Timeout | 리소스 부족 | CPU/Memory 할당 증가 | 3회 재시도 |
+| Connection Failed | PostgreSQL 미준비 | initContainer로 대기 로직 추가 | 5분 간격 재시도 |
+| SQL Error | 스키마 충돌 | DROP/CREATE 스크립트 추가 | 수동 재시작 |
+| Data Corruption | 불완전한 데이터 로딩 | 트랜잭션 단위 처리 | 전체 재실행 |
+
+**재시도 및 복구 스크립트:**
+```bash
+# 초기화 실패시 정리 및 재실행
+kubectl delete job database-schema-init sample-data-load -n tripgen-dev
+kubectl exec postgresql-0 -n tripgen-dev -- psql -U postgres -d tripgen -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+kubectl apply -f k8s/data-init/
 ```
 
 #### 5.2.2 백업 전략
@@ -313,63 +519,18 @@ kubectl apply -f k8s/data-init/
 | Application Logger | DEBUG | 개발용 상세 로그 |
 | Database Logger | WARN | 데이터베이스 주요 이벤트만 |
 
-## 9. CI/CD 및 배포
+## 9. 배포 관련 참조
 
-### 9.1 개발환경 CI/CD
+배포 및 CI/CD 관련 상세 내용은 별도 배포 아키텍처 문서에서 다룹니다.
 
-#### 9.1.1 빌드 파이프라인
+📄 **[배포 아키텍처 설계서 - 개발환경](../deployment/deployment-architecture-dev.md)**
 
-**파이프라인 설정:**
-| 설정 항목 | 값 | 설명 |
-|-----------|----|---------|
-| 트리거 | push to develop branch | develop 브랜치 푸시 시 자동 실행 |
-
-**빌드 단계:**
-| 단계 | 작업 | 설명 |
-|------|------|----------|
-| Unit Tests | 기본 테스트만 | 필수 단위 테스트 |
-| Build Image | Docker build | 컨테이너 이미지 빌드 |
-| Push Registry | ACR push | Azure Container Registry 업로드 |
-
-**품질 게이트:**
-| 게이트 유형 | 임계값 | 필수 여부 |
-|-----------|----------|----------|
-| Unit Test Coverage | 50% 이상 | 선택 |
-| Build Success | 성공 | 필수 |
-
-#### 9.1.2 배포 전략
-
-**배포 방식 설정:**
-| 설정 항목 | 값 | 설명 |
-|-----------|----|---------|
-| 배포 방식 | Rolling Update | 점진적 업데이트 |
-| 최대 비가용 | 1 | 동시 업데이트 가능 Pod 수 |
-| 최대 추가 | 1 | 기존 Pod 수 대비 추가 가능 수 |
-
-**자동화 설정:**
-| 자동화 유형 | 설정 | 설명 |
-|-----------|------|----------|
-| 자동 배포 | develop 브랜치 | 소스 변경 시 자동 배포 |
-| 롤백 | 수동 | 수동 롤백 작업 |
-| 헬스체크 | 기본 | 기본 liveness/readiness 체크 |
-
-### 9.2 개발 워크플로우
-
-#### 9.2.1 일상 개발 프로세스
-```bash
-# 1. 코드 변경
-git push origin feature/new-feature
-
-# 2. 자동 빌드 및 배포
-# GitHub Actions가 자동 실행
-
-# 3. 개발환경 확인
-kubectl get pods
-curl http://dev-tripgen.local/api/health
-
-# 4. 로그 확인
-kubectl logs -f deployment/trip-service
-```
+**주요 포함 내용:**
+- CI/CD 파이프라인 구성
+- GitHub Actions 워크플로우
+- Docker 이미지 빌드 전략  
+- Kubernetes 배포 매니페스트
+- 롤백 및 모니터링 전략
 
 ## 10. 비용 최적화
 
@@ -478,18 +639,9 @@ kubectl exec -i postgresql-0 -- psql tripgen < backup.sql
 | 메트릭 수집 설정 | ☐ | 중간 | Application Insights |
 | 알림 정책 수립 | ☐ | 낮음 | PagerDuty/Teams 연동 |
 
-## 13. 결론
+## 13. 개발환경 특성 요약
 
-### 13.1 개발환경 핵심 가치
-1. **빠른 개발**: 복잡한 설정 최소화로 개발 속도 향상
-2. **비용 효율**: Spot Instance와 로컬 스토리지로 비용 최소화
-3. **단순성**: 운영 복잡도 최소화로 개발 집중
-4. **실험성**: 새로운 기능 빠른 검증 가능
+**핵심 설계 원칙**: 빠른 개발 > 비용 효율 > 단순성 > 실험성  
+**주요 제약사항**: 95% 가용성, 제한적 확장성, 기본 보안 수준
 
-### 13.2 개발환경 제약사항
-- **가용성**: 95% (Spot Instance 사용으로 인한 불안정성)
-- **확장성**: 제한적 (고정 리소스)
-- **보안**: 기본 수준 (운영 대비 단순화)
-- **백업**: 수동 관리 필요
-
-이 개발환경은 **빠른 MVP 개발과 검증**에 최적화되어 있으며, 운영환경으로의 점진적 전환을 지원합니다.
+이 개발환경은 **빠른 MVP 개발과 검증**에 최적화되어 있습니다.
