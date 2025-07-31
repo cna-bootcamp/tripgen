@@ -1,143 +1,274 @@
 graph TB
     %% Production Environment Physical Architecture
-    %% Enterprise-grade Azure Cloud Architecture
+    %% Enterprise-grade Azure Cloud Architecture for TripGen Service
     
-    Users[Mobile/Web Users] --> WAF[Azure Application Gateway<br/>with WAF v2]
+    Users[Global Users<br/>50,000+ concurrent<br/>Mobile/Web/API] --> CDN[Azure Front Door<br/>Global CDN<br/>DDoS Protection]
     
-    subgraph "Azure Cloud - Production Environment"
-        WAF --> PrivateLink[Azure Private Link]
+    subgraph "Azure Cloud - Production Environment (Korea South)"
+        CDN --> AppGateway[Application Gateway v2<br/>WAF Premium<br/>Zone Redundant<br/>SSL Termination]
         
-        subgraph "Network Layer"
-            PrivateLink --> AppGateway[Application Gateway<br/>Zone Redundant]
-            AppGateway --> Firewall[Azure Firewall]
-        end
-        
-        subgraph "Azure Kubernetes Service - Production"
-            direction TB
-            Firewall --> IstioGateway[Istio Gateway]
-            
-            subgraph "Application Subnet (10.0.1.0/24)"
-                IstioGateway --> UserService[User Service<br/>2-5 Replicas]
-                IstioGateway --> TravelService[Travel Service<br/>3-8 Replicas]
-                IstioGateway --> ScheduleService[AI Service<br/>2-6 Replicas]
-                IstioGateway --> LocationService[Location Service<br/>2-5 Replicas]
+        subgraph "Hub VNet (10.0.0.0/16) - Production"
+            subgraph "Gateway Subnet (10.0.1.0/27)"
+                AppGateway
+                Bastion[Azure Bastion<br/>Secure Admin Access]
             end
             
-            subgraph "Service Mesh"
-                ServiceMesh[Istio Service Mesh<br/>mTLS Enabled]
-                UserService -.-> ServiceMesh
-                TravelService -.-> ServiceMesh
-                ScheduleService -.-> ServiceMesh
-                LocationService -.-> ServiceMesh
+            subgraph "Application Subnet (10.0.2.0/24)"
+                subgraph "AKS Premium Cluster - Multi-Zone"
+                    direction TB
+                    
+                    subgraph "System Node Pool (3 nodes)"
+                        SystemNode1[System Node 1<br/>Zone 1 - D4s_v3<br/>OS: Ubuntu 22.04]
+                        SystemNode2[System Node 2<br/>Zone 2 - D4s_v3<br/>OS: Ubuntu 22.04]
+                        SystemNode3[System Node 3<br/>Zone 3 - D4s_v3<br/>OS: Ubuntu 22.04]
+                    end
+                    
+                    subgraph "Application Node Pool (6 nodes)"
+                        AppNode1[App Node 1<br/>Zone 1 - D8s_v3<br/>32GB RAM, 8 vCPU]
+                        AppNode2[App Node 2<br/>Zone 1 - D8s_v3<br/>32GB RAM, 8 vCPU]
+                        AppNode3[App Node 3<br/>Zone 2 - D8s_v3<br/>32GB RAM, 8 vCPU]
+                        AppNode4[App Node 4<br/>Zone 2 - D8s_v3<br/>32GB RAM, 8 vCPU]
+                        AppNode5[App Node 5<br/>Zone 3 - D8s_v3<br/>32GB RAM, 8 vCPU]
+                        AppNode6[App Node 6<br/>Zone 3 - D8s_v3<br/>32GB RAM, 8 vCPU]
+                    end
+                    
+                    subgraph "Microservices - High Availability"
+                        UserService[User Service<br/>5 replicas, HPA<br/>3-20 replicas<br/>Resource: 2Gi/1CPU]
+                        TripService[Trip Service<br/>8 replicas, HPA<br/>5-30 replicas<br/>Resource: 4Gi/2CPU]
+                        AIService[AI Service<br/>4 replicas, HPA<br/>3-15 replicas<br/>Resource: 8Gi/4CPU]
+                        LocationService[Location Service<br/>6 replicas, HPA<br/>4-25 replicas<br/>Resource: 2Gi/1CPU]
+                    end
+                    
+                    subgraph "Infrastructure Services"
+                        IngressController[NGINX Ingress<br/>3 replicas<br/>Zone Redundant]
+                        ServiceMesh[Istio Service Mesh<br/>mTLS, Circuit Breaker<br/>Traffic Management]
+                        Monitoring[Prometheus/Grafana<br/>Node Exporter<br/>Alert Manager]
+                    end
+                end
             end
-        end
-        
-        subgraph "Data Layer"
-            direction TB
             
-            subgraph "Database Subnet (10.0.2.0/24)"
-                PostgreSQLCluster[Azure Database for PostgreSQL<br/>Flexible Server<br/>Zone Redundant + Read Replicas]
+            AppGateway -->|HTTPS/TLS 1.3| IngressController
+            IngressController --> ServiceMesh
+            ServiceMesh --> UserService
+            ServiceMesh --> TripService
+            ServiceMesh --> AIService
+            ServiceMesh --> LocationService
+            
+            subgraph "Database Subnet (10.0.3.0/24)"
+                PostgreSQLPrimary[Azure PostgreSQL<br/>Flexible Server<br/>Primary - Zone 1<br/>GP_Standard_D16s_v3<br/>64GB RAM, 16 vCPU]
+                PostgreSQLReplica1[PostgreSQL<br/>Read Replica 1<br/>Zone 2<br/>GP_Standard_D8s_v3]
+                PostgreSQLReplica2[PostgreSQL<br/>Read Replica 2<br/>Zone 3<br/>GP_Standard_D8s_v3]
+                PostgreSQLBackup[Automated Backup<br/>Point-in-time Recovery<br/>35 days retention<br/>GRS Storage]
             end
             
-            subgraph "Cache Subnet (10.0.3.0/24)"
-                RedisCluster[Azure Cache for Redis<br/>Premium P1 Cluster<br/>6GB Memory]
+            subgraph "Cache Subnet (10.0.4.0/24)"
+                RedisPrimary[Azure Redis Premium<br/>P4 - 26GB<br/>Primary - Zone 1<br/>6 shards, clustering]
+                RedisSecondary[Redis Secondary<br/>Zone 2<br/>HA + Persistence<br/>6 shards, clustering]
+                RedisReadReplica[Redis Read Replica<br/>Zone 3<br/>Read-only workload]
+            end
+            
+            subgraph "Private Endpoints Subnet (10.0.5.0/27)"
+                PostgreSQLEndpoint[PostgreSQL<br/>Private Endpoint<br/>10.0.5.10]
+                RedisEndpoint[Redis<br/>Private Endpoint<br/>10.0.5.11]
+                ServiceBusEndpoint[Service Bus<br/>Private Endpoint<br/>10.0.5.12]
+                KeyVaultEndpoint[Key Vault<br/>Private Endpoint<br/>10.0.5.13]
+                StorageEndpoint[Storage Account<br/>Private Endpoint<br/>10.0.5.14]
             end
         end
         
-        subgraph "Messaging Layer"
-            ServiceBusPremium[Azure Service Bus<br/>Premium Tier<br/>Geo-DR Enabled]
-            EventHubs[Azure Event Hubs<br/>Analytics Pipeline]
+        subgraph "Azure Service Bus Premium - Multi-Zone"
+            ServiceBusPremium[Azure Service Bus<br/>Premium Tier<br/>4 Messaging Units<br/>sb-tripgen-prod]
+            
+            subgraph "Message Queues & Topics"
+                AIQueue[ai-schedule-generation<br/>Partitioned, 80GB<br/>Dead Letter Queue]
+                LocationQueue[location-search<br/>Partitioned, 80GB<br/>Session-enabled]
+                NotificationQueue[notification<br/>Partitioned, 80GB<br/>Duplicate Detection]
+                EventTopic[trip-events<br/>Topic, 3 subscriptions<br/>Message TTL: 14 days]
+            end
         end
         
-        subgraph "Security & Management"
-            KeyVault[Azure Key Vault<br/>Secrets Management]
-            AAD[Azure Active Directory<br/>Identity & Access]
-            Monitor[Azure Monitor<br/>+ Application Insights]
+        subgraph "Security & Identity"
+            KeyVault[Azure Key Vault<br/>Premium + HSM<br/>FIPS 140-2 Level 2<br/>Geo-replicated]
+            AAD[Azure Active Directory<br/>Premium P2<br/>Conditional Access<br/>PIM Integration]
+            AppInsights[Application Insights<br/>Workspace-based<br/>Smart Detection]
         end
         
-        %% Data Flow Connections
-        UserService --> PostgreSQLCluster
-        TravelService --> PostgreSQLCluster
-        ScheduleService --> PostgreSQLCluster
-        LocationService --> PostgreSQLCluster
+        subgraph "Monitoring & Observability"
+            LogAnalytics[Log Analytics<br/>Workspace<br/>500GB daily cap<br/>2 year retention]
+            AzureMonitor[Azure Monitor<br/>Metrics & Alerts<br/>Action Groups]
+            Defender[Azure Defender<br/>Security Center<br/>CSPM + CWPP]
+        end
         
-        UserService --> RedisCluster
-        TravelService --> RedisCluster
-        ScheduleService --> RedisCluster
-        LocationService --> RedisCluster
+        subgraph "Storage & Content"
+            StorageAccount[Azure Storage Account<br/>Premium_LRS<br/>Hot/Cool/Archive tiers<br/>Geo-redundant]
+            CosmosDB[Azure Cosmos DB<br/>SQL API<br/>Multi-region writes<br/>Session consistency]
+        end
         
-        TravelService --> ServiceBusPremium
-        ScheduleService --> ServiceBusPremium
-        LocationService --> ServiceBusPremium
+        %% Private Link Connections
+        UserService -->|Private Link| PostgreSQLEndpoint
+        TripService -->|Private Link| PostgreSQLEndpoint
+        AIService -->|Private Link| PostgreSQLEndpoint
+        LocationService -->|Private Link| PostgreSQLEndpoint
         
-        TravelService --> EventHubs
-        ScheduleService --> EventHubs
+        PostgreSQLEndpoint --> PostgreSQLPrimary
+        PostgreSQLEndpoint --> PostgreSQLReplica1
+        PostgreSQLEndpoint --> PostgreSQLReplica2
         
-        %% Security Connections
-        UserService -.-> KeyVault
-        TravelService -.-> KeyVault
-        ScheduleService -.-> KeyVault
-        LocationService -.-> KeyVault
+        UserService -->|Private Link| RedisEndpoint
+        TripService -->|Private Link| RedisEndpoint
+        AIService -->|Private Link| RedisEndpoint
+        LocationService -->|Private Link| RedisEndpoint
         
-        UserService -.-> AAD
-        TravelService -.-> AAD
-        ScheduleService -.-> AAD
-        LocationService -.-> AAD
+        RedisEndpoint --> RedisPrimary
+        RedisEndpoint --> RedisSecondary
+        RedisEndpoint --> RedisReadReplica
         
-        %% Monitoring Connections
-        UserService -.-> Monitor
-        TravelService -.-> Monitor
-        ScheduleService -.-> Monitor
-        LocationService -.-> Monitor
+        AIService -->|Private Link| ServiceBusEndpoint
+        LocationService -->|Private Link| ServiceBusEndpoint
+        TripService -->|Private Link| ServiceBusEndpoint
+        UserService -->|Private Link| ServiceBusEndpoint
+        
+        ServiceBusEndpoint --> ServiceBusPremium
+        ServiceBusPremium --> AIQueue
+        ServiceBusPremium --> LocationQueue
+        ServiceBusPremium --> NotificationQueue
+        ServiceBusPremium --> EventTopic
+        
+        %% High Availability & Replication
+        PostgreSQLPrimary -.->|Sync Replication| PostgreSQLReplica1
+        PostgreSQLPrimary -.->|Async Replication| PostgreSQLReplica2
+        PostgreSQLPrimary -.->|Auto Backup| PostgreSQLBackup
+        RedisPrimary -.->|HA Sync| RedisSecondary
+        RedisPrimary -.->|Read Replication| RedisReadReplica
+        
+        %% Security & Identity Connections
+        UserService -.->|Managed Identity| KeyVaultEndpoint
+        TripService -.->|Managed Identity| KeyVaultEndpoint
+        AIService -.->|Managed Identity| KeyVaultEndpoint
+        LocationService -.->|Managed Identity| KeyVaultEndpoint
+        
+        KeyVaultEndpoint --> KeyVault
+        
+        UserService -.->|RBAC + OIDC| AAD
+        TripService -.->|RBAC + OIDC| AAD
+        AIService -.->|RBAC + OIDC| AAD
+        LocationService -.->|RBAC + OIDC| AAD
+        
+        %% Monitoring & Telemetry
+        UserService -.->|Telemetry/Logs| AppInsights
+        TripService -.->|Telemetry/Logs| AppInsights
+        AIService -.->|Telemetry/Logs| AppInsights
+        LocationService -.->|Telemetry/Logs| AppInsights
+        
+        AppInsights --> LogAnalytics
+        LogAnalytics --> AzureMonitor
+        AzureMonitor --> Defender
+        
+        %% Storage Connections
+        TripService -->|File Storage| StorageEndpoint
+        UserService -->|Profile Images| StorageEndpoint
+        StorageEndpoint --> StorageAccount
+        
+        TripService -->|Geo-data| CosmosDB
+        LocationService -->|Geo-data| CosmosDB
     end
     
     %% External Integrations
-    subgraph "External Services"
-        ExternalAPI[External APIs<br/>OpenAI GPT-4<br/>Google Maps<br/>Weather APIs]
-        CDN[Azure CDN<br/>Static Content]
+    subgraph "External Services - Global"
+        OpenAI[OpenAI GPT-4 Turbo<br/>API Rate: 10,000 RPM<br/>Global Endpoints]
+        GoogleMaps[Google Maps Platform<br/>Places/Geocoding/Routes<br/>Premium Plan]
+        WeatherAPI[OpenWeatherMap<br/>Professional Plan<br/>1000 req/min]
+        PaymentGateway[Payment Gateway<br/>Stripe/PayPal<br/>PCI DSS Level 1]
     end
     
-    %% External Connections
-    ExternalAPI --> ScheduleService
-    ExternalAPI --> LocationService
-    CDN --> Users
+    %% Secure External Connections
+    OpenAI -->|HTTPS/OAuth2| AIService
+    GoogleMaps -->|HTTPS/API Key| LocationService
+    WeatherAPI -->|HTTPS/API Key| LocationService
+    PaymentGateway -->|HTTPS/Webhook| TripService
     
-    %% DevOps & CI/CD
-    subgraph "DevOps Infrastructure"
-        GitHubActions[GitHub Actions<br/>CI Pipeline]
-        ArgoCD[ArgoCD<br/>GitOps CD]
-        ContainerRegistry[Azure Container Registry<br/>Premium]
-        LogAnalytics[Azure Log Analytics<br/>Centralized Logging]
+    %% CI/CD & DevOps Infrastructure
+    subgraph "DevOps Platform - Multi-region"
+        GitHubActions[GitHub Actions<br/>Enterprise<br/>Self-hosted Runners<br/>Matrix Strategy]
+        ArgoCD[ArgoCD HA<br/>GitOps Controller<br/>3 replicas<br/>Slack Integration]
+        ContainerRegistry[Azure Container Registry<br/>Premium + Geo-replication<br/>Vulnerability Scanning]
+        Helm[Helm Charts<br/>v3.x + OCI<br/>ChartMuseum]
     end
     
-    %% DevOps Connections
-    GitHubActions --> ContainerRegistry
-    ArgoCD --> AKS
-    AKS --> LogAnalytics
+    %% DevOps Workflow
+    GitHubActions -->|Build & Scan| ContainerRegistry
+    GitHubActions -->|Package| Helm
+    ArgoCD -->|Pull & Deploy| ContainerRegistry
+    ArgoCD -->|Sync| UserService
+    ArgoCD -->|Sync| TripService
+    ArgoCD -->|Sync| AIService
+    ArgoCD -->|Sync| LocationService
     
-    %% Backup & DR
-    subgraph "Backup & Disaster Recovery"
-        BackupVault[Azure Backup Vault]
-        DRSite[DR Site<br/>Secondary Region]
+    %% Disaster Recovery & Backup
+    subgraph "Backup & DR - Korea Central"
+        BackupVault[Azure Recovery Vault<br/>GRS - 99.999999999%<br/>Immutable Backup<br/>3-2-1 Strategy]
+        DRSite[DR Site - Secondary<br/>Korea Central<br/>Cold Standby<br/>RTO: 4hrs, RPO: 1hr]
+        TrafficManager[Azure Traffic Manager<br/>Performance Routing<br/>Health Monitoring]
     end
     
-    PostgreSQLCluster -.-> BackupVault
-    RedisCluster -.-> BackupVault
-    BackupVault -.-> DRSite
+    %% Backup & DR Connections
+    PostgreSQLPrimary -.->|Continuous Backup| BackupVault
+    RedisPrimary -.->|AOF + RDB| BackupVault
+    StorageAccount -.->|Blob Backup| BackupVault
+    CosmosDB -.->|Continuous Backup| BackupVault
+    ContainerRegistry -.->|Image Backup| BackupVault
+    BackupVault -.->|Geo-replication| DRSite
     
-    %% Styling
+    CDN -.->|Failover| TrafficManager
+    TrafficManager -.->|Health Check| AppGateway
+    TrafficManager -.->|DR Failover| DRSite
+    
+    %% Network Security
+    subgraph "Network Security"
+        NSG[Network Security Groups<br/>Micro-segmentation<br/>Deny by Default]
+        Firewall[Azure Firewall Premium<br/>IDPS, TLS Inspection<br/>Threat Intelligence]
+        DDoSProtection[DDoS Protection Standard<br/>Always-on Monitoring<br/>Attack Analytics]
+    end
+    
+    CDN --> DDoSProtection
+    DDoSProtection --> Firewall
+    Firewall --> AppGateway
+    NSG -.->|Traffic Filtering| AppGateway
+    
+    %% Performance & Cost Optimization
+    subgraph "Optimization Services"
+        AutoScale[Cluster Autoscaler<br/>Node Pool Scaling<br/>VMSS Integration]
+        VPA[VPA - Vertical Pod<br/>Autoscaler<br/>Resource Right-sizing]
+        CostManagement[Azure Cost Management<br/>Budget Alerts<br/>Anomaly Detection]
+    end
+    
+    AutoScale -.->|Scale Nodes| AppNode1
+    AutoScale -.->|Scale Nodes| AppNode2
+    VPA -.->|Optimize Resources| UserService
+    VPA -.->|Optimize Resources| TripService
+    CostManagement -.->|Monitor Costs| AzureMonitor
+    
+    %% Styling for better visualization
     classDef azureService fill:#0078d4,stroke:#333,stroke-width:2px,color:#fff
-    classDef microservice fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
-    classDef database fill:#4ecdc4,stroke:#333,stroke-width:2px,color:#fff
-    classDef security fill:#feca57,stroke:#333,stroke-width:2px,color:#333
-    classDef external fill:#95e1d3,stroke:#333,stroke-width:2px,color:#333
-    classDef devops fill:#a55eea,stroke:#333,stroke-width:2px,color:#fff
-    classDef backup fill:#fd79a8,stroke:#333,stroke-width:2px,color:#fff
+    classDef microservice fill:#28a745,stroke:#333,stroke-width:2px,color:#fff
+    classDef database fill:#dc3545,stroke:#333,stroke-width:2px,color:#fff
+    classDef security fill:#ffc107,stroke:#333,stroke-width:2px,color:#333
+    classDef external fill:#17a2b8,stroke:#333,stroke-width:2px,color:#fff
+    classDef devops fill:#6f42c1,stroke:#333,stroke-width:2px,color:#fff
+    classDef backup fill:#e83e8c,stroke:#333,stroke-width:2px,color:#fff
+    classDef privateEndpoint fill:#fd7e14,stroke:#333,stroke-width:2px,color:#fff
+    classDef nodePool fill:#20c997,stroke:#333,stroke-width:2px,color:#fff
+    classDef monitoring fill:#6c757d,stroke:#333,stroke-width:2px,color:#fff
+    classDef network fill:#495057,stroke:#333,stroke-width:2px,color:#fff
     
-    class WAF,AppGateway,Firewall,PrivateLink,ServiceBusPremium,EventHubs,ContainerRegistry,LogAnalytics azureService
-    class UserService,TravelService,ScheduleService,LocationService,IstioGateway,ServiceMesh microservice
-    class PostgreSQLCluster,RedisCluster database
-    class KeyVault,AAD,Monitor security
-    class Users,ExternalAPI,CDN external
-    class GitHubActions,ArgoCD devops
+    class CDN,AppGateway,ServiceBusPremium,ContainerRegistry,LogAnalytics,AzureMonitor,Bastion,TrafficManager,Firewall,DDoSProtection azureService
+    class UserService,TripService,AIService,LocationService,IngressController,ServiceMesh microservice
+    class PostgreSQLPrimary,PostgreSQLReplica1,PostgreSQLReplica2,PostgreSQLBackup,RedisPrimary,RedisSecondary,RedisReadReplica,CosmosDB,StorageAccount database
+    class KeyVault,KeyVaultEndpoint,AAD,Defender security
+    class Users,OpenAI,GoogleMaps,WeatherAPI,PaymentGateway external
+    class GitHubActions,ArgoCD,Helm devops
     class BackupVault,DRSite backup
+    class PostgreSQLEndpoint,RedisEndpoint,ServiceBusEndpoint,StorageEndpoint privateEndpoint
+    class SystemNode1,SystemNode2,SystemNode3,AppNode1,AppNode2,AppNode3,AppNode4,AppNode5,AppNode6 nodePool
+    class AppInsights,Monitoring monitoring
+    class NSG,AutoScale,VPA,CostManagement network

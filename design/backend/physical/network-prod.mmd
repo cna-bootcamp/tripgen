@@ -1,190 +1,233 @@
 graph TB
-    %% 운영환경 네트워크 다이어그램
-    %% AI 기반 여행 일정 생성 서비스 - 운영환경
-
+    %% TripGen 서비스 운영환경 네트워크 다이어그램
+    %% Azure 클라우드 기반 엔터프라이즈 보안 아키텍처
+    
     %% 외부 영역
     subgraph Internet["🌐 인터넷"]
-        Users["👥 실사용자<br/>(1만~10만 명)"]
-        CDN["🌍 Azure Front Door<br/>+ CDN"]
+        Users["👥 최종 사용자<br/>(1만~10만 동시 접속)"]
+        AttackSources["🔥 위협 소스<br/>(DDoS, 악성 트래픽)"]
     end
-
-    %% Azure 클라우드 영역
-    subgraph AzureCloud["☁️ Azure Cloud (운영환경)"]
-        
-        %% Virtual Network
-        subgraph VNet["🏢 Virtual Network (VNet)<br/>주소 공간: 10.0.0.0/16"]
-            
-            %% Gateway Subnet
-            subgraph GatewaySubnet["🚪 Gateway Subnet<br/>10.0.4.0/24"]
-                subgraph AppGateway["🛡️ Application Gateway + WAF"]
-                    PublicIP["📍 Public IP<br/>(고정)"]
-                    PrivateIP["📍 Private IP<br/>(10.0.4.10)"]
-                    WAF["🛡️ WAF<br/>(OWASP CRS 3.2)"]
-                    RateLimiter["⏱️ Rate Limiting<br/>(100 req/min/IP)"]
-                end
-            end
-            
-            %% Application Subnet
-            subgraph AppSubnet["🎯 Application Subnet<br/>10.0.1.0/24"]
-                
-                %% AKS 클러스터
-                subgraph AKSCluster["⚙️ AKS Premium Cluster<br/>(Multi-Zone)"]
-                    
-                    %% System Node Pool
-                    subgraph SystemNodes["🔧 System Node Pool"]
-                        SystemNode1["📦 System Node 1<br/>(Zone 1)"]
-                        SystemNode2["📦 System Node 2<br/>(Zone 2)"]
-                        SystemNode3["📦 System Node 3<br/>(Zone 3)"]
-                    end
-                    
-                    %% Application Node Pool
-                    subgraph AppNodes["🚀 Application Node Pool"]
-                        AppNode1["📦 App Node 1<br/>(Zone 1)"]
-                        AppNode2["📦 App Node 2<br/>(Zone 2)"]
-                        AppNode3["📦 App Node 3<br/>(Zone 3)"]
-                    end
-                    
-                    %% Application Services (High Availability)
-                    subgraph AppServices["🚀 Application Services"]
-                        UserServiceHA["👤 User Service<br/>(3 replicas, HPA)"]
-                        TripServiceHA["🗺️ Trip Service<br/>(3 replicas, HPA)"]
-                        AIServiceHA["🤖 AI Service<br/>(2 replicas, HPA)"]
-                        LocationServiceHA["📍 Location Service<br/>(2 replicas, HPA)"]
-                    end
-                    
-                    %% Internal Load Balancer
-                    subgraph InternalLB["⚖️ Internal Services"]
-                        UserServiceLB["user-service:8080"]
-                        TripServiceLB["trip-service:8080"]
-                        AIServiceLB["ai-service:8080"]
-                        LocationServiceLB["location-service:8080"]
-                    end
-                end
-            end
-            
-            %% Database Subnet
-            subgraph DBSubnet["🗄️ Database Subnet<br/>10.0.2.0/24"]
-                subgraph AzurePostgreSQL["🐘 Azure PostgreSQL Flexible Server"]
-                    PGPrimary["📊 Primary Server<br/>(Zone 1)"]
-                    PGSecondary["📊 Read Replica<br/>(Zone 2)"]
-                    PGBackup["💾 Automated Backup<br/>(Point-in-time Recovery)"]
-                end
-            end
-            
-            %% Cache Subnet
-            subgraph CacheSubnet["⚡ Cache Subnet<br/>10.0.3.0/24"]
-                subgraph AzureRedis["🔴 Azure Cache for Redis Premium"]
-                    RedisPrimary["⚡ Primary Cache<br/>(Zone 1)"]
-                    RedisSecondary["⚡ Secondary Cache<br/>(Zone 2)"]
-                    RedisCluster["🔗 Redis Cluster<br/>(High Availability)"]
-                end
-            end
-        end
-        
-        %% Service Bus (Premium)
-        subgraph ServiceBus["📨 Azure Service Bus Premium"]
-            ServiceBusHA["📮 Service Bus Namespace<br/>(sb-tripgen-prod)"]
-            
-            subgraph QueuesHA["📬 Premium Message Queues"]
-                AIQueueHA["🤖 ai-schedule-generation<br/>(Partitioned, 16GB)"]
-                LocationQueueHA["📍 location-search<br/>(Partitioned, 16GB)"]
-                NotificationQueueHA["🔔 notification<br/>(Partitioned, 16GB)"]
-            end
-        end
-        
-        %% Private Endpoints
-        subgraph PrivateEndpoints["🔒 Private Endpoints"]
-            PGPrivateEndpoint["🔐 PostgreSQL<br/>Private Endpoint"]
-            RedisPrivateEndpoint["🔐 Redis<br/>Private Endpoint"]
-            ServiceBusPrivateEndpoint["🔐 Service Bus<br/>Private Endpoint"]
-        end
-    end
-
-    %% 네트워크 연결 관계
-
-    %% 외부에서 Azure로의 접근
-    Users -->|"HTTPS 요청"| CDN
-    CDN -->|"글로벌 가속"| PublicIP
-
-    %% Application Gateway 내부 흐름
-    PublicIP --> WAF
-    WAF --> RateLimiter
-    RateLimiter --> PrivateIP
-
-    %% Application Gateway에서 AKS로
-    PrivateIP -->|"/api/users/**<br/>NodePort 30080"| UserServiceLB
-    PrivateIP -->|"/api/trips/**<br/>NodePort 30081"| TripServiceLB
-    PrivateIP -->|"/api/ai/**<br/>NodePort 30082"| AIServiceLB
-    PrivateIP -->|"/api/locations/**<br/>NodePort 30083"| LocationServiceLB
-
-    %% Load Balancer에서 실제 서비스로
-    UserServiceLB -->|"고가용성 라우팅"| UserServiceHA
-    TripServiceLB -->|"고가용성 라우팅"| TripServiceHA
-    AIServiceLB -->|"고가용성 라우팅"| AIServiceHA
-    LocationServiceLB -->|"고가용성 라우팅"| LocationServiceHA
-
-    %% 서비스 배치 (Multi-Zone)
-    UserServiceHA -.-> AppNode1
-    UserServiceHA -.-> AppNode2
-    UserServiceHA -.-> AppNode3
     
-    TripServiceHA -.-> AppNode1
-    TripServiceHA -.-> AppNode2
-    TripServiceHA -.-> AppNode3
+    %% Azure 클라우드 운영환경
+    subgraph AzureCloud["☁️ Azure Cloud - 운영환경"]
+        
+        %% 글로벌 보안 서비스
+        subgraph GlobalSecurity["🛡️ 글로벌 보안 서비스"]
+            AFD["🌍 Azure Front Door<br/>Premium WAF + CDN"]
+            DDoSProtection["🛡️ DDoS Protection Standard"]
+        end
+        
+        %% Hub VNet - 중앙 보안 허브
+        subgraph HubVNet["🏢 Hub VNet (10.0.0.0/16)"]
+            
+            %% 외부 진입점 (DMZ)
+            subgraph DMZSubnet["🚪 DMZ Subnet (10.0.1.0/24)"]
+                subgraph AppGateway["🔐 Application Gateway v2"]
+                    PublicIP["📍 Static Public IP<br/>DDoS Protected"]
+                    WAF["🛡️ WAF v2<br/>OWASP CRS 3.2"]
+                    SSLTermination["🔒 SSL Termination<br/>TLS 1.3"]
+                end
+            end
+            
+            %% Azure Firewall
+            subgraph FirewallSubnet["🔥 Firewall Subnet (10.0.2.0/24)"]
+                AzureFirewall["🔥 Azure Firewall Premium<br/>IDPS + Threat Intelligence"]
+                NATGateway["🚪 NAT Gateway<br/>아웃바운드 전용"]
+            end
+            
+            %% 관리 접근
+            subgraph ManagementSubnet["⚙️ Management Subnet (10.0.3.0/24)"]
+                Bastion["🔐 Azure Bastion<br/>안전한 관리 접근"]
+            end
+        end
+        
+        %% Spoke VNet - 애플리케이션 워크로드
+        subgraph SpokeVNet["🎯 Spoke VNet (10.1.0.0/16)"]
+            
+            %% AKS 클러스터 서브넷
+            subgraph AKSSubnet["⚙️ AKS Subnet (10.1.1.0/24)"]
+                subgraph AKSCluster["🔧 AKS Premium Cluster (Multi-Zone)"]
+                    
+                    %% Node Pools
+                    subgraph NodePools["📦 Node Pools"]
+                        SystemNodes["🔧 System Nodes<br/>(Zone 1,2,3)"]
+                        AppNodes["🚀 App Nodes<br/>(Zone 1,2,3)"]
+                    end
+                    
+                    %% 마이크로서비스 (고가용성)
+                    subgraph MicroServices["🚀 마이크로서비스 (HA)"]
+                        UserService["👤 User Service<br/>3 replicas + HPA"]
+                        TripService["🗺️ Trip Service<br/>3 replicas + HPA"]
+                        AIService["🤖 AI Service<br/>2 replicas + HPA"]
+                        LocationService["📍 Location Service<br/>2 replicas + HPA"]
+                    end
+                end
+            end
+            
+            %% 데이터베이스 서브넷
+            subgraph DatabaseSubnet["🗄️ Database Subnet (10.1.2.0/24)"]
+                subgraph PostgreSQLHA["🐘 PostgreSQL Flexible Server (HA)"]
+                    PGPrimary["📊 Primary DB (Zone 1)"]
+                    PGReplica1["📖 Read Replica (Zone 2)"]
+                    PGReplica2["📖 Read Replica (Zone 3)"]
+                    PGBackup["💾 Automated Backup<br/>35일 보존"]
+                end
+            end
+            
+            %% 캐시 서브넷
+            subgraph CacheSubnet["⚡ Cache Subnet (10.1.3.0/24)"]
+                subgraph RedisHA["🔴 Redis Premium (HA)"]
+                    RedisPrimary["⚡ Primary Cache (Zone 1)"]
+                    RedisSecondary["⚡ Secondary Cache (Zone 2)"]
+                    RedisCluster["🔗 Redis Cluster (3 Shards)"]
+                end
+            end
+            
+            %% Private Endpoint 서브넷
+            subgraph PrivateEndpoints["🔒 Private Endpoints (10.1.4.0/24)"]
+                PGEndpoint["🔐 PostgreSQL Private Endpoint"]
+                RedisEndpoint["🔐 Redis Private Endpoint"]
+                SBEndpoint["🔐 Service Bus Private Endpoint"]
+                KVEndpoint["🔐 Key Vault Private Endpoint"]
+            end
+        end
+        
+        %% 관리형 서비스
+        subgraph ManagedServices["🛠️ Azure 관리형 서비스"]
+            
+            subgraph ServiceBusPremium["📨 Service Bus Premium"]
+                ServiceBus["📮 sb-tripgen-prod"]
+                subgraph Queues["📬 메시지 큐"]
+                    AIQueue["🤖 ai-schedule-generation"]
+                    LocationQueue["📍 location-search"]
+                    NotificationQueue["🔔 notification"]
+                end
+            end
+            
+            subgraph KeyVaultPremium["🔐 Key Vault Premium"]
+                KeyVault["🗝️ kv-tripgen-prod<br/>HSM 보호"]
+                Secrets["🔒 인증서 & 비밀"]
+            end
+            
+            subgraph MonitoringServices["📊 모니터링 서비스"]
+                LogAnalytics["📊 Log Analytics"]
+                AppInsights["📈 Application Insights"]
+                ContainerRegistry["📦 Container Registry"]
+            end
+        end
+    end
+    
+    %% 네트워크 트래픽 플로우
 
-    %% Application Services에서 Database로 (Private Endpoint)
-    UserServiceHA -->|"Private Link<br/>TCP:5432"| PGPrivateEndpoint
-    TripServiceHA -->|"Private Link<br/>TCP:5432"| PGPrivateEndpoint
-    AIServiceHA -->|"Private Link<br/>TCP:5432"| PGPrivateEndpoint
-    LocationServiceHA -->|"Private Link<br/>TCP:5432"| PGPrivateEndpoint
-
-    %% Private Endpoint에서 실제 서비스로
-    PGPrivateEndpoint --> PGPrimary
-    PGPrivateEndpoint --> PGSecondary
-
-    %% Application Services에서 Cache로 (Private Endpoint)
-    UserServiceHA -->|"Private Link<br/>TCP:6379"| RedisPrivateEndpoint
-    TripServiceHA -->|"Private Link<br/>TCP:6379"| RedisPrivateEndpoint
-    AIServiceHA -->|"Private Link<br/>TCP:6379"| RedisPrivateEndpoint
-    LocationServiceHA -->|"Private Link<br/>TCP:6379"| RedisPrivateEndpoint
-
-    %% Private Endpoint에서 Redis로
-    RedisPrivateEndpoint --> RedisPrimary
-    RedisPrivateEndpoint --> RedisSecondary
-
-    %% High Availability 연결
-    PGPrimary -.->|"복제"| PGSecondary
-    RedisPrimary -.->|"HA 동기화"| RedisSecondary
-    PGPrimary -.->|"자동 백업"| PGBackup
-
-    %% Service Bus 연결 (Private Endpoint)
-    AIServiceHA -->|"Private Link<br/>HTTPS/AMQP"| ServiceBusPrivateEndpoint
-    LocationServiceHA -->|"Private Link<br/>HTTPS/AMQP"| ServiceBusPrivateEndpoint
-    TripServiceHA -->|"Private Link<br/>HTTPS/AMQP"| ServiceBusPrivateEndpoint
-
-    ServiceBusPrivateEndpoint --> ServiceBusHA
-    ServiceBusHA --> AIQueueHA
-    ServiceBusHA --> LocationQueueHA
-    ServiceBusHA --> NotificationQueueHA
-
+    %% 외부 → 내부 트래픽 (인그레스)
+    Users -->|"HTTPS:443<br/>글로벌 가속"| AFD
+    AttackSources -.->|"악성 트래픽<br/>(차단)"| DDoSProtection
+    AFD -->|"WAF 필터링<br/>Bot 차단"| PublicIP
+    
+    %% Application Gateway 보안 처리
+    PublicIP --> WAF
+    WAF -->|"OWASP 규칙 적용<br/>위협 차단"| SSLTermination
+    SSLTermination -->|"TLS 1.3 종료<br/>암호화 해제"| AzureFirewall
+    
+    %% Azure Firewall 라우팅
+    AzureFirewall -->|"IDPS 검사<br/>/api/users/**"| UserService
+    AzureFirewall -->|"위협 차단<br/>/api/trips/**"| TripService
+    AzureFirewall -->|"라우팅<br/>/api/ai/**"| AIService
+    AzureFirewall -->|"라우팅<br/>/api/locations/**"| LocationService
+    
+    %% 마이크로서비스 간 통신
+    UserService <-->|"내부 REST API:8080"| TripService
+    TripService <-->|"내부 REST API:8080"| AIService
+    AIService <-->|"내부 REST API:8080"| LocationService
+    
+    %% Private Link 연결 (데이터베이스)
+    UserService -->|"Private Link<br/>암호화 TLS:5432"| PGEndpoint
+    TripService -->|"Private Link<br/>암호화 TLS:5432"| PGEndpoint
+    AIService -->|"Private Link<br/>암호화 TLS:5432"| PGEndpoint
+    LocationService -->|"Private Link<br/>암호화 TLS:5432"| PGEndpoint
+    
+    PGEndpoint --> PGPrimary
+    PGEndpoint --> PGReplica1
+    PGEndpoint --> PGReplica2
+    
+    %% Private Link 연결 (캐시)
+    UserService -->|"Private Link<br/>암호화 TLS:6379"| RedisEndpoint
+    TripService -->|"Private Link<br/>암호화 TLS:6379"| RedisEndpoint
+    AIService -->|"Private Link<br/>암호화 TLS:6379"| RedisEndpoint
+    LocationService -->|"Private Link<br/>암호화 TLS:6379"| RedisEndpoint
+    
+    RedisEndpoint --> RedisPrimary
+    RedisEndpoint --> RedisSecondary
+    
+    %% Private Link 연결 (메시징)
+    AIService -->|"Private Link<br/>AMQP/TLS:5671"| SBEndpoint
+    LocationService -->|"Private Link<br/>AMQP/TLS:5671"| SBEndpoint
+    TripService -->|"Private Link<br/>AMQP/TLS:5671"| SBEndpoint
+    
+    SBEndpoint --> ServiceBus
+    ServiceBus --> AIQueue
+    ServiceBus --> LocationQueue
+    ServiceBus --> NotificationQueue
+    
+    %% Private Link 연결 (Key Vault)
+    UserService -->|"Private Link<br/>HTTPS:443"| KVEndpoint
+    TripService -->|"Private Link<br/>HTTPS:443"| KVEndpoint
+    AIService -->|"Private Link<br/>HTTPS:443"| KVEndpoint
+    LocationService -->|"Private Link<br/>HTTPS:443"| KVEndpoint
+    
+    KVEndpoint --> KeyVault
+    KeyVault --> Secrets
+    
+    %% 고가용성 복제
+    PGPrimary -.->|"비동기 복제<br/>Multi-Zone"| PGReplica1
+    PGPrimary -.->|"비동기 복제<br/>Multi-Zone"| PGReplica2
+    PGPrimary -.->|"자동 백업<br/>Point-in-Time"| PGBackup
+    
+    RedisPrimary -.->|"HA 동기화<br/>자동 페일오버"| RedisSecondary
+    RedisPrimary -.->|"샤딩"| RedisCluster
+    
+    %% 아웃바운드 트래픽
+    UserService -.->|"외부 API 호출"| NATGateway
+    AIService -.->|"AI 모델 API"| NATGateway
+    LocationService -.->|"위치 서비스 API"| NATGateway
+    NATGateway -.->|"아웃바운드 전용"| Internet
+    
+    %% 관리 접근
+    Bastion -->|"안전한 SSH/RDP<br/>관리 접근"| AKSCluster
+    
+    %% 모니터링 & 로깅
+    MicroServices -->|"로그 & 메트릭"| LogAnalytics
+    MicroServices -->|"APM"| AppInsights
+    AKSCluster -->|"컨테이너 이미지"| ContainerRegistry
+    
+    %% Pod 배치 (Multi-Zone)
+    UserService -.->|"배치"| AppNodes
+    TripService -.->|"배치"| AppNodes
+    AIService -.->|"배치"| AppNodes
+    LocationService -.->|"배치"| AppNodes
+    
     %% 스타일 정의
+    classDef internetStyle fill:#FF6B6B,stroke:#fff,stroke-width:2px,color:#fff
+    classDef securityStyle fill:#E83E8C,stroke:#fff,stroke-width:2px,color:#fff
     classDef azureStyle fill:#0078D4,stroke:#fff,stroke-width:2px,color:#fff
+    classDef networkStyle fill:#1E90FF,stroke:#fff,stroke-width:2px,color:#fff
     classDef k8sStyle fill:#326CE5,stroke:#fff,stroke-width:2px,color:#fff
     classDef appStyle fill:#28A745,stroke:#fff,stroke-width:2px,color:#fff
-    classDef dbStyle fill:#DC3545,stroke:#fff,stroke-width:2px,color:#fff
+    classDef dataStyle fill:#DC3545,stroke:#fff,stroke-width:2px,color:#fff
     classDef cacheStyle fill:#FF6B35,stroke:#fff,stroke-width:2px,color:#fff
-    classDef serviceStyle fill:#6610F2,stroke:#fff,stroke-width:2px,color:#fff
-    classDef queueStyle fill:#FD7E14,stroke:#fff,stroke-width:2px,color:#fff
-    classDef securityStyle fill:#E83E8C,stroke:#fff,stroke-width:2px,color:#fff
-    classDef haStyle fill:#20C997,stroke:#fff,stroke-width:2px,color:#fff
-
+    classDef messageStyle fill:#FD7E14,stroke:#fff,stroke-width:2px,color:#fff
+    classDef managedStyle fill:#17A2B8,stroke:#fff,stroke-width:2px,color:#fff
+    classDef privateStyle fill:#6C757D,stroke:#fff,stroke-width:2px,color:#fff
+    
     %% 스타일 적용
-    class AzureCloud,VNet azureStyle
-    class AKSCluster,AppSubnet,SystemNodes,AppNodes k8sStyle
-    class AppServices,UserServiceHA,TripServiceHA,AIServiceHA,LocationServiceHA appStyle
-    class DBSubnet,AzurePostgreSQL,PGPrimary,PGSecondary,PGBackup dbStyle
-    class CacheSubnet,AzureRedis,RedisPrimary,RedisSecondary,RedisCluster cacheStyle
-    class InternalLB,UserServiceLB,TripServiceLB,AIServiceLB,LocationServiceLB serviceStyle
-    class ServiceBus,ServiceBusHA,QueuesHA,AIQueueHA,LocationQueueHA,NotificationQueueHA queueStyle
-    class AppGateway,WAF,RateLimiter,PrivateEndpoints,PGPrivateEndpoint,RedisPrivateEndpoint,ServiceBusPrivateEndpoint securityStyle
-    class CDN,SystemNode1,SystemNode2,SystemNode3,AppNode1,AppNode2,AppNode3 haStyle
+    class Internet,Users,AttackSources internetStyle
+    class GlobalSecurity,AFD,DDoSProtection,AppGateway,PublicIP,WAF,SSLTermination,AzureFirewall,Bastion securityStyle
+    class AzureCloud azureStyle
+    class HubVNet,SpokeVNet,DMZSubnet,FirewallSubnet,ManagementSubnet,AKSSubnet,DatabaseSubnet,CacheSubnet networkStyle
+    class AKSCluster,NodePools,SystemNodes,AppNodes k8sStyle
+    class MicroServices,UserService,TripService,AIService,LocationService appStyle
+    class PostgreSQLHA,PGPrimary,PGReplica1,PGReplica2,PGBackup dataStyle
+    class RedisHA,RedisPrimary,RedisSecondary,RedisCluster cacheStyle
+    class ServiceBusPremium,ServiceBus,Queues,AIQueue,LocationQueue,NotificationQueue messageStyle
+    class ManagedServices,KeyVaultPremium,KeyVault,Secrets,MonitoringServices,LogAnalytics,AppInsights,ContainerRegistry managedStyle
+    class PrivateEndpoints,PGEndpoint,RedisEndpoint,SBEndpoint,KVEndpoint,NATGateway privateStyle

@@ -109,7 +109,7 @@ DevOps Engineer
 1. claude 디렉토리가 없으면 생성
 2. 가이드 목록을 claude/guide.md에 다운로드
 3. 가이드 목록 링크: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/GUIDE.md
-4. 파일을 읽어 CLAUDE.md 제일 하단에 아래와 같이 가이드 섹션을 추가. 기존에 가이드 섹션이 있으면 내용만 변경함
+4. 파일을 읽어 CLAUDE.md 제일 하단에 아래와 같이 가이드 섹션을 추가. 기존에 가이드 섹션이 있으면 먼저 삭제하고 다시 만듦 
    [가이드]
    ```
    claude/guide.md 파일 내용 
@@ -119,12 +119,12 @@ DevOps Engineer
 [가이드]
 ```
 # Clauding Guide 
-최종 수정일시: 2025-07-27 21:00
+최종 수정일시: 2025-07-31 11:50
 
 ## 서비스기획 가이드 
 - 서비스기획프롬프트
   - 설명: 유저스토리 작성 등 서비스 기획을 위한 프롬프트 예시  
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/think-prompt.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/02.think-prompt.md
   - 파일명: think-prompt.md  
 
 - 서비스기획가이드
@@ -137,7 +137,7 @@ DevOps Engineer
 ## 설계 가이드
 - 설계실행프롬프트
   - 설명: 각 설계 단계 실행을 위한 프롬프트 모음
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/design-prompt.md 
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/03.design-prompt.md 
   - 파일명: design-prompt.md
 
 - 공통설계원칙
@@ -203,6 +203,10 @@ DevOps Engineer
 ---
 
 ## 개발 가이드
+- 개발실행프롬프트
+  - 설명: 각 개발 단계 실행을 위한 프롬프트 모음
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/04.build-prompt.md 
+  - 파일명: build-prompt.md
 
 - 데이터베이스설치가이드
   - 설명: 데이터베이스 설치 방법 안내 요청 시 참조 
@@ -273,6 +277,11 @@ DevOps Engineer
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/plantuml-guide.md
   - 파일명: plantuml-guide.md
 
+- Mermaid문법검사가이드
+  - 설명: Mermaid 문법 검사하는 방법 안내 
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/mermaid-guide.md
+  - 파일명: mermaid-guide.md
+
 - MCP동기화도구
   - 설명: Window에서 Cloude Desktop의 MCP설정을 읽어 Claude Code에 MCP 서버를 동기화하는 툴 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/sync-mcp.md
@@ -283,10 +292,20 @@ DevOps Engineer
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/check-plantuml.ps1
   - 파일명: check-plantuml.ps1
 
+- Mermaid문법검사기(Window)
+  - 설명: Window용 PlantUML 스크립트 문법 검사기  
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/check-mermaid.ps1
+  - 파일명: check-mermaid.ps1
+
 - PlantUML문법검사기(Linux/Mac)
   - 설명: Linux/Mac용 PlantUML 스크립트 문법 검사기  
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/check-plantuml.sh
   - 파일명: check-plantuml.sh
+
+- Mermaid문법검사기(Linux/Mac)
+  - 설명: Linux/Mac용 PlantUML 스크립트 문법 검사기  
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/check-mermaid.sh
+  - 파일명: check-mermaid.sh
 
 ---
 
@@ -297,10 +316,10 @@ DevOps Engineer
 - 프로토타입: design/uiux/prototype/*.html 
 - 아키텍처패턴: design/pattern/architecture-pattern.md
 - 논리아키텍처: design/backend/logical/*
-- API설계서: design/backend/api/*.yaml
+- API설계서: design/backend/api/*
 - 외부시퀀스설계서: design/backend/sequence/outer/{플로우명}.puml
 - 내부시퀀스설계서: design/backend/sequence/inner/{service-name}-{flow-name}.puml
-- 클래스설계서: design/backend/class/{service-name}.puml
+- 클래스설계서: design/backend/class/*
 - 백엔드패키지구조도: 클래스설계 결과(design/backend/class/class.md)의 '패키지 구조도' 섹션 
 - 데이터설계서: design/backend/database/*
 - HighLevel아키텍처정의서: design/high-level-architecture.md
@@ -339,7 +358,43 @@ DevOps Engineer
 - "@explain": /sc:explain --think --seq --answer-only 
 
 ## 파일 약어 
-- "@error": claude/debug/error.png파일을 의미함 
-- "@info": claude/debug/info.png파일을 의미함
+- "@error": debug/error.png파일을 의미함 
+- "@info": debug/info.png파일을 의미함
+
+--- 
+
+## 프롬프트 로딩
+'프롬프트 로딩'이라고 입력하면 CLAUDE.md에서 '실행프롬프트'가 포함된 가이드를 찾아 아래 작업을 하는 명령어를 생성 
+- '실행프롬프트'앞에 작업유형별로 .claude/commands/{작업유형} 디렉토리를 생성
+- 생성된 디렉토리 하위에 파일이 있으면 모두 삭제 
+- 실행 프롬프트 파일을 claude디렉토리에 다운로드 하여 내용에 있는 작업별로 .claude/commands/{작업유형}/{작업}.md로 명령어를 생성
+- command는 각 작업의 'command'항목에 지정된 명령어로 작성  
+- 작업유형별 수행 가이드 표시 명령 작성 
+  - .claude/commands/{작업유형}/help.md
+  - command: "/{작업유형}:help"
+  - 작업 순서를 터미널에 표시하도록 함  
+    ---
+    command: "/think:help"
+    ---
+
+    기획 작업 순서
+
+    1단계: 서비스 기획
+    /think:planning
+    - AI활용 서비스 기획 가이드를 참고하여 서비스를 기획합니다
+
+    2단계: 유저스토리 작성
+    /think:userstory
+    - 유저스토리작성방법을 준용하여 작성합니다
+    - 마이크로서비스로 나누어 작성합니다
+
+---
+
+## 작업 단계 가이드 약어  
+- "@think-help": "기획실행프롬프트 내용을 터미널에 출력"
+- "@design-help": "설계실행프롬프트 내용을 터미널에 출력"
+- "@build-help": "개발실행프롬프트 내용을 터미널에 출력"
+- "@deploy-help": "배포실행프롬프트 내용을 터미널에 출력"
 
 ```
+

@@ -1,40 +1,57 @@
 graph TB
-    %% Development Environment Physical Architecture
+    %% TripGen Development Environment Physical Architecture
+    %% Azure Cloud Based Development Environment
     %% Core Flow: Users → Ingress → Services → Database
     
-    Users[Mobile/Web Users] --> Ingress[Kubernetes Ingress Controller]
+    Users[Mobile/Web Users] --> Ingress[Kubernetes Ingress Controller<br/>Application Gateway]
     
-    subgraph "Azure Kubernetes Service - Development"
-        Ingress --> UserService[User Service Pod]
-        Ingress --> TravelService[Travel Service Pod]
-        Ingress --> ScheduleService[AI Service Pod]
-        Ingress --> LocationService[Location Service Pod]
+    subgraph "Azure Kubernetes Service - Development Cluster"
+        direction TB
         
-        UserService --> PostgreSQL[PostgreSQL Pod<br/>16GB Storage]
-        TravelService --> PostgreSQL
-        ScheduleService --> PostgreSQL
+        %% API Gateway Layer
+        Ingress --> Gateway[API Gateway Pod<br/>Spring Cloud Gateway<br/>JWT Authentication]
+        
+        %% Microservices Layer
+        Gateway --> UserService[User Service Pod<br/>Authentication & Profile]
+        Gateway --> TripService[Trip Service Pod<br/>Trip Management]
+        Gateway --> AIService[AI Service Pod<br/>Schedule Generation]
+        Gateway --> LocationService[Location Service Pod<br/>Place Search & Info]
+        
+        %% Database Layer - Pod based for development
+        UserService --> PostgreSQL[PostgreSQL Pod<br/>Shared Database<br/>16GB Storage<br/>Development Configuration]
+        TripService --> PostgreSQL
+        AIService --> PostgreSQL
         LocationService --> PostgreSQL
         
-        UserService --> Redis[Redis Pod<br/>Memory Cache]
-        TravelService --> Redis
-        ScheduleService --> Redis
+        %% Cache Layer - Pod based for development
+        UserService --> Redis[Redis Pod<br/>Memory Cache<br/>4GB RAM<br/>Single Instance]
+        TripService --> Redis
+        AIService --> Redis
         LocationService --> Redis
         
-        TravelService --> ServiceBus[Azure Service Bus<br/>Basic Tier]
-        ScheduleService --> ServiceBus
-        LocationService --> ServiceBus
+        %% Message Queue - Azure Service Bus for reliability
+        TripService --> ServiceBus[Azure Service Bus<br/>Basic Tier<br/>AI Job Queue]
+        AIService --> ServiceBus
     end
     
     %% External APIs
-    ExternalAPI[External APIs<br/>OpenAI, Maps, Weather] --> ScheduleService
-    ExternalAPI --> LocationService
+    subgraph "External Services"
+        ExternalAPI[External APIs<br/>Claude/OpenAI GPT-4o<br/>Kakao Map API<br/>Google Maps API<br/>OpenWeatherMap API]
+    end
     
-    %% Essential Azure Services
-    AKS --> ContainerRegistry[Azure Container Registry]
+    AIService -.-> ExternalAPI
+    LocationService -.-> ExternalAPI
     
-    %% Node Configuration
-    subgraph "Node Pool"
-        NodePool[2x Standard B2s<br/>2 vCPU, 4GB RAM]
+    %% Azure Services
+    AKS --> ContainerRegistry[Azure Container Registry<br/>Docker Images Storage]
+    
+    %% Development Environment Configuration
+    subgraph "Development Node Pool"
+        NodePool[2x Standard B2s Nodes<br/>2 vCPU, 4GB RAM each<br/>Cost Optimized Configuration]
+    end
+    
+    subgraph "Development Environment Features"
+        DevFeatures[Pod-based Backing Services<br/>Simplified Network Configuration<br/>Single Namespace Deployment<br/>Cost Optimization Focus]
     end
     
     %% Styling
@@ -42,8 +59,10 @@ graph TB
     classDef microservice fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
     classDef database fill:#4ecdc4,stroke:#333,stroke-width:2px,color:#fff
     classDef external fill:#95e1d3,stroke:#333,stroke-width:2px,color:#333
+    classDef infrastructure fill:#ffa726,stroke:#333,stroke-width:2px,color:#fff
     
     class Ingress,ServiceBus,ContainerRegistry azureService
-    class UserService,TravelService,ScheduleService,LocationService microservice
+    class Gateway,UserService,TripService,AIService,LocationService microservice
     class PostgreSQL,Redis database
     class Users,ExternalAPI external
+    class NodePool,DevFeatures infrastructure
