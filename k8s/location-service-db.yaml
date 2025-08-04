@@ -1,45 +1,4 @@
-# Location Service 개발환경 데이터베이스 설치 가이드
-
-## 개요
-
-Location Service는 장소 검색, 상세 정보 및 지리정보 관리를 담당하는 서비스입니다. PostgreSQL 14 + PostGIS를 사용하여 공간 데이터와 지리정보를 효율적으로 처리하고 관리합니다.
-
-### 주요 기능
-- 장소 기본 정보 및 지리좌표 관리
-- PostGIS를 활용한 공간 검색 및 거리 계산
-- 장소 상세 정보 (영업시간, 리뷰, 사진 등)
-- AI 추천 정보 캐싱
-- 외부 API (Google, Kakao) 데이터 통합
-
-## 사전 요구사항
-
-### 필수 소프트웨어
-- Docker Desktop
-- kubectl
-- 최소 3GB 여유 디스크 공간
-- 최소 1.5GB 여유 메모리
-
-### 확인 명령어
-```bash
-# Docker 상태 확인
-docker --version
-kubectl version --client
-kubectl cluster-info
-```
-
-## 설치 절차
-
-### 1단계: 네임스페이스 확인
-
-```bash
-# 개발 네임스페이스 확인 (없으면 생성)
-kubectl get namespace tripgen-dev || kubectl create namespace tripgen-dev
-```
-
-### 2단계: Kubernetes 매니페스트 파일 생성
-
-#### location-db-configmap.yaml
-```yaml
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -50,10 +9,7 @@ data:
   POSTGRES_USER: "tripgen_location"
   POSTGRES_SCHEMA: "tripgen_location"
   PGDATA: "/var/lib/postgresql/data/pgdata"
-```
-
-#### location-db-secret.yaml
-```yaml
+---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -63,10 +19,7 @@ type: Opaque
 data:
   # Base64 인코딩된 값 (실제 운영시 변경 필요)
   POSTGRES_PASSWORD: dHJpcGdlbl9sb2NhdGlvbl8xMjM=  # tripgen_location_123
-```
-
-#### location-db-pvc.yaml
-```yaml
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -79,116 +32,7 @@ spec:
     requests:
       storage: 15Gi  # PostGIS 및 공간 데이터를 위한 추가 공간
   storageClassName: managed
-```
-
-#### location-db-deployment.yaml
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: location-db
-  namespace: tripgen-dev
-  labels:
-    app: location-db
-    component: database
-    service: location-service
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: location-db
-  template:
-    metadata:
-      labels:
-        app: location-db
-        component: database
-        service: location-service
-    spec:
-      containers:
-      - name: postgres-postgis
-        image: postgis/postgis:14-3.2-alpine  # PostGIS 포함 이미지
-        ports:
-        - containerPort: 5432
-          name: postgres
-        env:
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: location-db-secret
-              key: POSTGRES_PASSWORD
-        envFrom:
-        - configMapRef:
-            name: location-db-config
-        volumeMounts:
-        - name: postgres-storage
-          mountPath: /var/lib/postgresql/data
-        - name: init-sql
-          mountPath: /docker-entrypoint-initdb.d
-        resources:
-          requests:
-            memory: "768Mi"
-            cpu: "500m"
-          limits:
-            memory: "1.5Gi"
-            cpu: "1000m"
-        livenessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - exec pg_isready -U tripgen_location -d tripgen_location_db -h 127.0.0.1 -p 5432
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 6
-        readinessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - exec pg_isready -U tripgen_location -d tripgen_location_db -h 127.0.0.1 -p 5432
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 3
-      volumes:
-      - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: location-db-pvc
-      - name: init-sql
-        configMap:
-          name: location-db-init-sql
-      restartPolicy: Always
-```
-
-#### location-db-service.yaml
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: location-db-service
-  namespace: tripgen-dev
-  labels:
-    app: location-db
-    component: database
-    service: location-service
-spec:
-  type: ClusterIP
-  ports:
-  - port: 5432
-    targetPort: 5432
-    protocol: TCP
-    name: postgres
-  selector:
-    app: location-db
-```
-
-### 3단계: PostGIS 초기화 SQL 스크립트 준비
-
-#### location-db-init-configmap.yaml
-```yaml
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -643,425 +487,101 @@ data:
     
     -- 성능 통계 수집
     ANALYZE places, place_details, place_recommendations;
-```
-
-### 4단계: 리소스 배포
-
-```bash
-# 1. ConfigMap과 Secret 생성
-kubectl apply -f location-db-configmap.yaml
-kubectl apply -f location-db-secret.yaml
-kubectl apply -f location-db-init-configmap.yaml
-
-# 2. PVC 생성
-kubectl apply -f location-db-pvc.yaml
-
-# 3. Deployment와 Service 생성
-kubectl apply -f location-db-deployment.yaml
-kubectl apply -f location-db-service.yaml
-
-# 4. 배포 상태 확인
-kubectl get all -n tripgen-dev -l app=location-db
-```
-
-## PostGIS 확장 설치
-
-### PostGIS 설치 확인
-
-```bash
-# Pod 상태 확인
-kubectl get pods -n tripgen-dev -l app=location-db
-
-# Pod 로그 확인 (초기화 과정 모니터링)
-kubectl logs -n tripgen-dev -l app=location-db -f
-
-# 데이터베이스 접속 테스트
-kubectl exec -it -n tripgen-dev deployment/location-db -- psql -U tripgen_location -d tripgen_location_db
-```
-
-### 수동 PostGIS 설치 확인
-
-```bash
-# Pod 내부 접속
-kubectl exec -it -n tripgen-dev deployment/location-db -- bash
-
-# 데이터베이스 접속
-psql -U tripgen_location -d tripgen_location_db
-
-# PostGIS 확장 확인
-\dx
-
-# PostGIS 버전 확인
-SET search_path TO tripgen_location;
-SELECT PostGIS_Version();
-SELECT PostGIS_Full_Version();
-
-# 스키마 및 테이블 확인
-\dt tripgen_location.*
-
-# 샘플 데이터 확인
-SET search_path TO tripgen_location;
-SELECT place_id, name, category, ST_AsText(location) as coordinates FROM places;
-SELECT place_id, LENGTH(business_hours::text) as business_hours_size FROM place_details;
-SELECT recommendation_id, LENGTH(recommendation_reason) as reason_length FROM place_recommendations;
-```
-
-## 연결 테스트
-
-### 1. 포트 포워딩 설정
-
-```bash
-# 로컬에서 데이터베이스 접근
-kubectl port-forward -n tripgen-dev service/location-db-service 5435:5432
-```
-
-### 2. 외부 클라이언트 연결
-
-```bash
-# psql 클라이언트 연결
-psql -h localhost -p 5435 -U tripgen_location -d tripgen_location_db
-
-# 연결 정보
-# Host: localhost
-# Port: 5435
-# Database: tripgen_location_db
-# Username: tripgen_location
-# Password: tripgen_location_123
-# Schema: tripgen_location
-```
-
-### 3. 애플리케이션 연결 설정
-
-#### Spring Boot application.yml
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://location-db-service.tripgen-dev.svc.cluster.local:5432/tripgen_location_db
-    username: tripgen_location
-    password: tripgen_location_123
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    database-platform: org.hibernate.spatial.dialect.postgis.PostgisPG10Dialect
-    properties:
-      hibernate:
-        default_schema: tripgen_location
-        dialect: org.hibernate.spatial.dialect.postgis.PostgisPG10Dialect
-```
-
-## 공간 인덱스 설정
-
-### PostGIS 공간 기능 테스트
-
-```sql
-SET search_path TO tripgen_location;
-
--- 기본 공간 연산 테스트
--- 마리엔플라츠 기준 1km 반경 내 장소 검색
-SELECT 
-    place_id, 
-    name, 
-    category,
-    ST_Distance(
-        location, 
-        ST_SetSRID(ST_MakePoint(11.5755, 48.1374), 4326)
-    ) * 111000 as distance_meters  -- 도 단위를 미터로 변환
-FROM places 
-WHERE ST_DWithin(
-    location, 
-    ST_SetSRID(ST_MakePoint(11.5755, 48.1374), 4326), 
-    0.01  -- 약 1km
-)
-ORDER BY ST_Distance(location, ST_SetSRID(ST_MakePoint(11.5755, 48.1374), 4326));
-
--- 한국 내 좌표 테스트 (서울 상암동)
-SELECT ST_Contains(
-    ST_GeomFromText('POLYGON((124 33, 132 33, 132 39, 124 39, 124 33))', 4326),
-    ST_SetSRID(ST_MakePoint(126.9780, 37.5665), 4326)
-) as is_in_korea;
-
--- 공간 인덱스 사용 확인
-EXPLAIN ANALYZE SELECT * FROM places 
-WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(11.5755, 48.1374), 4326), 0.01);
-```
-
-### 사용자 정의 공간 검색 함수 테스트
-
-```sql
-SET search_path TO tripgen_location;
-
--- 주변 장소 검색 함수 테스트
-SELECT * FROM search_places_nearby(
-    48.1374,     -- 위도 (lat)
-    11.5755,     -- 경도 (lng)
-    1000,        -- 반경 (미터)
-    'RESTAURANT', -- 카테고리 필터
-    NULL,        -- 텍스트 검색
-    10           -- 결과 수 제한
-);
-
--- 텍스트 검색 포함
-SELECT * FROM search_places_nearby(
-    48.1374,     -- 위도
-    11.5755,     -- 경도
-    2000,        -- 2km 반경
-    NULL,        -- 모든 카테고리
-    'Hofbräu',    -- 'Hofbräu' 포함 검색
-    5            -- 상위 5개
-);
-```
-
-## 문제 해결
-
-### 일반적인 문제
-
-#### 1. PostGIS 확장 로드 실패
-
-```bash
-# PostGIS 이미지 확인
-kubectl describe pod -n tripgen-dev -l app=location-db | grep Image
-
-# 확장 수동 설치
-kubectl exec -it -n tripgen-dev deployment/location-db -- psql -U tripgen_location -d tripgen_location_db
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-```
-
-#### 2. 공간 인덱스 성능 문제
-
-```sql
-SET search_path TO tripgen_location;
-
--- GIST 인덱스 확인
-SELECT indexname, indexdef FROM pg_indexes 
-WHERE tablename = 'places' AND indexdef LIKE '%GIST%';
-
--- 인덱스 재구성
-REINDEX INDEX idx_places_location_gist;
-
--- 인덱스 사용 통계
-SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read 
-FROM pg_stat_user_indexes 
-WHERE schemaname = 'tripgen_location' AND indexname LIKE '%gist%';
-```
-
-#### 3. 텍스트 간색 성능 문제
-
-```sql
-SET search_path TO tripgen_location;
-
--- pg_trgm 확장 확인
-SELECT * FROM pg_extension WHERE extname = 'pg_trgm';
-
--- 텍스트 검색 인덱스 확인
-SELECT indexname, indexdef FROM pg_indexes 
-WHERE tablename = 'places' AND indexdef LIKE '%gin_trgm_ops%';
-
--- 텍스트 검색 성능 테스트
-EXPLAIN ANALYZE SELECT * FROM places WHERE name ILIKE '%München%';
-```
-
-### 데이터 정합성 검사
-
-```sql
-SET search_path TO tripgen_location;
-
--- 좌표 유효성 검사
-SELECT place_id, name, ST_X(location) as lng, ST_Y(location) as lat 
-FROM places 
-WHERE ST_X(location) < -180 OR ST_X(location) > 180 
-   OR ST_Y(location) < -90 OR ST_Y(location) > 90;
-
--- 중복 장소 검사
-SELECT name, ST_AsText(location), COUNT(*) 
-FROM places 
-GROUP BY name, ST_SnapToGrid(location, 0.0001) 
-HAVING COUNT(*) > 1;
-
--- 외래키 무결성 확인
-SELECT COUNT(*) FROM place_details pd 
-WHERE NOT EXISTS (SELECT 1 FROM places p WHERE p.place_id = pd.place_id);
-
-SELECT COUNT(*) FROM place_recommendations pr 
-WHERE NOT EXISTS (SELECT 1 FROM places p WHERE p.place_id = pr.place_id);
-
--- 만료된 추천 정보 확인
-SELECT COUNT(*) as expired_recommendations 
-FROM place_recommendations 
-WHERE expires_at < CURRENT_TIMESTAMP;
-```
-
-### 공간 데이터 최적화
-
-#### VACUUM 및 ANALYZE
-
-```sql
-SET search_path TO tripgen_location;
-
--- 공간 인덱스 통계 업데이트
-VACUUM ANALYZE places;
-VACUUM ANALYZE place_details;
-VACUUM ANALYZE place_recommendations;
-
--- 공간 인덱스 사용량 확인
-SELECT 
-    schemaname, 
-    tablename, 
-    attname, 
-    n_distinct, 
-    correlation 
-FROM pg_stats 
-WHERE schemaname = 'tripgen_location' AND tablename = 'places';
-```
-
-#### 성능 튜닝
-
-```sql
--- PostGIS를 위한 특별 설정
-ALTER SYSTEM SET shared_buffers = '512MB';
-ALTER SYSTEM SET effective_cache_size = '1GB'; 
-ALTER SYSTEM SET work_mem = '16MB';  -- 공간 연산용
-ALTER SYSTEM SET maintenance_work_mem = '256MB';
-ALTER SYSTEM SET random_page_cost = 1.1;  -- SSD 환경
-SELECT pg_reload_conf();
-```
-
-## 개발환경 특화 설정
-
-### 개발용 유틸리티 함수
-
-```sql
-SET search_path TO tripgen_location;
-
--- 개발용 데이터 정리 함수
-CREATE OR REPLACE FUNCTION reset_location_dev_data()
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM place_recommendations;
-    DELETE FROM place_details;
-    DELETE FROM places;
-    
-    -- 시퀀스 리셋
-    ALTER SEQUENCE places_id_seq RESTART WITH 1;
-    ALTER SEQUENCE place_details_id_seq RESTART WITH 1;
-    ALTER SEQUENCE place_recommendations_id_seq RESTART WITH 1;
-END;
-$$ LANGUAGE plpgsql;
-
--- 샘플 데이터 생성 함수
-CREATE OR REPLACE FUNCTION create_sample_location_data()
-RETURNS VARCHAR AS $$
-DECLARE
-    new_place_id VARCHAR;
-BEGIN
-    -- 샘플 장소 생성 (서울 강남역)
-    INSERT INTO places (
-        name, category, address, location, provider, rating, rating_count
-    ) VALUES (
-        '강남역',
-        'TRANSPORTATION',
-        '서울특별시 강남구 강남대로 390',
-        ST_SetSRID(ST_MakePoint(127.0276, 37.4979), 4326),
-        'KAKAO',
-        4.3,
-        1250
-    ) RETURNING place_id INTO new_place_id;
-    
-    -- 관련 상세 정보 생성
-    INSERT INTO place_details (place_id, visit_duration, best_visit_time)
-    VALUES (new_place_id, 30, 'ANYTIME');
-    
-    RETURN new_place_id;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-### 대용량 데이터 테스트
-
-```sql
-SET search_path TO tripgen_location;
-
--- 대럵적인 장소 데이터 생성 (테스트용)
-DO $$
-DECLARE
-    i INTEGER;
-    lat DECIMAL;
-    lng DECIMAL;
-BEGIN
-    FOR i IN 1..1000 LOOP
-        -- 람덤 좌표 생성 (한국 내)
-        lat := 33 + (39 - 33) * RANDOM();
-        lng := 124 + (132 - 124) * RANDOM();
-        
-        INSERT INTO places (
-            name, category, address, location, provider, rating
-        ) VALUES (
-            '테스트 장소 ' || i,
-            CASE WHEN RANDOM() < 0.3 THEN 'RESTAURANT'
-                 WHEN RANDOM() < 0.6 THEN 'TOURIST_ATTRACTION'
-                 ELSE 'SHOPPING'
-            END,
-            '테스트 주소 ' || i,
-            ST_SetSRID(ST_MakePoint(lng, lat), 4326),
-            'MANUAL',
-            1.0 + 4.0 * RANDOM()
-        );
-    END LOOP;
-END $$;
-
--- 성능 테스트
-EXPLAIN ANALYZE SELECT COUNT(*) FROM places 
-WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(127.0276, 37.4979), 4326), 0.1);
-```
-
-### 모니터링 쿼리
-
-```sql
-SET search_path TO tripgen_location;
-
--- 지리적 분포 현황
-SELECT 
-    category,
-    COUNT(*) as count,
-    AVG(rating) as avg_rating,
-    MIN(ST_Y(location)) as min_lat,
-    MAX(ST_Y(location)) as max_lat,
-    MIN(ST_X(location)) as min_lng,
-    MAX(ST_X(location)) as max_lng
-FROM places 
-WHERE status = 'ACTIVE'
-GROUP BY category
-ORDER BY count DESC;
-
--- 제공자별 통계
-SELECT 
-    provider,
-    COUNT(*) as total_places,
-    COUNT(*) FILTER (WHERE is_verified = true) as verified_places,
-    AVG(rating) as avg_rating
-FROM places 
-GROUP BY provider;
-
--- 추천 정보 통계
-SELECT 
-    DATE(created_at) as date,
-    COUNT(*) as total_recommendations,
-    COUNT(*) FILTER (WHERE expires_at > CURRENT_TIMESTAMP) as active_recommendations,
-    AVG(access_count) as avg_access_count
-FROM place_recommendations 
-WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
-GROUP BY DATE(created_at)
-ORDER BY date DESC;
-```
-
 ---
-
-**관련 문서**:
-- [User Service 데이터베이스 설치](db-user-dev.md)
-- [Trip Service 데이터베이스 설치](db-trip-dev.md)
-- [AI Service 데이터베이스 설치](db-ai-dev.md)
-- [전체 개발환경 구성 가이드](../README-dev.md)
-
-**PostGIS 관련 문서**:
-- [PostGIS 공식 문서](https://postgis.net/documentation/)
-- [PostgreSQL Spatial 강의](https://postgis.net/workshops/postgis-intro/)
-- [Spring Data JPA Spatial 가이드](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#spatial)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: location-db
+  namespace: tripgen-dev
+  labels:
+    app: location-db
+    component: database
+    service: location-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: location-db
+  template:
+    metadata:
+      labels:
+        app: location-db
+        component: database
+        service: location-service
+    spec:
+      containers:
+      - name: postgres-postgis
+        image: postgis/postgis:14-3.2-alpine  # PostGIS 포함 이미지
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: location-db-secret
+              key: POSTGRES_PASSWORD
+        envFrom:
+        - configMapRef:
+            name: location-db-config
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-sql
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "500m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U tripgen_location -d tripgen_location_db -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U tripgen_location -d tripgen_location_db -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: location-db-pvc
+      - name: init-sql
+        configMap:
+          name: location-db-init-sql
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: location-db-service
+  namespace: tripgen-dev
+  labels:
+    app: location-db
+    component: database
+    service: location-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5435
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: location-db

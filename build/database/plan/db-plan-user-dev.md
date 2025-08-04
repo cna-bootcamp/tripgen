@@ -84,7 +84,7 @@ spec:
     requests:
       storage: 5Gi
   # 개발환경에서는 hostPath 사용
-  storageClassName: standard
+  storageClassName: managed
 ```
 
 #### user-db-deployment.yaml

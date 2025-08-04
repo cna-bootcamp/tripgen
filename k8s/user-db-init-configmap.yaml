@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-db-init-sql
+  namespace: tripgen-dev
+data:
+  01-init-database.sql: |
+    -- Database and Schema Creation
+    CREATE SCHEMA IF NOT EXISTS tripgen_user;
+    SET search_path TO tripgen_user;
+    
+    -- UUID Extension
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    
+  02-create-tables.sql: |
+    -- Set search path
+    SET search_path TO tripgen_user;
+    
+    -- users 테이블 생성
+    CREATE TABLE users (
+        id                  BIGSERIAL PRIMARY KEY,
+        user_id            VARCHAR(36) UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+        username           VARCHAR(50) UNIQUE NOT NULL,
+        password           VARCHAR(255) NOT NULL,
+        name               VARCHAR(100) NOT NULL,
+        email              VARCHAR(255) UNIQUE NOT NULL,
+        phone              VARCHAR(20),
+        avatar_url         VARCHAR(500),
+        status             VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        login_attempts     INTEGER NOT NULL DEFAULT 0,
+        locked_until       TIMESTAMP WITH TIME ZONE,
+        last_login_at      TIMESTAMP WITH TIME ZONE,
+        created_by         VARCHAR(36),
+        updated_by         VARCHAR(36),
+        created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        
+        -- 제약조건
+        CONSTRAINT chk_users_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'LOCKED', 'DELETED')),
+        CONSTRAINT chk_users_login_attempts CHECK (login_attempts >= 0 AND login_attempts <= 10),
+        CONSTRAINT chk_users_username_length CHECK (LENGTH(username) >= 5 AND LENGTH(username) <= 50),
+        CONSTRAINT chk_users_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+        CONSTRAINT chk_users_name_length CHECK (LENGTH(name) >= 2 AND LENGTH(name) <= 100),
+        CONSTRAINT chk_users_phone_format CHECK (phone IS NULL OR phone ~* '^[\+]?[0-9\-\s\(\)]+$')
+    );
+    
+  03-create-indexes.sql: |
+    -- Set search path
+    SET search_path TO tripgen_user;
+    
+    -- 인덱스 생성
+    CREATE UNIQUE INDEX idx_users_user_id ON users(user_id);
+    CREATE UNIQUE INDEX idx_users_username ON users(username);
+    CREATE UNIQUE INDEX idx_users_email ON users(email);
+    CREATE INDEX idx_users_status ON users(status);
+    CREATE INDEX idx_users_locked_until ON users(locked_until) WHERE locked_until IS NOT NULL;
+    CREATE INDEX idx_users_last_login_at ON users(last_login_at);
+    CREATE INDEX idx_users_created_at ON users(created_at);
+    CREATE INDEX idx_users_active_users ON users(id) WHERE status = 'ACTIVE';
+    
+  04-create-functions.sql: |
+    -- Set search path
+    SET search_path TO tripgen_user;
+    
+    -- 자동 갱신 트리거 함수
+    CREATE OR REPLACE FUNCTION update_users_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    
+    -- 계정 잠금 해제 트리거 함수
+    CREATE OR REPLACE FUNCTION check_account_unlock()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        -- 계정 잠금 시간이 지났으면 자동 해제
+        IF NEW.locked_until IS NOT NULL AND NEW.locked_until <= CURRENT_TIMESTAMP THEN
+            NEW.locked_until = NULL;
+            NEW.login_attempts = 0;
+            NEW.status = 'ACTIVE';
+        END IF;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    
+  05-create-triggers.sql: |
+    -- Set search path
+    SET search_path TO tripgen_user;
+    
+    -- 트리거 생성
+    CREATE TRIGGER trg_users_updated_at
+        BEFORE UPDATE ON users
+        FOR EACH ROW
+        EXECUTE FUNCTION update_users_updated_at();
+    
+  06-insert-sample-data.sql: |
+    -- Set search path
+    SET search_path TO tripgen_user;
+    
+    -- 기본 데이터 삽입 (관리자 계정)
+    INSERT INTO users (
+        username, 
+        password, 
+        name, 
+        email, 
+        status,
+        created_by,
+        updated_by
+    ) VALUES (
+        'admin',
+        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6hsJXWgdWi', -- admin123
+        '시스템 관리자',
+        'admin@tripgen.com',
+        'ACTIVE',
+        uuid_generate_v4()::text,
+        uuid_generate_v4()::text
+    );
+    
+    -- 테스트 사용자 계정
+    INSERT INTO users (
+        username, 
+        password, 
+        name, 
+        email, 
+        status,
+        created_by,
+        updated_by
+    ) VALUES (
+        'testuser',
+        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6hsJXWgdWi', -- admin123
+        '테스트 사용자',
+        'test@tripgen.com',
+        'ACTIVE',
+        uuid_generate_v4()::text,
+        uuid_generate_v4()::text
+    );
+    
+  99-comments-and-analyze.sql: |
+    -- Set search path
+    SET search_path TO tripgen_user;
+    
+    -- 테이블 코멘트
+    COMMENT ON TABLE users IS '사용자 정보 및 인증 관리 테이블';
+    COMMENT ON COLUMN users.user_id IS '외부 서비스에서 참조하는 비즈니스 키 (UUID)';
+    COMMENT ON COLUMN users.username IS '로그인용 사용자 아이디 (5자 이상)';
+    COMMENT ON COLUMN users.password IS 'BCrypt 암호화된 비밀번호';
+    COMMENT ON COLUMN users.name IS '사용자 실명 (2자 이상)';
+    COMMENT ON COLUMN users.email IS '이메일 주소 (중복 불가)';
+    COMMENT ON COLUMN users.phone IS '휴대폰 번호 (선택사항)';
+    COMMENT ON COLUMN users.status IS '계정 상태 (ACTIVE/INACTIVE/SUSPENDED/LOCKED/DELETED)';
+    COMMENT ON COLUMN users.login_attempts IS '연속 로그인 실패 횟수 (최대 10회)';
+    COMMENT ON COLUMN users.locked_until IS '계정 잠금 해제 시간';
+    
+    -- 성능 통계 수집
+    ANALYZE users;

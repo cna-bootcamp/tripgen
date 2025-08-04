@@ -1,45 +1,4 @@
-# Trip Service 개발환경 데이터베이스 설치 가이드
-
-## 개요
-
-Trip Service는 여행 기본정보, 여행지, 일정 관리를 담당하는 핵심 서비스입니다. PostgreSQL 14를 사용하여 복잡한 여행 데이터를 효율적으로 관리하며, JSONB 타입과 고급 트리거를 활용합니다.
-
-### 주요 기능
-- 여행 계획 생성 및 관리
-- 여행 멤버 및 선호도 관리
-- 여행지별 숙박 정보 관리
-- 일정 및 장소별 상세 스케줄링
-- 여행 진행률 자동 계산
-
-## 사전 요구사항
-
-### 필수 소프트웨어
-- Docker Desktop
-- kubectl
-- 최소 3GB 여유 디스크 공간
-- 최소 2GB 여유 메모리
-
-### 확인 명령어
-```bash
-# Docker 상태 확인
-docker --version
-kubectl version --client
-kubectl cluster-info
-```
-
-## 설치 절차
-
-### 1단계: 네임스페이스 확인
-
-```bash
-# 개발 네임스페이스 확인 (없으면 생성)
-kubectl get namespace tripgen-dev || kubectl create namespace tripgen-dev
-```
-
-### 2단계: Kubernetes 매니페스트 파일 생성
-
-#### trip-db-configmap.yaml
-```yaml
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -50,10 +9,7 @@ data:
   POSTGRES_USER: "tripgen_trip"
   POSTGRES_SCHEMA: "tripgen_trip"
   PGDATA: "/var/lib/postgresql/data/pgdata"
-```
-
-#### trip-db-secret.yaml
-```yaml
+---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -63,10 +19,7 @@ type: Opaque
 data:
   # Base64 인코딩된 값 (실제 운영시 변경 필요)
   POSTGRES_PASSWORD: dHJpcGdlbl90cmlwXzEyMw==  # tripgen_trip_123
-```
-
-#### trip-db-pvc.yaml
-```yaml
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -79,116 +32,7 @@ spec:
     requests:
       storage: 10Gi
   storageClassName: managed
-```
-
-#### trip-db-deployment.yaml
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: trip-db
-  namespace: tripgen-dev
-  labels:
-    app: trip-db
-    component: database
-    service: trip-service
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: trip-db
-  template:
-    metadata:
-      labels:
-        app: trip-db
-        component: database
-        service: trip-service
-    spec:
-      containers:
-      - name: postgres
-        image: postgres:14-alpine
-        ports:
-        - containerPort: 5432
-          name: postgres
-        env:
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: trip-db-secret
-              key: POSTGRES_PASSWORD
-        envFrom:
-        - configMapRef:
-            name: trip-db-config
-        volumeMounts:
-        - name: postgres-storage
-          mountPath: /var/lib/postgresql/data
-        - name: init-sql
-          mountPath: /docker-entrypoint-initdb.d
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-        livenessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - exec pg_isready -U tripgen_trip -d tripgen_trip_db -h 127.0.0.1 -p 5432
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 6
-        readinessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - exec pg_isready -U tripgen_trip -d tripgen_trip_db -h 127.0.0.1 -p 5432
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 3
-      volumes:
-      - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: trip-db-pvc
-      - name: init-sql
-        configMap:
-          name: trip-db-init-sql
-      restartPolicy: Always
-```
-
-#### trip-db-service.yaml
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: trip-db-service
-  namespace: tripgen-dev
-  labels:
-    app: trip-db
-    component: database
-    service: trip-service
-spec:
-  type: ClusterIP
-  ports:
-  - port: 5432
-    targetPort: 5432
-    protocol: TCP
-    name: postgres
-  selector:
-    app: trip-db
-```
-
-### 3단계: 초기화 SQL 스크립트 준비
-
-#### trip-db-init-configmap.yaml
-```yaml
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -664,269 +508,101 @@ data:
     
     -- 성능 통계 수집
     ANALYZE trips, members, destinations, schedules, schedule_places;
-```
-
-### 4단계: 리소스 배포
-
-```bash
-# 1. ConfigMap과 Secret 생성
-kubectl apply -f trip-db-configmap.yaml
-kubectl apply -f trip-db-secret.yaml
-kubectl apply -f trip-db-init-configmap.yaml
-
-# 2. PVC 생성
-kubectl apply -f trip-db-pvc.yaml
-
-# 3. Deployment와 Service 생성
-kubectl apply -f trip-db-deployment.yaml
-kubectl apply -f trip-db-service.yaml
-
-# 4. 배포 상태 확인
-kubectl get all -n tripgen-dev -l app=trip-db
-```
-
-## 데이터베이스 초기화
-
-### 초기화 확인
-
-```bash
-# Pod 상태 확인
-kubectl get pods -n tripgen-dev -l app=trip-db
-
-# Pod 로그 확인 (초기화 과정 모니터링)
-kubectl logs -n tripgen-dev -l app=trip-db -f
-
-# 데이터베이스 접속 테스트
-kubectl exec -it -n tripgen-dev deployment/trip-db -- psql -U tripgen_trip -d tripgen_trip_db
-```
-
-### 수동 초기화 확인
-
-```bash
-# Pod 내부 접속
-kubectl exec -it -n tripgen-dev deployment/trip-db -- bash
-
-# 데이터베이스 접속
-psql -U tripgen_trip -d tripgen_trip_db
-
-# 스키마 및 테이블 확인
-\dt tripgen_trip.*
-
-# 샘플 데이터 확인
-SET search_path TO tripgen_trip;
-SELECT trip_id, title, status, current_step, progress_percentage FROM trips;
-SELECT member_id, name, age, health_status FROM members;
-SELECT destination_id, city_name, country, nights FROM destinations;
-```
-
-## 연결 테스트
-
-### 1. 포트 포워딩 설정
-
-```bash
-# 로컬에서 데이터베이스 접근
-kubectl port-forward -n tripgen-dev service/trip-db-service 5433:5432
-```
-
-### 2. 외부 클라이언트 연결
-
-```bash
-# psql 클라이언트 연결
-psql -h localhost -p 5433 -U tripgen_trip -d tripgen_trip_db
-
-# 연결 정보
-# Host: localhost
-# Port: 5433
-# Database: tripgen_trip_db
-# Username: tripgen_trip
-# Password: tripgen_trip_123
-# Schema: tripgen_trip
-```
-
-### 3. 애플리케이션 연결 설정
-
-#### Spring Boot application.yml
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://trip-db-service.tripgen-dev.svc.cluster.local:5432/tripgen_trip_db
-    username: tripgen_trip
-    password: tripgen_trip_123
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    properties:
-      hibernate:
-        default_schema: tripgen_trip
-```
-
-## 트리거 설정
-
-### 진행률 자동 계산 테스트
-
-```sql
--- 여행 상태 변경 테스트
-SET search_path TO tripgen_trip;
-
--- 현재 상태 확인
-SELECT trip_id, current_step, progress_percentage, status FROM trips;
-
--- 단계 변경 테스트
-UPDATE trips SET current_step = 'DESTINATION_SETTINGS' WHERE title = '독일 뮌헨 여행';
-SELECT trip_id, current_step, progress_percentage, status FROM trips;
-
-UPDATE trips SET current_step = 'AI_GENERATION' WHERE title = '독일 뮌헨 여행';
-SELECT trip_id, current_step, progress_percentage, status FROM trips;
-```
-
-### JSONB 데이터 활용 테스트
-
-```sql
-SET search_path TO tripgen_trip;
-
--- 활동 선호도 검색
-SELECT name, activity_preferences 
-FROM members 
-WHERE activity_preferences ? '문화체험';
-
--- 식이 제한사항 확인
-SELECT name, dietary_restrictions 
-FROM members 
-WHERE dietary_restrictions ? '글루텐프리';
-```
-
-## 문제 해결
-
-### 일반적인 문제
-
-#### 1. Pod이 시작되지 않는 경우
-
-```bash
-# 리소스 상태 확인
-kubectl describe pod -n tripgen-dev -l app=trip-db
-
-# 스토리지 문제 확인
-kubectl describe pvc -n tripgen-dev trip-db-pvc
-```
-
-#### 2. 초기화 스크립트 실행 실패
-
-```bash
-# ConfigMap 내용 확인
-kubectl describe configmap -n tripgen-dev trip-db-init-sql
-
-# 스크립트 수동 실행
-kubectl exec -it -n tripgen-dev deployment/trip-db -- bash
-psql -U tripgen_trip -d tripgen_trip_db -f /docker-entrypoint-initdb.d/02-create-trips-table.sql
-```
-
-#### 3. 트리거 함수 문제
-
-```sql
--- 함수 존재 확인
-SELECT proname FROM pg_proc WHERE proname LIKE '%trip%';
-
--- 트리거 확인
-SELECT tgname, tgrelid::regclass FROM pg_trigger WHERE tgname LIKE '%trip%';
-
--- 함수 재생성
-SET search_path TO tripgen_trip;
-\i /docker-entrypoint-initdb.d/08-create-functions.sql
-```
-
-### JSONB 인덱스 최적화
-
-```sql
-SET search_path TO tripgen_trip;
-
--- GIN 인덱스 성능 확인
-EXPLAIN ANALYZE SELECT * FROM members WHERE activity_preferences ? '문화체험';
-
--- 인덱스 재구성 (필요시)
-REINDEX INDEX idx_members_activity_preferences_gin;
-```
-
-### 데이터 정합성 검사
-
-```sql
-SET search_path TO tripgen_trip;
-
--- 외래키 무결성 확인
-SELECT COUNT(*) FROM members m 
-WHERE NOT EXISTS (SELECT 1 FROM trips t WHERE t.trip_id = m.trip_id);
-
-SELECT COUNT(*) FROM destinations d 
-WHERE NOT EXISTS (SELECT 1 FROM trips t WHERE t.trip_id = d.trip_id);
-
--- 진행률 일관성 확인
-SELECT trip_id, current_step, progress_percentage,
-       CASE current_step
-           WHEN 'BASIC_SETTINGS' THEN 25
-           WHEN 'DESTINATION_SETTINGS' THEN 50
-           WHEN 'AI_GENERATION' THEN 75
-           WHEN 'SCHEDULE_VIEW' THEN 90
-           WHEN 'COMPLETED' THEN 100
-           ELSE 0
-       END as expected_progress
-FROM trips 
-WHERE progress_percentage != 
-    CASE current_step
-        WHEN 'BASIC_SETTINGS' THEN 25
-        WHEN 'DESTINATION_SETTINGS' THEN 50
-        WHEN 'AI_GENERATION' THEN 75
-        WHEN 'SCHEDULE_VIEW' THEN 90
-        WHEN 'COMPLETED' THEN 100
-        ELSE 0
-    END;
-```
-
-## 개발환경 특화 설정
-
-### 개발용 유틸리티 함수
-
-```sql
-SET search_path TO tripgen_trip;
-
--- 개발용 데이터 정리 함수
-CREATE OR REPLACE FUNCTION reset_dev_data()
-RETURNS VOID AS $$
-BEGIN
-    DELETE FROM schedule_places;
-    DELETE FROM schedules;
-    DELETE FROM destinations;
-    DELETE FROM members;
-    DELETE FROM trips;
-    
-    -- 시퀀스 리셋
-    ALTER SEQUENCE trips_id_seq RESTART WITH 1;
-    ALTER SEQUENCE members_id_seq RESTART WITH 1;
-    ALTER SEQUENCE destinations_id_seq RESTART WITH 1;
-    ALTER SEQUENCE schedules_id_seq RESTART WITH 1;
-    ALTER SEQUENCE schedule_places_id_seq RESTART WITH 1;
-END;
-$$ LANGUAGE plpgsql;
-
--- 사용법
--- SELECT reset_dev_data();
-```
-
-### 성능 최적화 (개발용)
-
-```sql
--- 개발환경용 PostgreSQL 설정
-ALTER SYSTEM SET shared_buffers = '256MB';
-ALTER SYSTEM SET effective_cache_size = '1GB';
-ALTER SYSTEM SET maintenance_work_mem = '128MB';
-ALTER SYSTEM SET work_mem = '8MB';
-ALTER SYSTEM SET random_page_cost = 1.1;
-SELECT pg_reload_conf();
-```
-
 ---
-
-**다음 단계**: [AI Service 데이터베이스 설치](db-ai-dev.md)
-
-**관련 문서**:
-- [User Service 데이터베이스 설치](db-user-dev.md)
-- [Location Service 데이터베이스 설치](db-location-dev.md)
-- [전체 개발환경 구성 가이드](../README-dev.md)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trip-db
+  namespace: tripgen-dev
+  labels:
+    app: trip-db
+    component: database
+    service: trip-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trip-db
+  template:
+    metadata:
+      labels:
+        app: trip-db
+        component: database
+        service: trip-service
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: trip-db-secret
+              key: POSTGRES_PASSWORD
+        envFrom:
+        - configMapRef:
+            name: trip-db-config
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-sql
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U tripgen_trip -d tripgen_trip_db -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U tripgen_trip -d tripgen_trip_db -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: trip-db-pvc
+      - name: init-sql
+        configMap:
+          name: trip-db-init-sql
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trip-db-service
+  namespace: tripgen-dev
+  labels:
+    app: trip-db
+    component: database
+    service: trip-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5433
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: trip-db
