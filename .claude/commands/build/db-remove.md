@@ -2,7 +2,6 @@
 command: "/build:db-remove"
 ---
 
-```
 @backing-service   
 [요구사항]
 - "데이터베이스설치결과서"를 보고 관련된 모든 리소스를 삭제
@@ -13,4 +12,3 @@ command: "/build:db-remove"
 [참고자료]
 - 데이터베이스설치결과서
 - 캐시설치결과서
-```

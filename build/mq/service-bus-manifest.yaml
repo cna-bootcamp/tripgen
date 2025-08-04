@@ -1,0 +1,121 @@
+# Azure Service Bus Connection Configuration for TripGen Development Environment
+# This manifest contains connection information for all service bus namespaces
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azure-servicebus-config
+  namespace: tripgen
+data:
+  # AI Service Service Bus Configuration
+  AI_SERVICE_BUS_NAMESPACE: "sb-tripgen-ai-dev.servicebus.windows.net"
+  AI_SERVICE_BUS_QUEUES: |
+    ai-processing
+    ai-results
+    ai-training
+    ai-feedback
+  
+  # Location Service Service Bus Configuration
+  LOCATION_SERVICE_BUS_NAMESPACE: "sb-tripgen-location-dev.servicebus.windows.net"
+  LOCATION_SERVICE_BUS_QUEUES: |
+    location-events
+    geocoding
+    poi-updates
+    route-calculation
+  
+  # Trip Service Service Bus Configuration
+  TRIP_SERVICE_BUS_NAMESPACE: "sb-tripgen-trip-dev.servicebus.windows.net"
+  TRIP_SERVICE_BUS_QUEUES: |
+    trip-events
+    trip-generation
+    trip-notifications
+  
+  # User Service Service Bus Configuration
+  USER_SERVICE_BUS_NAMESPACE: "sb-tripgen-user-dev.servicebus.windows.net"
+  USER_SERVICE_BUS_QUEUES: |
+    user-events
+    user-notifications
+
+---
+# Service Bus Connection Secrets
+# Note: In production, use Azure Key Vault or Managed Identity instead of storing connection strings
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-servicebus-secrets
+  namespace: tripgen
+type: Opaque
+stringData:
+  # Connection strings will be populated after Managed Identity setup
+  # Format: Endpoint=sb://<namespace>.servicebus.windows.net/;Authentication=ManagedIdentity
+  AI_SERVICE_BUS_CONNECTION: "Endpoint=sb://sb-tripgen-ai-dev.servicebus.windows.net/;Authentication=ManagedIdentity"
+  LOCATION_SERVICE_BUS_CONNECTION: "Endpoint=sb://sb-tripgen-location-dev.servicebus.windows.net/;Authentication=ManagedIdentity"
+  TRIP_SERVICE_BUS_CONNECTION: "Endpoint=sb://sb-tripgen-trip-dev.servicebus.windows.net/;Authentication=ManagedIdentity"
+  USER_SERVICE_BUS_CONNECTION: "Endpoint=sb://sb-tripgen-user-dev.servicebus.windows.net/;Authentication=ManagedIdentity"
+
+---
+# Azure Identity Configuration for AKS
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azure-identity-config
+  namespace: tripgen
+data:
+  # Managed Identity Configuration
+  AZURE_TENANT_ID: "$(az account show --query tenantId -o tsv)"
+  AZURE_SUBSCRIPTION_ID: "$(az account show --query id -o tsv)"
+  USE_MANAGED_IDENTITY: "true"
+  
+  # Service Principal IDs (from namespace creation)
+  AI_SERVICE_PRINCIPAL_ID: "2b5c10ac-9359-4c1e-9920-c7f8364d89f5"
+  LOCATION_SERVICE_PRINCIPAL_ID: "fee949bb-d9ed-4ba1-b2ca-0980be233de7"
+  TRIP_SERVICE_PRINCIPAL_ID: "4522bac2-b479-4fe5-bbb4-a713410f0e0f"
+  USER_SERVICE_PRINCIPAL_ID: "2854302a-ebf0-4a8c-a83f-31e2d37825be"
+
+---
+# Example Deployment with Service Bus Configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+  namespace: tripgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: ai-service-sa
+      containers:
+      - name: ai-service
+        image: tripgen.azurecr.io/ai-service:latest
+        env:
+        - name: SERVICE_BUS_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: azure-servicebus-config
+              key: AI_SERVICE_BUS_NAMESPACE
+        - name: SERVICE_BUS_CONNECTION
+          valueFrom:
+            secretKeyRef:
+              name: azure-servicebus-secrets
+              key: AI_SERVICE_BUS_CONNECTION
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: azure-identity-config
+              key: AI_SERVICE_PRINCIPAL_ID
+
+---
+# Service Account for Workload Identity
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-service-sa
+  namespace: tripgen
+  annotations:
+    azure.workload.identity/client-id: "2b5c10ac-9359-4c1e-9920-c7f8364d89f5"

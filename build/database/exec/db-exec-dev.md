@@ -1,141 +1,163 @@
 # 개발환경 데이터베이스 설치 결과서
 
-## 설치 개요
-- **설치일시**: 2025-08-04 12:40 KST
-- **AKS 클러스터**: aks-digitalgarage-01
+## 개요
+- **설치일시**: 2025-01-04
+- **환경**: 개발환경 (Kubernetes - AKS)
 - **네임스페이스**: tripgen-dev
-- **StorageClass**: managed
+- **설치자**: 한데브옵스/클라우더
 
-## 설치된 PostgreSQL 인스턴스
+## 설치 완료 내역
 
-### 1. User Service Database
-- **상태**: ✅ Running
-- **포트**: 5432
-- **데이터베이스**: tripgen_user_db
-- **사용자**: tripgen_user
-- **비밀번호**: tripgen_user_123
-- **버전**: PostgreSQL 14.18
-- **스토리지**: 5Gi (managed)
-- **내부 DNS**: user-db-service.tripgen-dev.svc.cluster.local
+### 1. PostgreSQL 데이터베이스 (4개 서비스)
 
-### 2. Trip Service Database
-- **상태**: ✅ Running
-- **포트**: 5433
-- **데이터베이스**: tripgen_trip_db
-- **사용자**: tripgen_trip
-- **비밀번호**: tripgen_trip_123
-- **버전**: PostgreSQL 14.18
-- **스토리지**: 10Gi (managed)
-- **내부 DNS**: trip-db-service.tripgen-dev.svc.cluster.local
+#### User Service Database
+- **상태**: ✅ 정상 운영중
+- **Pod**: user-db-654f88df56-75x7t (Running)
+- **Service**: user-db-service (10.0.170.93:5432)
+- **PVC**: user-db-pvc (5Gi, Bound)
+- **버전**: PostgreSQL 14-alpine
+- **초기화 완료**: 
+  - users 테이블 및 인덱스 생성
+  - 자동 업데이트 트리거 설정
+  - 샘플 데이터 (admin, testuser) 입력
 
-### 3. AI Service Database
-- **상태**: ✅ Running
-- **포트**: 5434
-- **데이터베이스**: tripgen_ai_db
-- **사용자**: tripgen_ai
-- **비밀번호**: tripgen_ai_123
-- **버전**: PostgreSQL 14.18
-- **스토리지**: 8Gi (managed)
-- **내부 DNS**: ai-db-service.tripgen-dev.svc.cluster.local
+#### Trip Service Database  
+- **상태**: ✅ 정상 운영중
+- **Pod**: trip-db-6d6cc84fcd-jkfvv (Running)
+- **Service**: trip-db-service (10.0.131.168:5432)
+- **PVC**: trip-db-pvc (10Gi, Bound)
+- **버전**: PostgreSQL 14-alpine
+- **초기화 완료**:
+  - 5개 테이블 생성 (trips, members, destinations, schedules, schedule_places)
+  - 33개 인덱스, 7개 함수, 6개 트리거 생성
+  - JSONB 타입 지원 활성화
+  - 샘플 여행 데이터 입력
 
-### 4. Location Service Database (PostGIS)
-- **상태**: ✅ Running
-- **포트**: 5435
-- **데이터베이스**: tripgen_location_db
-- **사용자**: tripgen_location
-- **비밀번호**: tripgen_location_123
-- **버전**: PostgreSQL 14.18 + PostGIS 3.2.3
-- **스토리지**: 15Gi (managed)
-- **내부 DNS**: location-db-service.tripgen-dev.svc.cluster.local
+#### AI Service Database
+- **상태**: ✅ 정상 운영중  
+- **Pod**: ai-db-5687dd99cd-hb5t7 (Running)
+- **Service**: ai-db-service (10.0.67.38:5432)
+- **PVC**: ai-db-pvc (8Gi, Bound)
+- **버전**: PostgreSQL 14-alpine
+- **초기화 완료**:
+  - 3개 테이블 생성 (ai_schedules, ai_jobs, ai_recommendations)
+  - GIN 인덱스 포함 13개 성능 최적화 인덱스
+  - 진행률 자동 계산 트리거
+  - 샘플 AI 작업 데이터 입력
 
-## 연결 테스트 결과
+#### Location Service Database (PostGIS)
+- **상태**: ✅ 정상 운영중
+- **Pod**: location-db-f964b6b6c-5g22j (Running)
+- **Service**: location-db-service (10.0.42.103:5432)
+- **PVC**: location-db-pvc (15Gi, Bound)
+- **버전**: PostgreSQL 14 + PostGIS 3.2
+- **초기화 완료**:
+  - 3개 테이블 생성 (places, place_details, place_recommendations)
+  - PostGIS 공간 인덱스 및 텍스트 검색 인덱스
+  - 공간 검색 함수 생성
+  - 뮌헨 관광지 샘플 데이터 입력
 
-### 내부 연결 테스트 (Pod 내부에서)
+### 2. Redis 캐시 (4개 서비스)
+
+#### User Service Redis
+- **상태**: ✅ 정상 운영중
+- **Pod**: user-redis-8469f5c756-n4qd7 (Running)
+- **Service**: user-redis-service (10.0.77.205:6379)
+- **메모리**: 512MB (LRU 정책)
+- **용도**: 세션, 프로필 캐시, 로그인 제한, JWT 블랙리스트
+
+#### Trip Service Redis
+- **상태**: ✅ 정상 운영중
+- **Pod**: trip-redis-67c579547-rh8sg (Running)  
+- **Service**: trip-redis-service (10.0.11.58:6379)
+- **메모리**: 1GB (LRU 정책)
+- **용도**: 여행 목록, 상세정보, 일정 캐시
+
+#### AI Service Redis
+- **상태**: ✅ 정상 운영중
+- **Pod**: ai-redis-7bfd9987d4-fqtvq (Running)
+- **Service**: ai-redis-service (10.0.247.154:6379)
+- **메모리**: 400MB (LRU 정책)
+- **용도**: AI 작업 상태, 생성 결과, 모델 응답 캐시
+
+#### Location Service Redis
+- **상태**: ✅ 정상 운영중
+- **Pod**: location-redis-65f874d565-xmms7 (Running)
+- **Service**: location-redis-service (10.0.105.214:6379)
+- **메모리**: 1.5GB (LRU 정책)
+- **용도**: 장소 정보, 지리 데이터, 검색 결과 캐시
+
+## 접속 정보
+
+### PostgreSQL 데이터베이스
+| 서비스 | 호스트 | 포트 | DB명 | 사용자 | 비밀번호 |
+|--------|--------|------|------|--------|----------|
+| User | user-db-service.tripgen-dev.svc.cluster.local | 5432 | tripgen_user_db | tripgen_user | tripgen_user_123 |
+| Trip | trip-db-service.tripgen-dev.svc.cluster.local | 5432 | tripgen_trip_db | tripgen_trip | tripgen_trip_123 |
+| AI | ai-db-service.tripgen-dev.svc.cluster.local | 5432 | tripgen_ai_db | tripgen_ai | tripgen_ai_123 |
+| Location | location-db-service.tripgen-dev.svc.cluster.local | 5432 | tripgen_location_db | tripgen_location | tripgen_location_123 |
+
+### Redis 캐시
+| 서비스 | 호스트 | 포트 |
+|--------|--------|------|
+| User | user-redis-service.tripgen-dev.svc.cluster.local | 6379 |
+| Trip | trip-redis-service.tripgen-dev.svc.cluster.local | 6379 |
+| AI | ai-redis-service.tripgen-dev.svc.cluster.local | 6379 |
+| Location | location-redis-service.tripgen-dev.svc.cluster.local | 6379 |
+
+## 포트 포워딩 명령어
+
+### PostgreSQL 접속
 ```bash
 # User DB
-kubectl exec -it deploy/user-db -n tripgen-dev -- psql -U tripgen_user -d tripgen_user_db -c "SELECT version();"
-# Result: PostgreSQL 14.18 on x86_64-pc-linux-gnu
+kubectl port-forward -n tripgen-dev service/user-db-service 5432:5432
 
-# Trip DB
-kubectl exec -it deploy/trip-db -n tripgen-dev -- psql -U tripgen_trip -d tripgen_trip_db -c "SELECT version();"
-# Result: PostgreSQL 14.18 on x86_64-pc-linux-gnu
+# Trip DB  
+kubectl port-forward -n tripgen-dev service/trip-db-service 5433:5432
 
 # AI DB
-kubectl exec -it deploy/ai-db -n tripgen-dev -- psql -U tripgen_ai -d tripgen_ai_db -c "SELECT version();"
-# Result: PostgreSQL 14.18 on x86_64-pc-linux-gnu
+kubectl port-forward -n tripgen-dev service/ai-db-service 5434:5432
 
-# Location DB (PostGIS)
-kubectl exec -it deploy/location-db -n tripgen-dev -- psql -U tripgen_location -d tripgen_location_db -c "SELECT PostGIS_full_version();"
-# Result: POSTGIS="3.2.3 4975b69" PGSQL="140" GEOS="3.11.0-CAPI-1.17.0"
+# Location DB
+kubectl port-forward -n tripgen-dev service/location-db-service 5435:5432
 ```
 
-## 생성된 테이블 구조
-
-### User Service
-- users (사용자 정보)
-- user_sessions (세션 관리)
-- login_attempts (로그인 시도 추적)
-
-### Trip Service
-- trips (여행 계획)
-- members (여행 멤버)
-- destinations (목적지)
-- schedules (일정)
-- schedule_places (일정별 장소)
-
-### AI Service
-- ai_jobs (AI 작업 관리)
-- ai_schedules (생성된 일정)
-- ai_recommendations (추천 정보)
-
-### Location Service
-- places (장소 정보 - geometry 포함)
-- place_details (상세 정보)
-- place_recommendations (추천 장소)
-
-## 애플리케이션 연결 설정 예시
-
-### Spring Boot application.yml
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://user-db-service.tripgen-dev.svc.cluster.local:5432/tripgen_user_db
-    username: tripgen_user
-    password: tripgen_user_123
-    driver-class-name: org.postgresql.Driver
-```
-
-### Node.js 연결
-```javascript
-const { Pool } = new Pool({
-  host: 'trip-db-service.tripgen-dev.svc.cluster.local',
-  port: 5433,
-  database: 'tripgen_trip_db',
-  user: 'tripgen_trip',
-  password: 'tripgen_trip_123'
-});
-```
-
-## 문제 해결 참고사항
-
-### PVC 이슈
-- 모든 PVC가 managed StorageClass를 사용하도록 설정됨
-- AKS의 기본 managed-csi StorageClass 사용
-
-### 연결 문제 시
-1. Pod 상태 확인: `kubectl get pods -n tripgen-dev`
-2. Service 확인: `kubectl get svc -n tripgen-dev`
-3. PVC 바인딩 확인: `kubectl get pvc -n tripgen-dev`
-4. 로그 확인: `kubectl logs deploy/{service-name}-db -n tripgen-dev`
-
-## 백업 및 복구 명령어
-
-### 백업
+### Redis 접속
 ```bash
-kubectl exec -it deploy/user-db -n tripgen-dev -- pg_dump -U tripgen_user tripgen_user_db > user_db_backup.sql
+# User Redis
+kubectl port-forward -n tripgen-dev service/user-redis-service 6379:6379
+
+# Trip Redis
+kubectl port-forward -n tripgen-dev service/trip-redis-service 6380:6379
+
+# AI Redis  
+kubectl port-forward -n tripgen-dev service/ai-redis-service 6381:6379
+
+# Location Redis
+kubectl port-forward -n tripgen-dev service/location-redis-service 6382:6379
 ```
 
-### 복구
-```bash
-kubectl exec -i deploy/user-db -n tripgen-dev -- psql -U tripgen_user tripgen_user_db < user_db_backup.sql
-```
+## 검증 완료 항목
+- ✅ 모든 Pod 정상 Running 상태
+- ✅ 모든 Service 정상 생성 및 ClusterIP 할당
+- ✅ 모든 PVC 정상 Bound 상태
+- ✅ 데이터베이스 초기화 스크립트 정상 실행
+- ✅ 샘플 데이터 입력 및 조회 확인
+- ✅ Redis 연결 테스트 (PING/PONG) 성공
+- ✅ 메모리 설정 및 TTL 정책 적용 확인
+
+## 주의사항
+1. 개발환경이므로 Redis 영속성은 비활성화되어 있음
+2. 데이터베이스 비밀번호는 개발용이므로 프로덕션 배포 시 변경 필요
+3. 리소스 제한이 개발환경에 맞게 설정되어 있으므로 프로덕션 배포 시 조정 필요
+4. PostGIS 기능은 Location Service에서만 사용 가능
+
+## 다음 단계
+1. 애플리케이션에서 연결 설정 적용
+2. 데이터베이스 마이그레이션 스크립트 실행 (필요시)
+3. 캐시 워밍 전략 구현
+4. 모니터링 대시보드 설정
+
+---
+작성자: 한데브옵스/클라우더
+작성일: 2025-01-04
