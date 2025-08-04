@@ -49,6 +49,25 @@
 - **연결 문자열 길이**: 159 문자
 - **인증 방식**: SharedAccessKey (RootManageSharedAccessKey)
 
+#### 연결 문자열 획득 명령어
+```bash
+# Azure Service Bus 연결 문자열 획득
+az servicebus namespace authorization-rule keys list \
+  --namespace-name sb-tripgen-dev \
+  --resource-group rg-tripgen-dev \
+  --name RootManageSharedAccessKey \
+  --query primaryConnectionString \
+  --output tsv
+
+# 보조 연결 문자열 획득 (백업용)
+az servicebus namespace authorization-rule keys list \
+  --namespace-name sb-tripgen-dev \
+  --resource-group rg-tripgen-dev \
+  --name RootManageSharedAccessKey \
+  --query secondaryConnectionString \
+  --output tsv
+```
+
 ### 3.2 애플리케이션 연결 방법
 
 #### Spring Boot 애플리케이션 설정 (application.yml)
