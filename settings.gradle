@@ -1,0 +1,20 @@
+rootProject.name = 'tripgen'
+
+include 'common'
+include 'user-service'
+include 'location-service'
+include 'ai-service'
+include 'trip-service'
+
+// Set project directory names to match module names
+project(':user-service').projectDir = file('user-service')
+project(':location-service').projectDir = file('location-service')
+project(':ai-service').projectDir = file('ai-service')
+project(':trip-service').projectDir = file('trip-service')
+project(':common').projectDir = file('common')
+
+gradle.settingsEvaluated {
+    if (JavaVersion.current() < JavaVersion.VERSION_21) {
+        throw new GradleException("This project requires Java 21 or higher. Current version: ${JavaVersion.current()}")
+    }
+}

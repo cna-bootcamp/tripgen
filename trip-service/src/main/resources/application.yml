@@ -1,0 +1,216 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: trip-service
+  
+  profiles:
+    active: dev
+    
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tripgen_trip
+    username: ${DB_USERNAME:tripgen}
+    password: ${DB_PASSWORD:tripgen123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_batch_fetch_size: 100
+    open-in-view: false
+  
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    timeout: 2000
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour
+      cache-null-values: false
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/auth/realms/tripgen/protocol/openid_connect/certs}
+  
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+# Feign Client Configuration
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 10000
+        logger-level: basic
+      user-service:
+        url: ${USER_SERVICE_URL:http://localhost:8080}
+      location-service:
+        url: ${LOCATION_SERVICE_URL:http://localhost:8081}
+      ai-service:
+        url: ${AI_SERVICE_URL:http://localhost:8083}
+
+# Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    redis:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.unicorn.tripgen: INFO
+    org.springframework.cloud.openfeign: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+# Application Specific Configuration
+trip:
+  service:
+    # Trip Configuration
+    max-members-per-trip: 10
+    max-destinations-per-trip: 10
+    max-trip-duration-days: 365
+    
+    # Schedule Configuration
+    max-places-per-day: 20
+    max-schedule-generation-retries: 3
+    schedule-generation-timeout: 300 # seconds
+    
+    # Export Configuration
+    export:
+      max-file-size: 10485760 # 10MB
+      supported-formats: 
+        - pdf
+        - image
+      temp-directory: ${java.io.tmpdir}/trip-exports
+    
+    # Cache Configuration
+    cache:
+      schedule-ttl: 1800 # 30 minutes
+      recommendation-ttl: 3600 # 1 hour
+      trip-list-ttl: 300 # 5 minutes
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  h2:
+    console:
+      enabled: true
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+logging:
+  level:
+    com.unicorn.tripgen: DEBUG
+    root: INFO
+
+---
+# Test Profile  
+spring:
+  config:
+    activate:
+      on-profile: test
+  
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+logging:
+  level:
+    com.unicorn.tripgen: DEBUG
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  
+  flyway:
+    validate-on-migrate: true
+
+logging:
+  level:
+    com.unicorn.tripgen: INFO
+    org.hibernate.SQL: WARN
+    root: WARN

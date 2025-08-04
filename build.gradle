@@ -1,0 +1,102 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.0' apply false
+    id 'io.spring.dependency-management' version '1.1.6' apply false
+    id 'io.freefair.lombok' version '8.10' apply false
+}
+
+group = 'com.unicorn.tripgen'
+version = '1.0.0'
+
+allprojects {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'io.freefair.lombok'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    dependencies {
+        // Spring Boot Starters
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-cache'
+        implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        
+        // Spring Cloud
+        implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.1.2'
+        
+        // Database
+        runtimeOnly 'org.postgresql:postgresql'
+        
+        // JWT
+        implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+        
+        // JSON Processing
+        implementation 'com.fasterxml.jackson.core:jackson-databind'
+        implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+        
+        // Utilities
+        implementation 'org.apache.commons:commons-lang3:3.14.0'
+        implementation 'commons-io:commons-io:2.16.1'
+        
+        // Testing
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.springframework.security:spring-security-test'
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation 'org.testcontainers:postgresql'
+        testImplementation 'org.mockito:mockito-junit-jupiter'
+        
+        // Lombok
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        
+        // Configuration Processor
+        annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+}
+
+// Java version consistency check for all modules
+tasks.register('checkJavaVersion') {
+    doLast {
+        println "Java Version: ${System.getProperty('java.version')}"
+        println "Java Home: ${System.getProperty('java.home')}"
+    }
+}
+
+// Clean task for all subprojects
+tasks.register('cleanAll') {
+    dependsOn subprojects.collect { it.tasks.named('clean') }
+    description = 'Clean all subprojects'
+}
+
+// Build task for all subprojects
+tasks.register('buildAll') {
+    dependsOn subprojects.collect { it.tasks.named('build') }
+    description = 'Build all subprojects'
+}

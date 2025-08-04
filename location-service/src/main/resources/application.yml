@@ -1,0 +1,324 @@
+# Location Service Application Configuration
+
+server:
+  port: 8082
+  servlet:
+    context-path: /
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+spring:
+  application:
+    name: location-service
+  
+  profiles:
+    active: dev
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tripgen_location
+    username: tripgen_user
+    password: tripgen_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 1
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 1800000 # 30 minutes
+      cache-null-values: false
+      use-key-prefix: true
+      key-prefix: "location:"
+  
+  # Jackson Configuration
+  jackson:
+    time-zone: Asia/Seoul
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# Logging Configuration
+logging:
+  level:
+    com.unicorn.tripgen.location: INFO
+    org.springframework.cache: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    feign: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/location-service.log
+    max-size: 10MB
+    max-history: 30
+
+# Management/Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,caches
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# External API Configuration
+external:
+  api:
+    # Google Places API
+    google:
+      places:
+        api-key: ${GOOGLE_PLACES_API_KEY:your-google-places-api-key}
+        base-url: https://maps.googleapis.com/maps/api/place
+    
+    # Kakao Map API
+    kakao:
+      api-key: ${KAKAO_MAP_API_KEY:your-kakao-map-api-key}
+      base-url: https://dapi.kakao.com
+      mobility:
+        base-url: https://apis-navi.kakaomobility.com
+    
+    # Weather API
+    weather:
+      openweather:
+        api-key: ${OPENWEATHER_API_KEY:your-openweather-api-key}
+        base-url: https://api.openweathermap.org/data/2.5
+      weatherapi:
+        api-key: ${WEATHERAPI_KEY:your-weatherapi-key}
+        base-url: https://api.weatherapi.com/v1
+    
+    # Common settings
+    timeout:
+      connect: 5000
+      read: 30000
+    retry:
+      max-attempts: 3
+      period: 1000
+      max-period: 5000
+    preferred-source: google
+
+# Location Service Specific Configuration
+location:
+  service:
+    cache:
+      default-ttl: 1800          # 30 minutes
+      search-result-ttl: 300     # 5 minutes
+      location-detail-ttl: 1800  # 30 minutes
+      weather-info-ttl: 900      # 15 minutes
+      route-info-ttl: 600        # 10 minutes
+    
+    search:
+      default-page-size: 20
+      max-page-size: 50
+      max-radius: 50000          # 50km
+      default-radius: 5000       # 5km
+    
+    external:
+      preferred-source: google
+      timeout-seconds: 30
+      retry-count: 3
+      fallback-enabled: true
+
+# Flyway Configuration
+flyway:
+  enabled: true
+  locations: classpath:db/migration
+  baseline-on-migrate: true
+  validate-on-migrate: true
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  # Development Database
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tripgen_location_dev
+    username: tripgen_dev
+    password: tripgen_dev
+  
+  # JPA Development Settings
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  
+  # Redis Development
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1
+
+# Development Logging
+logging:
+  level:
+    com.unicorn.tripgen.location: DEBUG
+    org.springframework.web: DEBUG
+    feign: DEBUG
+
+external:
+  api:
+    google:
+      places:
+        api-key: ${GOOGLE_PLACES_API_KEY:dev-google-api-key}
+    kakao:
+      api-key: ${KAKAO_MAP_API_KEY:dev-kakao-api-key}
+    weather:
+      openweather:
+        api-key: ${OPENWEATHER_API_KEY:dev-openweather-api-key}
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  # Production Database
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tripgen_location}
+    username: ${DB_USERNAME:tripgen_user}
+    password: ${DB_PASSWORD:tripgen_password}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+  
+  # Production JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  
+  # Production Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:1}
+
+# Production Logging
+logging:
+  level:
+    com.unicorn.tripgen.location: INFO
+    org.springframework.web: WARN
+    feign: INFO
+  file:
+    name: /app/logs/location-service.log
+
+# Production External APIs
+external:
+  api:
+    google:
+      places:
+        api-key: ${GOOGLE_PLACES_API_KEY}
+    kakao:
+      api-key: ${KAKAO_MAP_API_KEY}
+    weather:
+      openweather:
+        api-key: ${OPENWEATHER_API_KEY}
+      weatherapi:
+        api-key: ${WEATHERAPI_KEY}
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+  
+  # Test Database (H2 In-Memory)
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  # Test JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+  
+  # Test Redis (Embedded)
+  data:
+    redis:
+      host: localhost
+      port: 6370
+      database: 0
+
+# Test Logging
+logging:
+  level:
+    com.unicorn.tripgen.location: DEBUG
+    org.springframework.web: DEBUG
+
+# Mock External APIs for Testing
+external:
+  api:
+    google:
+      places:
+        api-key: test-google-api-key
+    kakao:
+      api-key: test-kakao-api-key
