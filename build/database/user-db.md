@@ -1,25 +1,25 @@
-# User Service Database Installation Guide - Development Environment
+# User 서비스 데이터베이스 설치 가이드 - 개발환경
 
-## 1. Overview
+## 1. 개요
 
-### 1.1 Service Information
-- **Service Name**: User Service
-- **Database Type**: PostgreSQL 16 (Alpine)
-- **Database Name**: tripgen_user
-- **Schema**: user_schema
-- **Container**: postgresql.tripgen-dev.svc.cluster.local
-- **Port**: 5432
+### 1.1 서비스 정보
+- **서비스명**: User Service
+- **데이터베이스 타입**: PostgreSQL 16 (Alpine)
+- **데이터베이스명**: tripgen_user
+- **스키마**: user_schema
+- **컨테이너**: postgresql.tripgen-dev.svc.cluster.local
+- **포트**: 5432
 
-### 1.2 Requirements
-- Kubernetes cluster (AKS) with tripgen-dev namespace
-- kubectl configured with proper permissions
-- PostgreSQL client tools (optional for verification)
+### 1.2 요구사항
+- tripgen-dev 네임스페이스가 있는 Kubernetes 클러스터 (AKS)
+- 적절한 권한으로 구성된 kubectl
+- PostgreSQL 클라이언트 도구 (확인용, 선택사항)
 
-## 2. Installation Steps
+## 2. 설치 단계
 
-### 2.1 Create Database Secret
+### 2.1 데이터베이스 시크릿 생성
 ```bash
-# Create database credentials secret
+# 데이터베이스 자격 증명 시크릿 생성
 kubectl create secret generic user-db-secret \
   --from-literal=username=user_service \
   --from-literal=password=UserServiceDev2025! \
@@ -27,50 +27,50 @@ kubectl create secret generic user-db-secret \
   -n tripgen-dev
 ```
 
-### 2.2 Create ConfigMap for Database Initialization
+### 2.2 데이터베이스 초기화용 ConfigMap 생성
 ```bash
-# Create ConfigMap with initialization scripts
+# 초기화 스크립트가 포함된 ConfigMap 생성
 kubectl create configmap user-db-init \
   --from-file=init.sql=user-db-init.sql \
   -n tripgen-dev
 ```
 
-### 2.3 Database Initialization Script
-Create file `user-db-init.sql`:
+### 2.3 데이터베이스 초기화 스크립트
+`user-db-init.sql` 파일 생성:
 
 ```sql
--- Connect to main database to create service database
+-- 메인 데이터베이스에 연결하여 서비스 데이터베이스 생성
 \c postgres;
 
--- Create service database
+-- 서비스 데이터베이스 생성
 CREATE DATABASE tripgen_user;
 
--- Connect to service database
+-- 서비스 데이터베이스에 연결
 \c tripgen_user;
 
--- Create schema
+-- 스키마 생성
 CREATE SCHEMA IF NOT EXISTS user_schema;
 
--- Set default search path
+-- 기본 검색 경로 설정
 ALTER DATABASE tripgen_user SET search_path TO user_schema, public;
 
--- Create service user
+-- 서비스 사용자 생성
 CREATE USER user_service WITH PASSWORD 'UserServiceDev2025!';
 
--- Grant permissions
+-- 권한 부여
 GRANT ALL PRIVILEGES ON DATABASE tripgen_user TO user_service;
 GRANT ALL PRIVILEGES ON SCHEMA user_schema TO user_service;
 ALTER SCHEMA user_schema OWNER TO user_service;
 
--- Switch to service user context
+-- 서비스 사용자 컨텍스트로 전환
 SET ROLE user_service;
 
--- Create tables
+-- 테이블 생성
 CREATE TABLE user_schema.users (
     id                  BIGSERIAL PRIMARY KEY,
-    user_id            VARCHAR(36) UNIQUE NOT NULL,
+    user_id            VARCHAR(36) UNIQUE NOT NULL,  -- UUID
     username           VARCHAR(50) UNIQUE NOT NULL,
-    password           VARCHAR(255) NOT NULL,
+    password           VARCHAR(255) NOT NULL,        -- BCrypt 암호화
     name               VARCHAR(100) NOT NULL,
     email              VARCHAR(255) UNIQUE NOT NULL,
     phone              VARCHAR(20),
@@ -91,7 +91,7 @@ CREATE TABLE user_schema.users (
     CONSTRAINT chk_users_name_length CHECK (LENGTH(name) >= 2)
 );
 
--- Create indexes
+-- 인덱스 생성
 CREATE UNIQUE INDEX idx_users_user_id ON user_schema.users(user_id);
 CREATE UNIQUE INDEX idx_users_username ON user_schema.users(username);
 CREATE UNIQUE INDEX idx_users_email ON user_schema.users(email);
@@ -100,7 +100,7 @@ CREATE INDEX idx_users_locked_until ON user_schema.users(locked_until) WHERE loc
 CREATE INDEX idx_users_last_login_at ON user_schema.users(last_login_at) WHERE last_login_at IS NOT NULL;
 CREATE INDEX idx_users_created_at ON user_schema.users(created_at);
 
--- Create trigger function for updated_at
+-- updated_at 자동 갱신 트리거 함수 생성
 CREATE OR REPLACE FUNCTION user_schema.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -109,31 +109,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger
+-- 트리거 생성
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE
     ON user_schema.users FOR EACH ROW
     EXECUTE FUNCTION user_schema.update_updated_at_column();
 
--- Add comments
-COMMENT ON TABLE user_schema.users IS 'User basic information';
-COMMENT ON COLUMN user_schema.users.user_id IS 'UUID for inter-service connection';
-COMMENT ON COLUMN user_schema.users.username IS 'Username for login (min 5 chars)';
-COMMENT ON COLUMN user_schema.users.password IS 'BCrypt encrypted password';
-COMMENT ON COLUMN user_schema.users.status IS 'Account status (ACTIVE/INACTIVE/SUSPENDED/LOCKED/DELETED)';
-COMMENT ON COLUMN user_schema.users.login_attempts IS 'Login attempt count (account locked after 5 failures)';
-COMMENT ON COLUMN user_schema.users.locked_until IS 'Account unlock time';
+-- 코멘트 추가
+COMMENT ON TABLE user_schema.users IS '사용자 기본 정보';
+COMMENT ON COLUMN user_schema.users.user_id IS '서비스 간 연결용 UUID';
+COMMENT ON COLUMN user_schema.users.username IS '로그인용 사용자명 (최소 5자)';
+COMMENT ON COLUMN user_schema.users.password IS 'BCrypt 암호화된 패스워드';
+COMMENT ON COLUMN user_schema.users.status IS '계정 상태 (ACTIVE/INACTIVE/SUSPENDED/LOCKED/DELETED)';
+COMMENT ON COLUMN user_schema.users.login_attempts IS '로그인 시도 횟수 (5회 실패시 계정 잠금)';
+COMMENT ON COLUMN user_schema.users.locked_until IS '계정 잠금 해제 시간';
 
--- Insert test data for development
+-- 개발용 테스트 데이터 삽입
 INSERT INTO user_schema.users (user_id, username, password, name, email, phone, status)
 VALUES 
-('550e8400-e29b-41d4-a716-446655440001', 'testuser1', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'Test User 1', 'test1@tripgen.com', '010-1234-5678', 'ACTIVE'),
-('550e8400-e29b-41d4-a716-446655440002', 'testuser2', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'Test User 2', 'test2@tripgen.com', '010-2345-6789', 'ACTIVE'),
-('550e8400-e29b-41d4-a716-446655440003', 'testadmin', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'Admin User', 'admin@tripgen.com', '010-0000-0000', 'ACTIVE');
+('550e8400-e29b-41d4-a716-446655440001', 'testuser1', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '테스트 사용자 1', 'test1@tripgen.com', '010-1234-5678', 'ACTIVE'),
+('550e8400-e29b-41d4-a716-446655440002', 'testuser2', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '테스트 사용자 2', 'test2@tripgen.com', '010-2345-6789', 'ACTIVE'),
+('550e8400-e29b-41d4-a716-446655440003', 'testadmin', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', '관리자', 'admin@tripgen.com', '010-0000-0000', 'ACTIVE');
 
--- Note: Default password for all test users is 'password123'
+-- 참고: 모든 테스트 사용자의 기본 패스워드는 'password123'입니다
 ```
 
-### 2.4 Create Database Initialization Job
+### 2.4 데이터베이스 초기화 Job 생성
 ```yaml
 # user-db-init-job.yaml
 apiVersion: batch/v1
@@ -165,9 +165,9 @@ spec:
         args:
           - -c
           - |
-            echo "Initializing User Service database..."
+            echo "User 서비스 데이터베이스 초기화 중..."
             psql -h postgresql.tripgen-dev.svc.cluster.local -U postgres -f /scripts/init.sql
-            echo "Database initialization completed."
+            echo "데이터베이스 초기화 완료."
         volumeMounts:
         - name: init-scripts
           mountPath: /scripts
@@ -177,46 +177,46 @@ spec:
           name: user-db-init
 ```
 
-### 2.5 Execute Database Initialization
+### 2.5 데이터베이스 초기화 실행
 ```bash
-# Apply the initialization job
+# 초기화 Job 적용
 kubectl apply -f user-db-init-job.yaml
 
-# Monitor job execution
+# Job 실행 모니터링
 kubectl logs -f job/user-db-init -n tripgen-dev
 
-# Verify job completion
+# Job 완료 확인
 kubectl get jobs -n tripgen-dev
 ```
 
-## 3. Verification
+## 3. 검증
 
-### 3.1 Database Connection Test
+### 3.1 데이터베이스 연결 테스트
 ```bash
-# Connect to PostgreSQL pod
+# PostgreSQL Pod에 연결
 kubectl exec -it postgresql-0 -n tripgen-dev -- psql -U postgres
 
-# Inside PostgreSQL, verify database creation
+# PostgreSQL 내에서 데이터베이스 생성 확인
 \l
 
-# Connect to user database
+# user 데이터베이스에 연결
 \c tripgen_user
 
-# Verify schema
+# 스키마 확인
 \dn
 
-# Verify tables
+# 테이블 확인
 \dt user_schema.*
 
-# Verify test data
+# 테스트 데이터 확인
 SELECT user_id, username, email, status FROM user_schema.users;
 
-# Exit
+# 종료
 \q
 ```
 
-### 3.2 Service Connection Configuration
-Add the following environment variables to User Service deployment:
+### 3.2 서비스 연결 구성
+User 서비스 배포에 다음 환경 변수 추가:
 
 ```yaml
 env:
@@ -240,64 +240,64 @@ env:
       key: password
 ```
 
-### 3.3 Connection String
+### 3.3 연결 문자열
 ```
 postgresql://user_service:UserServiceDev2025!@postgresql.tripgen-dev.svc.cluster.local:5432/tripgen_user?schema=user_schema
 ```
 
-## 4. Maintenance
+## 4. 유지보수
 
-### 4.1 Manual Backup
+### 4.1 수동 백업
 ```bash
-# Backup user database
+# user 데이터베이스 백업
 kubectl exec postgresql-0 -n tripgen-dev -- pg_dump -U postgres tripgen_user > user-db-backup-$(date +%Y%m%d).sql
 ```
 
-### 4.2 Restore from Backup
+### 4.2 백업에서 복원
 ```bash
-# Restore user database
+# user 데이터베이스 복원
 kubectl exec -i postgresql-0 -n tripgen-dev -- psql -U postgres tripgen_user < user-db-backup-20250730.sql
 ```
 
-### 4.3 Database Monitoring
+### 4.3 데이터베이스 모니터링
 ```bash
-# Check database size
+# 데이터베이스 크기 확인
 kubectl exec postgresql-0 -n tripgen-dev -- psql -U postgres -d tripgen_user -c "SELECT pg_database_size('tripgen_user');"
 
-# Check active connections
+# 활성 연결 확인
 kubectl exec postgresql-0 -n tripgen-dev -- psql -U postgres -c "SELECT count(*) FROM pg_stat_activity WHERE datname = 'tripgen_user';"
 
-# Check table sizes
+# 테이블 크기 확인
 kubectl exec postgresql-0 -n tripgen-dev -- psql -U postgres -d tripgen_user -c "SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size FROM pg_tables WHERE schemaname = 'user_schema' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;"
 ```
 
-## 5. Troubleshooting
+## 5. 문제 해결
 
-### 5.1 Common Issues
+### 5.1 일반적인 문제
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Database not found | Initialization failed | Re-run initialization job |
-| Permission denied | User permissions not set | Check and reset user permissions |
-| Connection refused | PostgreSQL not running | Check pod status and restart if needed |
-| Schema not found | Wrong search path | Verify search_path setting |
+| 문제 | 원인 | 해결방법 |
+|------|------|----------|
+| 데이터베이스를 찾을 수 없음 | 초기화 실패 | 초기화 Job 재실행 |
+| 권한 거부됨 | 사용자 권한 미설정 | 사용자 권한 확인 및 재설정 |
+| 연결 거부됨 | PostgreSQL 미실행 | Pod 상태 확인 및 필요시 재시작 |
+| 스키마를 찾을 수 없음 | 잘못된 검색 경로 | search_path 설정 확인 |
 
-### 5.2 Debug Commands
+### 5.2 디버그 명령어
 ```bash
-# Check PostgreSQL pod logs
+# PostgreSQL Pod 로그 확인
 kubectl logs postgresql-0 -n tripgen-dev
 
-# Check initialization job logs
+# 초기화 Job 로그 확인
 kubectl logs job/user-db-init -n tripgen-dev
 
-# Describe pod for events
+# Pod 이벤트 상세 정보 확인
 kubectl describe pod postgresql-0 -n tripgen-dev
 ```
 
-## 6. Development Notes
+## 6. 개발 참고사항
 
-- Default test password: 'password123' (BCrypt hashed)
-- All timestamps use UTC timezone
-- Account locks after 5 failed login attempts
-- Email validation uses regex pattern
-- Username must be at least 5 characters
+- 기본 테스트 패스워드: 'password123' (BCrypt 해시)
+- 모든 타임스탬프는 UTC 시간대 사용
+- 5회 로그인 실패시 계정 잠금
+- 이메일은 정규표현식 패턴으로 검증
+- 사용자명은 최소 5자 이상이어야 함
