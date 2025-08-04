@@ -2,5 +2,7 @@
 command: "/build:mq-guide"
 ---
 
+```
 @backing-service 
-"백킹서비스 설치 가이드"에 따라 Message Queue 설치 방법을 안내해 주십시오.
+"MQ설치게획서가이드"에 따라 Message Queue 설치계획서를 작성해 주세요.  
+```
