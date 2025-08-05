@@ -1,5 +1,6 @@
 ---
 command: "/design:update-uiux"
+description: "설계서 다시 업데이트"
 ---
 
 @document @front 

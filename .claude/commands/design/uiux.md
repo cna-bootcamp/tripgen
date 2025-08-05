@@ -1,5 +1,6 @@
 ---
 command: "/design:uiux"
+description: "UI/UX 설계"
 ---
 
 @uiux 

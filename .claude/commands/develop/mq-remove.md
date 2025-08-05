@@ -1,5 +1,6 @@
 ---
-command: "/build:mq-remove"
+command: "/develop:mq-remove"
+description: "Message Queue 설치 제거"
 ---
 
 @backing-service 

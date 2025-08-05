@@ -1,5 +1,6 @@
 ---
 command: "/think:planning"
+description: "서비스 기획 수행"
 ---
 
 아래 가이드를 참고하여 서비스 기획을 수행합니다. 

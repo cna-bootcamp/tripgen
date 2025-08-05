@@ -1,5 +1,6 @@
 ---
-command: "/design:prototy"
+command: "/design:prototype"
+description: "프로토타입 작성"
 ---
 
 @prototype 

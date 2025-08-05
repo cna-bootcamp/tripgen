@@ -1,5 +1,6 @@
 ---
 command: "/design:seq-inner"
+description: "내부 시퀀스 설계"
 ---
 
 @architecture 

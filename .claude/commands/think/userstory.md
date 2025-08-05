@@ -1,5 +1,6 @@
 ---
 command: "/think:userstory"
+description: "유저스토리 작성"
 ---
 
 아래 유저스토리 작성 가이드와 유저스토리 예제를 참고하여 유저스토리를 작성하세요. 

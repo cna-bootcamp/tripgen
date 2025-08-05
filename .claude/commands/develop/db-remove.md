@@ -1,5 +1,6 @@
 ---
-command: "/build:db-remove"
+command: "/develop:db-remove"
+description: "데이터베이스 설치 제거"
 ---
 
 @backing-service   

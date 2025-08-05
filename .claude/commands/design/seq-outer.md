@@ -1,5 +1,6 @@
 ---
 command: "/design:seq-outer"
+description: "외부 시퀀스 설계"
 ---
 
 @architecture 

@@ -1,5 +1,6 @@
 ---
 command: "/design:data"
+description: "데이터 설계"
 ---
 
 @architecture 

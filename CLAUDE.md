@@ -105,21 +105,51 @@ DevOps Engineer
      - 스크립트 파일이 없으면 'PlantUML 문법 검사  가이드'를 참조하여 생성하여 수행 
    - **OpenAPI 문법 검사 필수**
 
+---
+
+[프롬프트 로딩]
+'프롬프트 로딩'이라고 입력하면 CLAUDE.md에서 '실행프롬프트'가 포함된 가이드를 찾아 아래 작업을 하는 명령어를 생성
+- '실행프롬프트'앞에 작업유형별로 .claude/commands/{작업유형} 디렉토리를 생성
+- 작업유형: think, design, develop, deploy
+- 실행 프롬프트 파일을 claude디렉토리에 다운로드 하여 내용에 있는 작업별로 .claude/commands/{작업유형}/{작업}.md로 명령어를 생성
+- command는 각 작업의 'command:'항목에 지정된 명령어로 작성
+- 동일 기능의 명령이 있으면 내용 변경이 있을때만 업데이트
+- 작업유형별 수행 가이드 표시 명령 작성
+    - .claude/commands/{작업유형}/help.md
+    - command: "/{작업유형}:help"
+    - 아래 예시와 같이 작업 순서를 터미널에 표시하도록 함
+      ```
+      기획 작업 순서
+  
+      1단계: 서비스 기획
+      /think:planning
+      - AI활용 서비스 기획 가이드를 참고하여 서비스를 기획합니다
+  
+      2단계: 유저스토리 작성
+      /think:userstory
+      - 유저스토리작성방법을 준용하여 작성합니다
+      - 마이크로서비스로 나누어 작성합니다
+      ```
+
+---
+
 [가이드 로딩]
-1. claude 디렉토리가 없으면 생성
-2. 가이드 목록을 claude/guide.md에 다운로드
-3. 가이드 목록 링크: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/GUIDE.md
-4. 파일을 읽어 CLAUDE.md 제일 하단에 아래와 같이 가이드 섹션을 추가. 기존에 가이드 섹션이 있으면 먼저 삭제하고 다시 만듦 
-   [가이드]
+- claude 디렉토리가 없으면 생성
+- 가이드 목록을 claude/guide.md에 다운로드
+- 가이드 목록 링크: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/GUIDE.md
+- 파일을 읽어 CLAUDE.md 제일 하단에 아래와 같이 가이드 섹션을 추가. 기존에 가이드 섹션이 있으면 먼저 삭제하고 다시 만듦
+  [가이드]
    ```
    claude/guide.md 파일 내용 
    ```  
-5. 파일을 삭제
+- 파일을 삭제
+
+---
 
 [가이드]
 ```
 # Clauding Guide 
-최종 수정일시: 2025-07-31 11:50
+최종 수정일시: 2025-08-05 15:58
 
 ## 서비스기획 가이드 
 - 서비스기획프롬프트
@@ -205,34 +235,39 @@ DevOps Engineer
 ## 개발 가이드
 - 개발실행프롬프트
   - 설명: 각 개발 단계 실행을 위한 프롬프트 모음
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/04.build-prompt.md 
-  - 파일명: build-prompt.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/prompt/04.develop-prompt.md 
+  - 파일명: develop-prompt.md
 
 - 데이터베이스설치계획서가이드
   - 설명: 데이터베이스 설치 방법 안내 요청 시 참조 
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/build/database-plan.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/database-plan.md
   - 파일명: database-plan.md
 
 - 데이터베이스설치가이드
   - 설명: 데이터베이스 설치 방법 안내 요청 시 참조 
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/build/database-install.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/database-install.md
   - 파일명: database-install.md
 
 - MQ설치게획서가이드
   - 설명: Message Queue  설치 방법 안내 요청 시 참조 
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/build/mq-plan.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/mq-plan.md
   - 파일명: mq-plan.md
 
 - MQ설치가이드
   - 설명: Message Queue  설치 방법 안내 요청 시 참조 
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/build/mq-install.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/mq-install.md
   - 파일명: mq-install.md
 
 - 백엔드개발가이드
   - 설명: 백엔드 개발 가이드 
-  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/build/dev-backend.md
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/dev-backend.md
   - 파일명: dev-backend.md
 
+- 백엔드테스트가이드 
+  - 설명: 백엔드 E2E테스트 코드 작성 및 테스트 가이드 
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/test-backend.md
+  - 파일명: test-backend.md
+  
 ---
 
 ## 참조 문서
@@ -340,26 +375,28 @@ DevOps Engineer
 - HighLevel아키텍처정의서: design/high-level-architecture.md
 - 물리아키텍처: design/backend/physical/*
 - 데이터베이스설치계획서 
-  - build/database/plan/db-plan-{service-name}-dev.md
-  - build/database/plan/db-plan-{service-name}-prod.md
+  - develop/database/plan/db-plan-{service-name}-dev.md
+  - develop/database/plan/db-plan-{service-name}-prod.md
 - 캐시설치계획서: 
-  - build/mq/mq-plan-dev.md
-  - build/mq/mq-plan-prod.md
+  - develop/mq/mq-plan-dev.md
+  - develop/mq/mq-plan-prod.md
 - MQ설치계획서 
-  - build/database/plan/mq-plan-{service-name}-dev.md
-  - build/database/plan/mq-plan-{service-name}-prod.md
+  - develop/database/plan/mq-plan-{service-name}-dev.md
+  - develop/database/plan/mq-plan-{service-name}-prod.md
 - 데이터베이스설치결과서
-  - build/database/exec/db-exec-dev.md
-  - build/database/exec/db-exec-prod.md
+  - develop/database/exec/db-exec-dev.md
+  - develop/database/exec/db-exec-prod.md
 - 캐시설치결과서 
-  - build/database/exec/cache-exec-{service-name}-dev.md
-  - build/database/exec/cache-exec-{service-name}-prod.md
+  - develop/database/exec/cache-exec-{service-name}-dev.md
+  - develop/database/exec/cache-exec-{service-name}-prod.md
 - MQ설치결과서 
-  - build/mq/mq-exec-dev.md
-  - build/mq/mq-exec-prod.md
+  - develop/mq/mq-exec-dev.md
+  - develop/mq/mq-exec-prod.md
+- 백엔드개발결과서: develop/dev/dev-backend.md
+- 백엔드테스트결과서: develop/dev/test-backend.md
 
 ## 프롬프트 약어 
-## 역할 약어 
+### 역할 약어 
 - "@archi": "--persona-architect"
 - "@front": "--persona-front"
 - "@back": "--persona-backend"
@@ -369,7 +406,7 @@ DevOps Engineer
 - "@devops": "--persona-devops"
 - "@scribe": "--persona-scriber"
 
-## 작업 약어 
+### 작업 약어 
 - "@complex-flag": --seq --c7 --uc --wave-mode auto --wave-strategy systematic --delegate auto
 
 - "@userstory": /sc:document @scribe @archi --think --wave-strategy systematic
@@ -380,8 +417,8 @@ DevOps Engineer
 - "@backing-service": /sc:implement @devops @back --think-hard  @complex-flag
 - "@dev-backend": /sc:implement @back --think-hard @complex-flag
 - "@dev-front": /sc:implement @front --think-hard @complex-flag
-- "@dev-testcode": /sc:test @back @qa --think @complex-flag
-- "@test-front": /sc:test @qa @front --play --think @complex-flag
+- "@test-backend": /sc:test @back @qa --think @complex-flag
+- "@test-front": /sc:test @front @qa --play --think @complex-flag
 - "@cicd": /sc:implement @devops @archi @back --think @complex-flag
 - "@document": /sc:document --think @scribe @complex-flag
 - "@fix": /sc:troubleshoot --think --seq 
@@ -390,44 +427,13 @@ DevOps Engineer
 - "@analyze": /sc:analyze --think --seq 
 - "@explain": /sc:explain --think --seq --answer-only 
 
-## 파일 약어 
+### 파일 약어 
 - "@error": debug/error.png파일을 의미함 
 - "@info": debug/info.png파일을 의미함
 
---- 
-
-## 프롬프트 로딩
-'프롬프트 로딩'이라고 입력하면 CLAUDE.md에서 '실행프롬프트'가 포함된 가이드를 찾아 아래 작업을 하는 명령어를 생성 
-- '실행프롬프트'앞에 작업유형별로 .claude/commands/{작업유형} 디렉토리를 생성 
-- 실행 프롬프트 파일을 claude디렉토리에 다운로드 하여 내용에 있는 작업별로 .claude/commands/{작업유형}/{작업}.md로 명령어를 생성
-- command는 각 작업의 'command'항목에 지정된 명령어로 작성  
-- 동일 기능의 명령이 있으면 내용 변경이 있을때만 업데이트  
-- 작업유형별 수행 가이드 표시 명령 작성 
-  - .claude/commands/{작업유형}/help.md
-  - command: "/{작업유형}:help"
-  - 아래 예시와 같이 작업 순서를 터미널에 표시하도록 함  
-    ---
-    command: "/think:help"
-    ---
-
-    기획 작업 순서
-
-    1단계: 서비스 기획
-    /think:planning
-    - AI활용 서비스 기획 가이드를 참고하여 서비스를 기획합니다
-
-    2단계: 유저스토리 작성
-    /think:userstory
-    - 유저스토리작성방법을 준용하여 작성합니다
-    - 마이크로서비스로 나누어 작성합니다
-
----
-
-## 작업 단계 가이드 약어  
+### 작업 단계 가이드 약어  
 - "@think-help": "기획실행프롬프트 내용을 터미널에 출력"
 - "@design-help": "설계실행프롬프트 내용을 터미널에 출력"
-- "@build-help": "개발실행프롬프트 내용을 터미널에 출력"
+- "@develop-help": "개발실행프롬프트 내용을 터미널에 출력"
 - "@deploy-help": "배포실행프롬프트 내용을 터미널에 출력"
-
 ```
-

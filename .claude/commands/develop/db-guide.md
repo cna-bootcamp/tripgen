@@ -1,5 +1,6 @@
 ---
-command: "/build:db-guide"
+command: "/develop:db-guide"
+description: "데이터베이스 설치계획서 작성"
 ---
 
 @backing-service  

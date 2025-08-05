@@ -1,5 +1,6 @@
 ---
-command: "/design:test-front"
+command: "/design:test-prototype"
+description: "프로토타입 테스트"
 ---
 
 @test-front 

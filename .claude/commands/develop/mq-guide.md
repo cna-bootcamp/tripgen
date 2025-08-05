@@ -1,5 +1,6 @@
 ---
-command: "/build:mq-guide"
+command: "/develop:mq-guide"
+description: "Message Queue 설치 계획서 작성"
 ---
 
 @backing-service 

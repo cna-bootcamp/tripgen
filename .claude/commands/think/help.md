@@ -1,5 +1,6 @@
 ---
 command: "/think:help"
+description: "기획 작업 순서 가이드 표시"
 ---
 
 기획 작업 순서

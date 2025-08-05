@@ -1,5 +1,6 @@
 ---
 command: "/design:api"
+description: "API 설계"
 ---
 
 @architecture 

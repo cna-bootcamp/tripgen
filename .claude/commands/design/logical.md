@@ -1,5 +1,6 @@
 ---
 command: "/design:logical"
+description: "논리아키텍처 설계"
 ---
 
 @architecture 
