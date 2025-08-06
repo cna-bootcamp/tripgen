@@ -18,9 +18,7 @@ import java.math.BigDecimal;
 @Builder
 public class Route extends BaseEntity {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "route_id")
+    @Column(name = "route_id", unique = true)
     private String routeId;
     
     @Column(name = "origin_id", nullable = false, length = 100)

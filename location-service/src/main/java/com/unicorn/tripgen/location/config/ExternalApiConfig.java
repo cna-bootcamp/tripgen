@@ -48,6 +48,7 @@ public class ExternalApiConfig {
      * Feign 재시도 설정
      */
     @Bean
+    @org.springframework.context.annotation.Primary
     public Retryer feignRetryer() {
         return new Retryer.Default(retryPeriod, maxRetryPeriod, maxAttempts);
     }
@@ -61,68 +62,3 @@ public class ExternalApiConfig {
     }
 }
 
-/**
- * Google Places Client 설정
- */
-@Configuration
-class GooglePlacesClientConfig {
-    
-    @Bean
-    public Request.Options googlePlacesRequestOptions() {
-        return new Request.Options(5000, TimeUnit.MILLISECONDS, 30000, TimeUnit.MILLISECONDS, true);
-    }
-    
-    @Bean
-    public Retryer googlePlacesRetryer() {
-        return new Retryer.Default(1000, 5000, 3);
-    }
-    
-    @Bean
-    public Logger.Level googlePlacesLoggerLevel() {
-        return Logger.Level.BASIC;
-    }
-}
-
-/**
- * Kakao Map Client 설정
- */
-@Configuration
-class KakaoMapClientConfig {
-    
-    @Bean
-    public Request.Options kakaoMapRequestOptions() {
-        return new Request.Options(5000, TimeUnit.MILLISECONDS, 20000, TimeUnit.MILLISECONDS, true);
-    }
-    
-    @Bean
-    public Retryer kakaoMapRetryer() {
-        return new Retryer.Default(1000, 3000, 2);
-    }
-    
-    @Bean
-    public Logger.Level kakaoMapLoggerLevel() {
-        return Logger.Level.BASIC;
-    }
-}
-
-/**
- * Weather API Client 설정
- */
-@Configuration
-class WeatherApiClientConfig {
-    
-    @Bean
-    public Request.Options weatherApiRequestOptions() {
-        return new Request.Options(3000, TimeUnit.MILLISECONDS, 15000, TimeUnit.MILLISECONDS, true);
-    }
-    
-    @Bean
-    public Retryer weatherApiRetryer() {
-        return new Retryer.Default(500, 2000, 2);
-    }
-    
-    @Bean
-    public Logger.Level weatherApiLoggerLevel() {
-        return Logger.Level.BASIC;
-    }
-}

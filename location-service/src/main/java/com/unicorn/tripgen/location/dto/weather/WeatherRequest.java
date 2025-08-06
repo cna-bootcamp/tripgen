@@ -27,4 +27,6 @@ public class WeatherRequest {
     
     @Builder.Default
     private String lang = "ko"; // 언어 코드
+    
+    private String date; // 날짜 (선택사항)
 }

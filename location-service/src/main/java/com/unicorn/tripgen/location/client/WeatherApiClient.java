@@ -12,7 +12,8 @@ import java.util.Map;
  */
 @FeignClient(
     name = "weather-api-client",
-    url = "${external.api.weather.base-url:https://api.openweathermap.org/data/2.5}"
+    url = "${external.api.weather.openweather.base-url:https://api.openweathermap.org/data/2.5}",
+    configuration = com.unicorn.tripgen.location.config.WeatherApiClientConfig.class
 )
 public interface WeatherApiClient {
     
@@ -138,80 +139,3 @@ public interface WeatherApiClient {
     );
 }
 
-/**
- * WeatherAPI.com 클라이언트 (대안 날씨 API)
- */
-@FeignClient(
-    name = "weatherapi-client",
-    url = "${external.api.weatherapi.base-url:https://api.weatherapi.com/v1}"
-)
-interface WeatherApiComClient {
-    
-    /**
-     * 현재 날씨 정보 조회 (WeatherAPI.com)
-     * 
-     * @param key API 키
-     * @param q 위치 (위도,경도 또는 도시명)
-     * @param lang 언어 코드
-     * @param aqi 대기질 정보 포함 여부
-     * @return 현재 날씨 정보
-     */
-    @GetMapping("/current.json")
-    Map<String, Object> getCurrentWeather(
-        @RequestParam("key") String key,
-        @RequestParam("q") String q,
-        @RequestParam(value = "lang", defaultValue = "ko") String lang,
-        @RequestParam(value = "aqi", defaultValue = "yes") String aqi
-    );
-    
-    /**
-     * 예보 정보 조회 (WeatherAPI.com)
-     * 
-     * @param key API 키
-     * @param q 위치 (위도,경도 또는 도시명)
-     * @param days 예보 일수 (1-10일)
-     * @param lang 언어 코드
-     * @param aqi 대기질 정보 포함 여부
-     * @param alerts 기상 경보 포함 여부
-     * @return 예보 정보
-     */
-    @GetMapping("/forecast.json")
-    Map<String, Object> getForecast(
-        @RequestParam("key") String key,
-        @RequestParam("q") String q,
-        @RequestParam(value = "days", defaultValue = "3") Integer days,
-        @RequestParam(value = "lang", defaultValue = "ko") String lang,
-        @RequestParam(value = "aqi", defaultValue = "yes") String aqi,
-        @RequestParam(value = "alerts", defaultValue = "yes") String alerts
-    );
-    
-    /**
-     * 과거 날씨 정보 조회 (WeatherAPI.com)
-     * 
-     * @param key API 키
-     * @param q 위치 (위도,경도 또는 도시명)
-     * @param dt 날짜 (yyyy-MM-dd)
-     * @param lang 언어 코드
-     * @return 과거 날씨 정보
-     */
-    @GetMapping("/history.json")
-    Map<String, Object> getHistoricalWeather(
-        @RequestParam("key") String key,
-        @RequestParam("q") String q,
-        @RequestParam("dt") String dt,
-        @RequestParam(value = "lang", defaultValue = "ko") String lang
-    );
-    
-    /**
-     * 검색/자동완성 (WeatherAPI.com)
-     * 
-     * @param key API 키
-     * @param q 검색어
-     * @return 검색 결과
-     */
-    @GetMapping("/search.json")
-    Map<String, Object> searchLocations(
-        @RequestParam("key") String key,
-        @RequestParam("q") String q
-    );
-}

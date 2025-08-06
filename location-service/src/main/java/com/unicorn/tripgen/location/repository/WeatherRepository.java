@@ -28,8 +28,8 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param weatherDate 날씨 날짜
      * @return 날씨 정보
      */
-    Optional<Weather> findByLatitudeAndLongitudeAndWeatherDateAndActiveTrue(
-        BigDecimal latitude, BigDecimal longitude, LocalDate weatherDate
+    Optional<Weather> findByLatitudeAndLongitudeAndForecastDate(
+        BigDecimal latitude, BigDecimal longitude, LocalDateTime forecastDate
     );
     
     /**
@@ -41,7 +41,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param weatherDate 날씨 날짜
      * @return 날씨 목록
      */
-    @Query("SELECT w FROM Weather w WHERE w.active = true AND w.weatherDate = :weatherDate AND " +
+    @Query("SELECT w FROM Weather w WHERE w.forecastDate = :forecastDate AND " +
            "ABS(w.latitude - :latitude) < :tolerance AND " +
            "ABS(w.longitude - :longitude) < :tolerance " +
            "ORDER BY ABS(w.latitude - :latitude) + ABS(w.longitude - :longitude)")
@@ -49,7 +49,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
         @Param("latitude") BigDecimal latitude,
         @Param("longitude") BigDecimal longitude,
         @Param("tolerance") BigDecimal tolerance,
-        @Param("weatherDate") LocalDate weatherDate
+        @Param("forecastDate") LocalDateTime forecastDate
     );
     
     /**
@@ -59,7 +59,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param weatherDate 날씨 날짜
      * @return 날씨 정보
      */
-    Optional<Weather> findByLocationNameAndWeatherDateAndActiveTrue(String locationName, LocalDate weatherDate);
+    Optional<Weather> findByLocationIdAndForecastDate(String locationId, LocalDateTime forecastDate);
     
     /**
      * 특정 좌표의 날씨 이력 조회 (날짜 범위)
@@ -71,8 +71,8 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByLatitudeAndLongitudeAndWeatherDateBetweenAndActiveTrueOrderByWeatherDateDesc(
-        BigDecimal latitude, BigDecimal longitude, LocalDate startDate, LocalDate endDate, Pageable pageable
+    Page<Weather> findByLatitudeAndLongitudeAndForecastDateBetweenOrderByForecastDateDesc(
+        BigDecimal latitude, BigDecimal longitude, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable
     );
     
     /**
@@ -82,7 +82,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByWeatherDateAndActiveTrue(LocalDate weatherDate, Pageable pageable);
+    Page<Weather> findByForecastDate(LocalDateTime forecastDate, Pageable pageable);
     
     /**
      * 특정 기온 범위의 날씨 정보 조회
@@ -93,8 +93,8 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByTemperatureBetweenAndWeatherDateAndActiveTrue(
-        BigDecimal minTemp, BigDecimal maxTemp, LocalDate weatherDate, Pageable pageable
+    Page<Weather> findByTemperatureBetweenAndForecastDate(
+        BigDecimal minTemp, BigDecimal maxTemp, LocalDateTime forecastDate, Pageable pageable
     );
     
     /**
@@ -105,8 +105,8 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByWeatherConditionAndWeatherDateAndActiveTrue(
-        String weatherCondition, LocalDate weatherDate, Pageable pageable
+    Page<Weather> findByWeatherMainAndForecastDate(
+        String weatherMain, LocalDateTime forecastDate, Pageable pageable
     );
     
     /**
@@ -117,8 +117,8 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByPrecipitationProbabilityGreaterThanEqualAndWeatherDateAndActiveTrue(
-        Integer minPrecipitationProbability, LocalDate weatherDate, Pageable pageable
+    Page<Weather> findByRainVolumeGreaterThanEqualAndForecastDate(
+        BigDecimal minRainVolume, LocalDateTime forecastDate, Pageable pageable
     );
     
     /**
@@ -129,8 +129,8 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByUvIndexGreaterThanEqualAndWeatherDateAndActiveTrue(
-        BigDecimal minUvIndex, LocalDate weatherDate, Pageable pageable
+    Page<Weather> findByUvIndexGreaterThanEqualAndForecastDate(
+        BigDecimal minUvIndex, LocalDateTime forecastDate, Pageable pageable
     );
     
     /**
@@ -139,7 +139,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param externalSource 외부 API 소스
      * @return 날씨 데이터 수
      */
-    long countByExternalSourceAndActiveTrue(String externalSource);
+    long countByWeatherMain(String weatherMain);
     
     /**
      * 특정 날짜의 평균 기온 조회
@@ -147,8 +147,8 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param weatherDate 날씨 날짜
      * @return 평균 기온
      */
-    @Query("SELECT AVG(w.temperature) FROM Weather w WHERE w.weatherDate = :weatherDate AND w.active = true")
-    Double getAverageTemperatureByDate(@Param("weatherDate") LocalDate weatherDate);
+    @Query("SELECT AVG(w.temperature) FROM Weather w WHERE w.forecastDate = :forecastDate")
+    Double getAverageTemperatureByDate(@Param("forecastDate") LocalDateTime forecastDate);
     
     /**
      * 특정 지역의 평균 기온 조회 (기간별)
@@ -158,12 +158,12 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param endDate 종료 날짜
      * @return 평균 기온
      */
-    @Query("SELECT AVG(w.temperature) FROM Weather w WHERE w.locationName = :locationName AND " +
-           "w.weatherDate BETWEEN :startDate AND :endDate AND w.active = true")
+    @Query("SELECT AVG(w.temperature) FROM Weather w WHERE w.locationId = :locationId AND " +
+           "w.forecastDate BETWEEN :startDate AND :endDate")
     Double getAverageTemperatureByLocationAndPeriod(
-        @Param("locationName") String locationName,
-        @Param("startDate") LocalDate startDate,
-        @Param("endDate") LocalDate endDate
+        @Param("locationId") String locationId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
     );
     
     /**
@@ -172,11 +172,11 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param weatherDate 날씨 날짜
      * @return 최고 기온
      */
-    @Query("SELECT MAX(w.tempMax) FROM Weather w WHERE w.weatherDate = :weatherDate AND w.active = true")
-    Optional<BigDecimal> getMaxTemperatureByDate(@Param("weatherDate") LocalDate weatherDate);
+    @Query("SELECT MAX(w.tempMax) FROM Weather w WHERE w.forecastDate = :forecastDate")
+    Optional<BigDecimal> getMaxTemperatureByDate(@Param("forecastDate") LocalDateTime forecastDate);
     
-    @Query("SELECT MIN(w.tempMin) FROM Weather w WHERE w.weatherDate = :weatherDate AND w.active = true")
-    Optional<BigDecimal> getMinTemperatureByDate(@Param("weatherDate") LocalDate weatherDate);
+    @Query("SELECT MIN(w.tempMin) FROM Weather w WHERE w.forecastDate = :forecastDate")
+    Optional<BigDecimal> getMinTemperatureByDate(@Param("forecastDate") LocalDateTime forecastDate);
     
     /**
      * 여행하기 좋은 날씨 조회 (기온, 강수확률, 날씨상태 종합 고려)
@@ -188,14 +188,14 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    @Query("SELECT w FROM Weather w WHERE w.active = true AND w.weatherDate = :weatherDate AND " +
-           "w.precipitationProbability <= :maxPrecipitationProbability AND " +
+    @Query("SELECT w FROM Weather w WHERE w.forecastDate = :forecastDate AND " +
+           "w.rainVolume <= :maxRainVolume AND " +
            "w.temperature BETWEEN :minTemp AND :maxTemp AND " +
-           "w.weatherCondition NOT IN ('stormy', 'snow', 'heavy_rain') " +
-           "ORDER BY w.precipitationProbability ASC, w.temperature DESC")
+           "w.weatherMain NOT IN ('Thunderstorm', 'Snow', 'Rain') " +
+           "ORDER BY w.rainVolume ASC, w.temperature DESC")
     Page<Weather> findGoodTravelWeather(
-        @Param("weatherDate") LocalDate weatherDate,
-        @Param("maxPrecipitationProbability") Integer maxPrecipitationProbability,
+        @Param("forecastDate") LocalDateTime forecastDate,
+        @Param("maxRainVolume") BigDecimal maxRainVolume,
         @Param("minTemp") BigDecimal minTemp,
         @Param("maxTemp") BigDecimal maxTemp,
         Pageable pageable
@@ -207,7 +207,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByActiveTrueOrderByUpdatedAtDesc(Pageable pageable);
+    Page<Weather> findAllByOrderByUpdatedAtDesc(Pageable pageable);
     
     /**
      * 특정 기간 내 생성된 날씨 정보 조회
@@ -217,7 +217,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByCreatedAtBetweenAndActiveTrue(
+    Page<Weather> findByCreatedAtBetween(
         LocalDateTime startDate, LocalDateTime endDate, Pageable pageable
     );
     
@@ -228,7 +228,7 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param pageable 페이징 정보
      * @return 날씨 목록
      */
-    Page<Weather> findByWeatherDateBeforeAndActiveTrue(LocalDate cutoffDate, Pageable pageable);
+    Page<Weather> findByForecastDateBefore(LocalDateTime cutoffDate, Pageable pageable);
     
     /**
      * 중복 날씨 데이터 찾기 (같은 좌표, 같은 날짜)
@@ -239,13 +239,13 @@ public interface WeatherRepository extends JpaRepository<Weather, Long> {
      * @param tolerance 허용 오차
      * @return 날씨 목록
      */
-    @Query("SELECT w FROM Weather w WHERE w.active = true AND w.weatherDate = :weatherDate AND " +
+    @Query("SELECT w FROM Weather w WHERE w.forecastDate = :forecastDate AND " +
            "ABS(w.latitude - :latitude) < :tolerance AND " +
            "ABS(w.longitude - :longitude) < :tolerance")
     List<Weather> findDuplicateWeatherData(
         @Param("latitude") BigDecimal latitude,
         @Param("longitude") BigDecimal longitude,
-        @Param("weatherDate") LocalDate weatherDate,
+        @Param("forecastDate") LocalDateTime forecastDate,
         @Param("tolerance") BigDecimal tolerance
     );
 }

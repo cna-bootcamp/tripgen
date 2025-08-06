@@ -109,24 +109,24 @@ DevOps Engineer
 
 [프롬프트 로딩]
 '프롬프트 로딩'이라고 입력하면 CLAUDE.md에서 '실행프롬프트'가 포함된 가이드를 찾아 아래 작업을 하는 명령어를 생성
-- '실행프롬프트'앞에 작업유형별로 .claude/commands/{작업유형} 디렉토리를 생성
+- 각 작업유형별로 서브 에이젼트를 생성하여 병렬로 작업
+- 실행 프롬프트 파일을 claude디렉토리에 다운로드 하여 내용에 있는 작업별로 .claude/commands/{작업유형}-{작업}.md로 명령어를 생성
 - 작업유형: think, design, develop, deploy
-- 실행 프롬프트 파일을 claude디렉토리에 다운로드 하여 내용에 있는 작업별로 .claude/commands/{작업유형}/{작업}.md로 명령어를 생성
 - command는 각 작업의 'command:'항목에 지정된 명령어로 작성
 - 동일 기능의 명령이 있으면 내용 변경이 있을때만 업데이트
 - 작업유형별 수행 가이드 표시 명령 작성
-    - .claude/commands/{작업유형}/help.md
-    - command: "/{작업유형}:help"
+    - .claude/commands/{작업유형}-help.md
+    - command: "/{작업유형}-help"
     - 아래 예시와 같이 작업 순서를 터미널에 표시하도록 함
       ```
       기획 작업 순서
   
       1단계: 서비스 기획
-      /think:planning
+      /think-planning
       - AI활용 서비스 기획 가이드를 참고하여 서비스를 기획합니다
   
       2단계: 유저스토리 작성
-      /think:userstory
+      /think-userstory
       - 유저스토리작성방법을 준용하여 작성합니다
       - 마이크로서비스로 나누어 작성합니다
       ```
@@ -262,6 +262,11 @@ DevOps Engineer
   - 설명: 백엔드 개발 가이드 
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/dev-backend.md
   - 파일명: dev-backend.md
+
+- 서비스실행프로파일작성가이드 
+  - 설명: 백엔드 서비스 실행 프로파일 작성 가이드  
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/develop/make-run-profile.md
+  - 파일명: make-run-profile.md
 
 - 백엔드테스트가이드 
   - 설명: 백엔드 E2E테스트 코드 작성 및 테스트 가이드 

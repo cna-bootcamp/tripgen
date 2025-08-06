@@ -69,7 +69,7 @@ public interface LocationRepository extends JpaRepository<Location, String> {
     
     List<Location> findByLocationTypeAndIsActiveTrue(LocationType locationType);
     
-    Optional<Location> findByExternalId(String externalId);
+    Optional<Location> findByPlaceIdIgnoreCase(String placeId);
     
     @Query(value = """
         SELECT l FROM Location l 

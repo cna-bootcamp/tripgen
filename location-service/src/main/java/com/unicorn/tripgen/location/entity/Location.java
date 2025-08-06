@@ -18,9 +18,7 @@ import java.math.BigDecimal;
 @Builder
 public class Location extends BaseAuditEntity {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "location_id")
+    @Column(name = "location_id", unique = true)
     private String locationId;
     
     @Column(name = "name", nullable = false, length = 200)
@@ -72,9 +70,4 @@ public class Location extends BaseAuditEntity {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
-    
-    // Helper method
-    public String getExternalId() {
-        return this.placeId;
-    }
 }

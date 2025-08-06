@@ -26,6 +26,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        boolean shouldSkip = isPublicEndpoint(path);
+        if (shouldSkip) {
+            log.debug("공개 엔드포인트 감지, JWT 필터 제외: path={}", path);
+        }
+        return shouldSkip;
+    }
+    
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
                                   FilterChain filterChain) throws ServletException, IOException {
         
@@ -60,12 +70,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
     
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        
-        // 인증이 필요없는 경로들
-        boolean shouldSkip = path.equals("/api/v1/users/register") ||
+    private boolean isPublicEndpoint(String path) {
+        return path.equals("/api/v1/users/register") ||
                path.equals("/api/v1/users/login") ||
                path.startsWith("/api/v1/users/check/") ||
                path.startsWith("/uploads/") ||
@@ -74,8 +80,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/actuator/") ||
                path.startsWith("/v3/api-docs") ||
                path.startsWith("/swagger-ui");
-        
-        log.debug("JWT 필터 스킵 여부: path={}, shouldSkip={}", path, shouldSkip);
-        return shouldSkip;
     }
+    
 }

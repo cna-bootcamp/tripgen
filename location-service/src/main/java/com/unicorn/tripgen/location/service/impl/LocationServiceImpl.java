@@ -168,7 +168,7 @@ public class LocationServiceImpl implements LocationService {
             }
             
             // 로컬 DB에서 위치 정보 조회
-            Optional<Location> locationOpt = locationRepository.findByExternalId(placeId);
+            Optional<Location> locationOpt = locationRepository.findByPlaceId(placeId);
             Location location = null;
             if (locationOpt.isPresent()) {
                 location = locationOpt.get();
@@ -372,7 +372,7 @@ public class LocationServiceImpl implements LocationService {
     
     private LocationSearchResponse.PlaceCard convertToPlaceCard(Location location) {
         return LocationSearchResponse.PlaceCard.builder()
-            .placeId(location.getExternalId())
+            .placeId(location.getPlaceId())
             .name(location.getName())
             .category(location.getLocationType().name())
             .rating(location.getRating())

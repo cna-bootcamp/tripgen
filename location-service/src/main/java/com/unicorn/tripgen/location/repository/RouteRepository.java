@@ -30,10 +30,8 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param transportType 교통 수단
      * @return 경로 목록
      */
-    List<Route> findByOriginLatitudeAndOriginLongitudeAndDestLatitudeAndDestLongitudeAndTransportTypeAndActiveTrue(
-        BigDecimal originLat, BigDecimal originLon, 
-        BigDecimal destLat, BigDecimal destLon, 
-        TransportType transportType
+    List<Route> findByOriginIdAndDestinationIdAndTransportType(
+        String originId, String destinationId, TransportType transportType
     );
     
     /**
@@ -42,7 +40,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param externalRouteId 외부 API 경로 ID
      * @return 경로 정보
      */
-    Optional<Route> findByExternalRouteIdAndActiveTrue(String externalRouteId);
+    Optional<Route> findByRouteId(String routeId);
     
     /**
      * 외부 경로 ID와 소스로 조회
@@ -51,7 +49,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param externalSource 외부 API 소스
      * @return 경로 정보
      */
-    Optional<Route> findByExternalRouteIdAndExternalSourceAndActiveTrue(String externalRouteId, String externalSource);
+    Optional<Route> findByRouteIdAndTransportType(String routeId, TransportType transportType);
     
     /**
      * 특정 교통 수단의 활성 경로들 조회
@@ -60,7 +58,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByTransportTypeAndActiveTrue(TransportType transportType, Pageable pageable);
+    Page<Route> findByTransportType(TransportType transportType, Pageable pageable);
     
     /**
      * 특정 거리 범위 내의 경로들 조회
@@ -70,7 +68,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByDistanceMetersBetweenAndActiveTrue(
+    Page<Route> findByDistanceBetween(
         Integer minDistance, Integer maxDistance, Pageable pageable
     );
     
@@ -82,7 +80,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByDurationMinutesBetweenAndActiveTrue(
+    Page<Route> findByDurationBetween(
         Integer minDuration, Integer maxDuration, Pageable pageable
     );
     
@@ -93,7 +91,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByTransportTypeAndActiveTrueOrderByDistanceMetersAsc(
+    Page<Route> findByTransportTypeOrderByDistanceAsc(
         TransportType transportType, Pageable pageable
     );
     
@@ -104,7 +102,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByTransportTypeAndActiveTrueOrderByDurationMinutesAsc(
+    Page<Route> findByTransportTypeOrderByDurationAsc(
         TransportType transportType, Pageable pageable
     );
     
@@ -117,13 +115,9 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    @Query("SELECT r FROM Route r WHERE r.active = true AND " +
-           "ABS(r.originLatitude - :latitude) < :tolerance AND " +
-           "ABS(r.originLongitude - :longitude) < :tolerance")
-    Page<Route> findRoutesByOriginNear(
-        @Param("latitude") BigDecimal latitude, 
-        @Param("longitude") BigDecimal longitude, 
-        @Param("tolerance") BigDecimal tolerance,
+    @Query("SELECT r FROM Route r WHERE r.originId = :originId")
+    Page<Route> findRoutesByOriginId(
+        @Param("originId") String originId,
         Pageable pageable
     );
     
@@ -136,13 +130,9 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    @Query("SELECT r FROM Route r WHERE r.active = true AND " +
-           "ABS(r.destLatitude - :latitude) < :tolerance AND " +
-           "ABS(r.destLongitude - :longitude) < :tolerance")
-    Page<Route> findRoutesByDestinationNear(
-        @Param("latitude") BigDecimal latitude, 
-        @Param("longitude") BigDecimal longitude, 
-        @Param("tolerance") BigDecimal tolerance,
+    @Query("SELECT r FROM Route r WHERE r.destinationId = :destinationId")
+    Page<Route> findRoutesByDestinationId(
+        @Param("destinationId") String destinationId,
         Pageable pageable
     );
     
@@ -154,8 +144,8 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByCostLessThanEqualAndTransportTypeAndActiveTrue(
-        Integer maxCost, TransportType transportType, Pageable pageable
+    Page<Route> findByPriceLessThanEqualAndTransportType(
+        BigDecimal maxPrice, TransportType transportType, Pageable pageable
     );
     
     /**
@@ -164,7 +154,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param externalSource 외부 API 소스
      * @return 경로 수
      */
-    long countByExternalSourceAndActiveTrue(String externalSource);
+    long countByTransportType(TransportType transportType);
     
     /**
      * 교통 수단별 경로 수 조회
@@ -172,7 +162,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param transportType 교통 수단
      * @return 경로 수
      */
-    long countByTransportTypeAndActiveTrue(TransportType transportType);
+    long countByOriginId(String originId);
     
     /**
      * 평균 거리 조회 (교통 수단별)
@@ -180,7 +170,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param transportType 교통 수단
      * @return 평균 거리 (미터)
      */
-    @Query("SELECT AVG(r.distanceMeters) FROM Route r WHERE r.transportType = :transportType AND r.active = true")
+    @Query("SELECT AVG(r.distance) FROM Route r WHERE r.transportType = :transportType")
     Double getAverageDistanceByTransportType(@Param("transportType") TransportType transportType);
     
     /**
@@ -189,7 +179,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param transportType 교통 수단
      * @return 평균 소요 시간 (분)
      */
-    @Query("SELECT AVG(r.durationMinutes) FROM Route r WHERE r.transportType = :transportType AND r.active = true")
+    @Query("SELECT AVG(r.duration) FROM Route r WHERE r.transportType = :transportType")
     Double getAverageDurationByTransportType(@Param("transportType") TransportType transportType);
     
     /**
@@ -198,7 +188,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByActiveTrueOrderByCreatedAtDesc(Pageable pageable);
+    Page<Route> findAllByOrderByCreatedAtDesc(Pageable pageable);
     
     /**
      * 특정 기간 내 생성된 경로들 조회
@@ -208,7 +198,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    Page<Route> findByCreatedAtBetweenAndActiveTrue(
+    Page<Route> findByCreatedAtBetween(
         LocalDateTime startDate, LocalDateTime endDate, Pageable pageable
     );
     
@@ -223,18 +213,12 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param tolerance 허용 오차
      * @return 경로 목록
      */
-    @Query("SELECT r FROM Route r WHERE r.active = true AND r.transportType = :transportType AND " +
-           "ABS(r.originLatitude - :originLat) < :tolerance AND " +
-           "ABS(r.originLongitude - :originLon) < :tolerance AND " +
-           "ABS(r.destLatitude - :destLat) < :tolerance AND " +
-           "ABS(r.destLongitude - :destLon) < :tolerance")
+    @Query("SELECT r FROM Route r WHERE r.transportType = :transportType AND " +
+           "r.originId = :originId AND r.destinationId = :destinationId")
     List<Route> findDuplicateRoutes(
-        @Param("originLat") BigDecimal originLat,
-        @Param("originLon") BigDecimal originLon,
-        @Param("destLat") BigDecimal destLat,
-        @Param("destLon") BigDecimal destLon,
-        @Param("transportType") TransportType transportType,
-        @Param("tolerance") BigDecimal tolerance
+        @Param("originId") String originId,
+        @Param("destinationId") String destinationId,
+        @Param("transportType") TransportType transportType
     );
     
     /**
@@ -244,7 +228,24 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * @param pageable 페이징 정보
      * @return 경로 목록
      */
-    @Query("SELECT r FROM Route r WHERE r.active = true AND r.transportType = :transportType " +
-           "ORDER BY (CAST(r.distanceMeters AS double) / CAST(r.durationMinutes AS double)) DESC")
+    @Query("SELECT r FROM Route r WHERE r.transportType = :transportType " +
+           "ORDER BY (CAST(r.distance AS double) / CAST(r.duration AS double)) DESC")
     Page<Route> findEfficientRoutes(@Param("transportType") TransportType transportType, Pageable pageable);
+    
+    /**
+     * 유사한 경로 찾기 (출발지와 목적지가 비슷한 경로)
+     * 
+     * @param originId 출발지 ID
+     * @param destinationId 목적지 ID
+     * @param transportType 교통 수단
+     * @return 경로 정보
+     */
+    @Query("SELECT r FROM Route r WHERE r.originId = :originId AND " +
+           "r.destinationId = :destinationId AND r.transportType = :transportType " +
+           "ORDER BY r.createdAt DESC")
+    Optional<Route> findByOriginDestinationAndType(
+        @Param("originId") String originId,
+        @Param("destinationId") String destinationId,
+        @Param("transportType") TransportType transportType
+    );
 }

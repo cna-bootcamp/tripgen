@@ -19,9 +19,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Weather extends BaseEntity {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "weather_id")
+    @Column(name = "weather_id", unique = true)
     private String weatherId;
     
     @Column(name = "location_id", length = 100)
