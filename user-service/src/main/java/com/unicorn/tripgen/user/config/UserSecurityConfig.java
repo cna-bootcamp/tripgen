@@ -43,7 +43,7 @@ public class UserSecurityConfig {
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
-                // 공개 엔드포인트
+                // 공개 엔드포인트 (인증 불필요)
                 .requestMatchers(
                     "/api/v1/users/register",
                     "/api/v1/users/login",
@@ -57,15 +57,15 @@ public class UserSecurityConfig {
                 ).permitAll()
                 // 헬스체크 및 모니터링
                 .requestMatchers(
-                    "/actuator/health",
-                    "/actuator/info",
-                    "/actuator/prometheus"
+                    "/actuator/**"
                 ).permitAll()
                 // API 문서
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
-                    "/swagger-ui.html"
+                    "/swagger-ui.html",
+                    "/swagger-resources/**",
+                    "/webjars/**"
                 ).permitAll()
                 // 나머지는 인증 필요
                 .anyRequest().authenticated()

@@ -29,9 +29,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
                                   FilterChain filterChain) throws ServletException, IOException {
         
+        String path = request.getRequestURI();
+        log.debug("JWT 필터 처리: path={}, method={}", path, request.getMethod());
+        
         try {
             // 요청에서 JWT 토큰 추출
             String token = jwtTokenProvider.resolveToken(request);
+            log.debug("JWT 토큰 추출: token={}", token != null ? "있음" : "없음");
             
             // 토큰이 있고 유효한 경우 인증 정보 설정
             if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
@@ -61,16 +65,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         
         // 인증이 필요없는 경로들
-        return path.startsWith("/api/v1/users/register") ||
-               path.startsWith("/api/v1/users/login") ||
+        boolean shouldSkip = path.equals("/api/v1/users/register") ||
+               path.equals("/api/v1/users/login") ||
                path.startsWith("/api/v1/users/check/") ||
                path.startsWith("/uploads/") ||
                path.startsWith("/static/") ||
                path.startsWith("/public/") ||
-               path.startsWith("/actuator/health") ||
-               path.startsWith("/actuator/info") ||
-               path.startsWith("/actuator/prometheus") ||
+               path.startsWith("/actuator/") ||
                path.startsWith("/v3/api-docs") ||
                path.startsWith("/swagger-ui");
+        
+        log.debug("JWT 필터 스킵 여부: path={}, shouldSkip={}", path, shouldSkip);
+        return shouldSkip;
     }
 }
