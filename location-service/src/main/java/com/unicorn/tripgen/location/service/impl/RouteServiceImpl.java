@@ -1,6 +1,7 @@
 package com.unicorn.tripgen.location.service.impl;
 
 import com.unicorn.tripgen.location.client.GoogleDirectionsClient;
+import com.unicorn.tripgen.location.client.GoogleRoutesClient;
 import com.unicorn.tripgen.location.client.KakaoMobilityClient;
 import com.unicorn.tripgen.location.client.TmapPedestrianClient;
 import com.unicorn.tripgen.location.client.TmapTransitClient;
@@ -29,6 +30,7 @@ public class RouteServiceImpl implements RouteService {
     
     private final KakaoMobilityClient kakaoMobilityClient;
     private final GoogleDirectionsClient googleDirectionsClient;
+    private final GoogleRoutesClient googleRoutesClient;
     private final TmapTransitClient tmapTransitClient;
     private final TmapPedestrianClient tmapPedestrianClient;
     private final RouteRepository routeRepository;
@@ -57,17 +59,38 @@ public class RouteServiceImpl implements RouteService {
             RouteResponse routeResponse;
             
             if ("driving".equalsIgnoreCase(request.getMode())) {
-                // 자동차 경로는 Kakao Mobility API 사용
-                String origin = String.format("%f,%f", request.getFromLongitude(), request.getFromLatitude());
-                String destination = String.format("%f,%f", request.getToLongitude(), request.getToLatitude());
-                String authorization = "KakaoAK " + kakaoApiKey;
+                // 한국 좌표인지 확인
+                boolean isKorea = isKoreanCoordinate(request.getFromLatitude(), request.getFromLongitude()) 
+                        && isKoreanCoordinate(request.getToLatitude(), request.getToLongitude());
                 
-                response = kakaoMobilityClient.getCarDirections(
-                        authorization, origin, destination, null, 
-                        "RECOMMEND", "GASOLINE", false, true, false);
                 
-                // Kakao 응답 파싱
-                routeResponse = parseKakaoResponse(response, request.getMode());
+                if (isKorea) {
+                    // 한국 내 자동차 경로는 Kakao Mobility API 사용
+                    String origin = String.format("%f,%f", request.getFromLongitude(), request.getFromLatitude());
+                    String destination = String.format("%f,%f", request.getToLongitude(), request.getToLatitude());
+                    String authorization = "KakaoAK " + kakaoApiKey;
+                    
+                    response = kakaoMobilityClient.getCarDirections(
+                            authorization, origin, destination, null, 
+                            "RECOMMEND", "GASOLINE", false, true, false);
+                    
+                    // Kakao 응답 파싱
+                    routeResponse = parseKakaoResponse(response, request.getMode());
+                } else {
+                    // 해외 자동차 경로는 Google Routes API 사용
+                    try {
+                        routeResponse = getGoogleRoutesDirections(request);
+                    } catch (Exception e) {
+                        log.error("Google Routes API 호출 실패, Directions API 폴백 사용: {}", e.getMessage());
+                        // 폴백: 기존 Directions API 사용
+                        String origin = String.format("%f,%f", request.getFromLatitude(), request.getFromLongitude());
+                        String destination = String.format("%f,%f", request.getToLatitude(), request.getToLongitude());
+                        response = googleDirectionsClient.getDirections(
+                                origin, destination, "driving", 
+                                googleApiKey, "ko", false);
+                        routeResponse = parseGoogleResponse(response, "driving");
+                    }
+                }
                 
             } else if ("transit".equalsIgnoreCase(request.getMode())) {
                 // 대중교통은 한국 내에서는 TMAP API 사용
@@ -107,14 +130,20 @@ public class RouteServiceImpl implements RouteService {
                         routeResponse = parseGoogleResponse(response, "transit");
                     }
                 } else {
-                    // 해외 좌표는 Google API 사용
-                    log.info("해외 좌표로 Google Directions API 사용");
-                    String origin = String.format("%f,%f", request.getFromLatitude(), request.getFromLongitude());
-                    String destination = String.format("%f,%f", request.getToLatitude(), request.getToLongitude());
-                    response = googleDirectionsClient.getDirections(
-                            origin, destination, "transit", 
-                            googleApiKey, "ko", false);
-                    routeResponse = parseGoogleResponse(response, "transit");
+                    // 해외 좌표는 Google Routes API v2 사용
+                    try {
+                        log.info("해외 좌표로 Google Routes API v2 사용 (대중교통)");
+                        routeResponse = getGoogleRoutesDirections(request);
+                    } catch (Exception e) {
+                        log.error("Google Routes API 호출 실패, Directions API 폴백 사용: {}", e.getMessage());
+                        // 폴백: 기존 Directions API 사용
+                        String origin = String.format("%f,%f", request.getFromLatitude(), request.getFromLongitude());
+                        String destination = String.format("%f,%f", request.getToLatitude(), request.getToLongitude());
+                        response = googleDirectionsClient.getDirections(
+                                origin, destination, "transit", 
+                                googleApiKey, "ko", false);
+                        routeResponse = parseGoogleResponse(response, "transit");
+                    }
                 }
                 
             } else if ("walking".equalsIgnoreCase(request.getMode())) {
@@ -151,17 +180,19 @@ public class RouteServiceImpl implements RouteService {
                         return createFallbackResponse(request);
                     }
                 } else {
-                    // 해외는 Google API 사용
+                    // 해외는 Google Routes API v2 사용
                     try {
+                        log.info("해외 좌표로 Google Routes API v2 사용 (도보)");
+                        routeResponse = getGoogleRoutesDirections(request);
+                    } catch (Exception e) {
+                        log.error("Google Routes API 호출 실패, Directions API 폴백 사용: {}", e.getMessage());
+                        // 폴백: 기존 Directions API 사용
                         String origin = String.format("%f,%f", request.getFromLatitude(), request.getFromLongitude());
                         String destination = String.format("%f,%f", request.getToLatitude(), request.getToLongitude());
                         response = googleDirectionsClient.getDirections(
                                 origin, destination, "walking", 
                                 googleApiKey, "ko", false);
                         routeResponse = parseGoogleResponse(response, "walking");
-                    } catch (Exception e) {
-                        log.error("Google API 호출 실패, 폴백 사용: {}", e.getMessage());
-                        return createFallbackResponse(request);
                     }
                 }
                 
@@ -468,6 +499,128 @@ public class RouteServiceImpl implements RouteService {
         return (int) (distance / speed);
     }
     
+    /**
+     * Google Routes API v2를 사용한 경로 조회
+     */
+    private RouteResponse getGoogleRoutesDirections(RouteRequest request) {
+        log.info("Google Routes API v2 사용하여 해외 {} 경로 조회", request.getMode());
+        
+        // Routes API v2 요청 본문 구성
+        Map<String, Object> requestBody = new HashMap<>();
+        
+        // Origin 설정
+        Map<String, Object> origin = new HashMap<>();
+        Map<String, Object> originLocation = new HashMap<>();
+        Map<String, Object> originLatLng = new HashMap<>();
+        originLatLng.put("latitude", request.getFromLatitude());
+        originLatLng.put("longitude", request.getFromLongitude());
+        originLocation.put("latLng", originLatLng);
+        origin.put("location", originLocation);
+        requestBody.put("origin", origin);
+        
+        // Destination 설정
+        Map<String, Object> destination = new HashMap<>();
+        Map<String, Object> destLocation = new HashMap<>();
+        Map<String, Object> destLatLng = new HashMap<>();
+        destLatLng.put("latitude", request.getToLatitude());
+        destLatLng.put("longitude", request.getToLongitude());
+        destLocation.put("latLng", destLatLng);
+        destination.put("location", destLocation);
+        requestBody.put("destination", destination);
+        
+        // 이동 수단에 따른 설정
+        String travelMode;
+        
+        switch (request.getMode().toLowerCase()) {
+            case "driving":
+                travelMode = "DRIVE";
+                requestBody.put("routingPreference", "TRAFFIC_AWARE");
+                break;
+            case "walking":
+                travelMode = "WALK";
+                // 도보 모드에서는 routingPreference 설정하지 않음
+                break;
+            case "transit":
+                travelMode = "TRANSIT";
+                // 대중교통 모드에서는 routingPreference 설정하지 않음
+                break;
+            default:
+                travelMode = "DRIVE";
+                requestBody.put("routingPreference", "TRAFFIC_AWARE");
+        }
+        
+        requestBody.put("travelMode", travelMode);
+        requestBody.put("computeAlternativeRoutes", false);
+        requestBody.put("languageCode", "ko");
+        requestBody.put("units", "METRIC");
+        
+        // Route Modifiers (avoid 옵션)
+        Map<String, Object> routeModifiers = new HashMap<>();
+        routeModifiers.put("avoidTolls", false);
+        routeModifiers.put("avoidHighways", false);
+        routeModifiers.put("avoidFerries", false);
+        requestBody.put("routeModifiers", routeModifiers);
+        
+        // API 호출
+        String fieldMask = "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline";
+        Map<String, Object> response = googleRoutesClient.computeRoutes(
+                googleApiKey, fieldMask, requestBody);
+        
+        return parseGoogleRoutesResponse(response);
+    }
+    
+    /**
+     * Google Routes API v2 응답 파싱
+     */
+    private RouteResponse parseGoogleRoutesResponse(Map<String, Object> response) {
+        try {
+            if (response.containsKey("routes") && response.get("routes") instanceof List) {
+                List<Map<String, Object>> routes = (List<Map<String, Object>>) response.get("routes");
+                if (!routes.isEmpty()) {
+                    Map<String, Object> route = routes.get(0);
+                    
+                    // 거리 정보 (distanceMeters)
+                    Integer distanceMeters = null;
+                    if (route.containsKey("distanceMeters")) {
+                        distanceMeters = ((Number) route.get("distanceMeters")).intValue();
+                    }
+                    
+                    // 시간 정보 (duration, 예: "165s")
+                    Integer durationSeconds = null;
+                    if (route.containsKey("duration")) {
+                        String duration = (String) route.get("duration");
+                        // "165s" 형태에서 숫자만 추출
+                        durationSeconds = Integer.parseInt(duration.replaceAll("[^0-9]", ""));
+                    }
+                    
+                    // 폴리라인 정보
+                    String encodedPolyline = null;
+                    if (route.containsKey("polyline")) {
+                        Map<String, Object> polyline = (Map<String, Object>) route.get("polyline");
+                        if (polyline.containsKey("encodedPolyline")) {
+                            encodedPolyline = (String) polyline.get("encodedPolyline");
+                        }
+                    }
+                    
+                    return RouteResponse.builder()
+                            .distance(distanceMeters)
+                            .duration(durationSeconds)
+                            .distanceText(formatDistance(distanceMeters))
+                            .durationText(formatDuration(durationSeconds))
+                            .polyline(encodedPolyline)
+                            .build();
+                }
+            }
+            
+            log.warn("Google Routes API 응답에서 경로 정보를 찾을 수 없음");
+            return null;
+            
+        } catch (Exception e) {
+            log.error("Google Routes API 응답 파싱 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
     /**
      * 한국 좌표 범위 확인
      */
