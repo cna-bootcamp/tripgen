@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8082}
+  port: ${SERVER_PORT:8083}
   servlet:
     context-path: /
 
@@ -8,7 +8,7 @@ spring:
     name: trip-service
   
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
     
   # Database Configuration
   datasource:
@@ -56,12 +56,23 @@ spring:
       time-to-live: ${CACHE_TTL:3600000} # 1 hour
       cache-null-values: false
   
+  # Azure Service Bus Configuration
+  cloud:
+    azure:
+      servicebus:
+        connection-string: ${SERVICE_BUS_CONNECTION_STRING:}
+        
   # Security Configuration
   security:
     oauth2:
       resourceserver:
         jwt:
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/auth/realms/tripgen/protocol/openid_connect/certs}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:dev-jwt-secret-key-for-development-only}
+  expiration: ${JWT_EXPIRATION:86400} # 1 day
   
   # Flyway Configuration
   flyway:

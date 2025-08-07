@@ -1,0 +1,88 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="trip-service" type="GradleRunConfiguration" factoryName="Gradle">
+    <ExternalSystemSettings>
+      <option name="env">
+        <map>
+          <!-- 서버 설정 -->
+          <entry key="SERVER_PORT" value="8083" />
+          <entry key="SPRING_PROFILES_ACTIVE" value="dev" />
+          
+          <!-- 데이터베이스 설정 - Trip DB -->
+          <entry key="DB_HOST" value="4.230.144.184" />
+          <entry key="DB_PORT" value="5432" />
+          <entry key="DB_NAME" value="tripgen_trip_db" />
+          <entry key="DB_USERNAME" value="tripgen_trip" />
+          <entry key="DB_PASSWORD" value="tripgen_trip_123" />
+          
+          <!-- Redis 설정 - Trip Redis -->
+          <entry key="REDIS_HOST" value="20.249.162.81" />
+          <entry key="REDIS_PORT" value="6379" />
+          <entry key="REDIS_PASSWORD" value="" />
+          <entry key="REDIS_DATABASE" value="0" />
+          
+          <!-- 캐시 설정 -->
+          <entry key="CACHE_TTL" value="3600000" />
+          
+          <!-- JWT 설정 -->
+          <entry key="JWT_SECRET" value="dev-jwt-secret-key-for-trip-service-development-only" />
+          <entry key="JWT_EXPIRATION" value="86400" />
+          <entry key="JWT_JWK_SET_URI" value="http://localhost:8081/auth/realms/tripgen/protocol/openid_connect/certs" />
+          
+          <!-- Service Bus 설정 -->
+          <entry key="SERVICE_BUS_CONNECTION_STRING" value="Endpoint=sb://sb-tripgen-dev.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=wl9R8/gBmMgQn9lZXjNkuVNXwGDdmzHv/+ASbOFTXmA=" />
+          
+          <!-- Feign Client URLs -->
+          <entry key="USER_SERVICE_URL" value="http://localhost:8081" />
+          <entry key="LOCATION_SERVICE_URL" value="http://localhost:8082" />
+          <entry key="AI_SERVICE_URL" value="http://localhost:8084" />
+          
+          <!-- 로깅 설정 -->
+          <entry key="LOG_LEVEL_APP" value="DEBUG" />
+          <entry key="LOG_LEVEL_FEIGN" value="DEBUG" />
+          <entry key="LOG_LEVEL_WEB" value="DEBUG" />
+          <entry key="LOG_LEVEL_SQL" value="DEBUG" />
+          <entry key="LOG_LEVEL_SQL_BINDER" value="TRACE" />
+          <entry key="LOG_LEVEL_ROOT" value="INFO" />
+          
+          <!-- Trip Service 설정 -->
+          <entry key="TRIP_MAX_MEMBERS" value="10" />
+          <entry key="TRIP_MAX_DESTINATIONS" value="10" />
+          <entry key="TRIP_MAX_DURATION_DAYS" value="365" />
+          <entry key="SCHEDULE_MAX_PLACES_PER_DAY" value="20" />
+          <entry key="SCHEDULE_GENERATION_TIMEOUT" value="300" />
+          <entry key="SCHEDULE_GENERATION_RETRIES" value="3" />
+        </map>
+      </option>
+      <option name="executionName" />
+      <option name="externalProjectPath" value="$PROJECT_DIR$" />
+      <option name="externalSystemIdString" value="GRADLE" />
+      <option name="scriptParameters" value="" />
+      <option name="taskDescriptions">
+        <list />
+      </option>
+      <option name="taskNames">
+        <list>
+          <option value="trip-service:bootRun" />
+        </list>
+      </option>
+      <option name="vmOptions" />
+    </ExternalSystemSettings>
+    <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+    <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+    <EXTENSION ID="com.intellij.execution.ExternalSystemRunConfigurationJavaExtension">
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="false" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+        </ENTRIES>
+      </extension>
+    </EXTENSION>
+    <DebugAllEnabled>false</DebugAllEnabled>
+    <RunAsTest>false</RunAsTest>
+    <method v="2" />
+  </configuration>
+</component>

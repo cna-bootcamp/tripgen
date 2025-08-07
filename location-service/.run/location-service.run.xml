@@ -1,0 +1,93 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="location-service" type="GradleRunConfiguration" factoryName="Gradle">
+    <ExternalSystemSettings>
+      <option name="env">
+        <map>
+          <!-- 서버 설정 -->
+          <entry key="SERVER_PORT" value="8082" />
+          <entry key="SPRING_PROFILES_ACTIVE" value="dev" />
+          
+          <!-- 데이터베이스 설정 - Location DB -->
+          <entry key="DB_HOST" value="20.249.177.146" />
+          <entry key="DB_PORT" value="5432" />
+          <entry key="DB_NAME" value="tripgen_location_db" />
+          <entry key="DB_USERNAME" value="tripgen_location" />
+          <entry key="DB_PASSWORD" value="tripgen_location_123" />
+          
+          <!-- Redis 설정 - Location Redis -->
+          <entry key="REDIS_HOST" value="4.217.131.219" />
+          <entry key="REDIS_PORT" value="6379" />
+          <entry key="REDIS_PASSWORD" value="" />
+          <entry key="REDIS_DATABASE" value="1" />
+          <entry key="REDIS_TIMEOUT" value="2000ms" />
+          
+          <!-- 캐시 설정 -->
+          <entry key="CACHE_TTL" value="1800000" />
+          
+          <!-- JWT 설정 -->
+          <entry key="JWT_SECRET" value="dev-jwt-secret-key-for-location-service-development-only" />
+          <entry key="JWT_ACCESS_TOKEN_EXPIRATION" value="3600" />
+          <entry key="JWT_REFRESH_TOKEN_EXPIRATION" value="604800" />
+          
+          <!-- Azure Service Bus 설정 -->
+          <entry key="AZURE_SERVICEBUS_CONNECTION_STRING" value="Endpoint=sb://sb-tripgen-dev.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=wl9R8/gBmMgQn9lZXjNkuVNXwGDdmzHv/+ASbOFTXmA=" />
+          
+          <!-- 외부 API Key 설정 -->
+          <entry key="GOOGLE_API_KEY" value="AIzaSyBZTeX67yotCtiwzomdxt4nKD__1vsAsFU" />
+          <entry key="GOOGLE_PLACES_API_KEY" value="AIzaSyBZTeX67yotCtiwzomdxt4nKD__1vsAsFU" />
+          <entry key="KAKAO_MAP_API_KEY" value="094feac895a3e4a6d7ffa66d877bf48f" />
+          <entry key="TMAP_APP_KEY" value="HNU7vDc44T7eDbNj21Yi01YNZlMenSWlaWVizkSG" />
+          <entry key="OPENWEATHER_API_KEY" value="1aa5bfca079a20586915b56f29235cc0" />
+          <entry key="WEATHERAPI_KEY" value="dev-weather-api-key" />
+          
+          <!-- JPA 설정 -->
+          <entry key="JPA_DDL_AUTO" value="update" />
+          <entry key="JPA_SHOW_SQL" value="true" />
+          
+          <!-- 로깅 설정 -->
+          <entry key="LOG_LEVEL_APP" value="DEBUG" />
+          <entry key="LOG_LEVEL_CACHE" value="DEBUG" />
+          <entry key="LOG_LEVEL_REDIS" value="DEBUG" />
+          <entry key="LOG_LEVEL_SQL" value="DEBUG" />
+          <entry key="LOG_LEVEL_SQL_BINDER" value="TRACE" />
+          <entry key="LOG_LEVEL_FEIGN" value="DEBUG" />
+          <entry key="LOG_LEVEL_WEB" value="DEBUG" />
+          <entry key="LOG_LEVEL_SECURITY" value="DEBUG" />
+          <entry key="LOG_FILE_PATH" value="logs/location-service.log" />
+          <entry key="LOG_FILE_MAX_SIZE" value="10MB" />
+          <entry key="LOG_FILE_MAX_HISTORY" value="30" />
+        </map>
+      </option>
+      <option name="executionName" />
+      <option name="externalProjectPath" value="$PROJECT_DIR$" />
+      <option name="externalSystemIdString" value="GRADLE" />
+      <option name="scriptParameters" value="" />
+      <option name="taskDescriptions">
+        <list />
+      </option>
+      <option name="taskNames">
+        <list>
+          <option value="location-service:bootRun" />
+        </list>
+      </option>
+      <option name="vmOptions" />
+    </ExternalSystemSettings>
+    <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+    <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+    <EXTENSION ID="com.intellij.execution.ExternalSystemRunConfigurationJavaExtension">
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="false" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+        </ENTRIES>
+      </extension>
+    </EXTENSION>
+    <DebugAllEnabled>false</DebugAllEnabled>
+    <RunAsTest>false</RunAsTest>
+    <method v="2" />
+  </configuration>
+</component>
