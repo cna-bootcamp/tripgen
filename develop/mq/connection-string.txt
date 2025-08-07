@@ -1,0 +1,1 @@
+Endpoint=sb://sb-tripgen-dev.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=wl9R8/gBmMgQn9lZXjNkuVNXwGDdmzHv/+ASbOFTXmA=
