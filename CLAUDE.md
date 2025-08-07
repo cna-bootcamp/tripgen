@@ -362,6 +362,11 @@ DevOps Engineer
   - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/check-mermaid.sh
   - 파일명: check-mermaid.sh
 
+- IntelliJ서비스실행기
+  - 설명: IntelliJ에 등록된 실행프로파일을 이용하여 서비스 실행  
+  - URL: https://raw.githubusercontent.com/cna-bootcamp/clauding-guide/refs/heads/main/guides/tools/run-intellij-service-profile.py
+  - 파일명: run-intellij-service-profile.py
+
 ---
 
 ## 산출물 디렉토리 
@@ -424,6 +429,10 @@ DevOps Engineer
 - "@dev-front": /sc:implement @front --think-hard @complex-flag
 - "@test-backend": /sc:test @back @qa --think @complex-flag
 - "@test-api": /sc:test @back @qa --think 1) 소스 수정 후 컴파일하고 서버 시작 요청. 2) API경로와 DTO를 분석하여 정확하게 요청하여 테스트  
+- "@run-back": 
+  - 'IntelliJ서비스실행기'를 'tools' 디렉토리에 다운로드  
+  - python 또는 python3 명령으로 백그라우드로 실행하고 결과 로그를 분석  
+    nohup python3 tools/run-intellij-service-profile.py {service-name} > debug/{service-name}.log 2>&1 & echo "Started {service-name} with PID: $!"
 - "@test-front": /sc:test @front @qa --play --think @complex-flag
 - "@cicd": /sc:implement @devops @archi @back --think @complex-flag
 - "@document": /sc:document --think @scribe @complex-flag

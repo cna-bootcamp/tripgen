@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: ${SERVER_PORT:8082}
   servlet:
     context-path: /
 
@@ -12,9 +12,9 @@ spring:
     
   # Database Configuration
   datasource:
-    url: jdbc:postgresql://localhost:5432/tripgen_trip
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tripgen_trip}
     username: ${DB_USERNAME:tripgen}
-    password: ${DB_PASSWORD:tripgen123}
+    password: ${DB_PASSWORD:tripgen_password}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -40,7 +40,7 @@ spring:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
-    database: 0
+    database: ${REDIS_DATABASE:0}
     timeout: 2000
     jedis:
       pool:
@@ -53,7 +53,7 @@ spring:
   cache:
     type: redis
     redis:
-      time-to-live: 3600000 # 1 hour
+      time-to-live: ${CACHE_TTL:3600000} # 1 hour
       cache-null-values: false
   
   # Security Configuration
@@ -61,7 +61,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/auth/realms/tripgen/protocol/openid_connect/certs}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/auth/realms/tripgen/protocol/openid_connect/certs}
   
   # Flyway Configuration
   flyway:
@@ -79,9 +79,9 @@ feign:
         read-timeout: 10000
         logger-level: basic
       user-service:
-        url: ${USER_SERVICE_URL:http://localhost:8080}
+        url: ${USER_SERVICE_URL:http://localhost:8081}
       location-service:
-        url: ${LOCATION_SERVICE_URL:http://localhost:8081}
+        url: ${LOCATION_SERVICE_URL:http://localhost:8082}
       ai-service:
         url: ${AI_SERVICE_URL:http://localhost:8083}
 
@@ -105,11 +105,11 @@ management:
 # Logging Configuration
 logging:
   level:
-    com.unicorn.tripgen: INFO
-    org.springframework.cloud.openfeign: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.unicorn.tripgen: ${LOG_LEVEL_APP:INFO}
+    org.springframework.cloud.openfeign: ${LOG_LEVEL_FEIGN:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:DEBUG}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${LOG_LEVEL_SQL_BINDER:TRACE}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
@@ -117,12 +117,12 @@ logging:
 # OpenAPI Documentation
 springdoc:
   api-docs:
-    path: /api-docs
+    path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
-  show-actuator: true
+  show-actuator: false
 
 # Application Specific Configuration
 trip:
@@ -169,8 +169,8 @@ spring:
 
 logging:
   level:
-    com.unicorn.tripgen: DEBUG
-    root: INFO
+    com.unicorn.tripgen: ${LOG_LEVEL_APP:DEBUG}
+    root: ${LOG_LEVEL_ROOT:INFO}
 
 ---
 # Test Profile  
@@ -211,6 +211,6 @@ spring:
 
 logging:
   level:
-    com.unicorn.tripgen: INFO
-    org.hibernate.SQL: WARN
-    root: WARN
+    com.unicorn.tripgen: ${LOG_LEVEL_APP:INFO}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:WARN}
+    root: ${LOG_LEVEL_ROOT:WARN}

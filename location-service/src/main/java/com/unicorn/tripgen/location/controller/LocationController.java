@@ -2,8 +2,8 @@ package com.unicorn.tripgen.location.controller;
 
 import com.unicorn.tripgen.common.dto.ApiResponse;
 import com.unicorn.tripgen.location.dto.*;
-import com.unicorn.tripgen.location.dto.weather.WeatherRequest;
-import com.unicorn.tripgen.location.dto.weather.WeatherResponse;
+import com.unicorn.tripgen.location.dto.WeatherRequest;
+import com.unicorn.tripgen.location.dto.WeatherResponse;
 import com.unicorn.tripgen.location.service.LocationService;
 import com.unicorn.tripgen.location.service.WeatherService;
 import com.unicorn.tripgen.location.service.CacheService;

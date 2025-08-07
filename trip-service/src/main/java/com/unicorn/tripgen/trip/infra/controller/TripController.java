@@ -22,7 +22,7 @@ import jakarta.validation.Valid;
  */
 @Tag(name = "trips", description = "여행 관리")
 @RestController
-@RequestMapping("/trips")
+@RequestMapping("/api/v1/trips")
 public class TripController {
     
     private final TripUseCase tripUseCase;

@@ -9,25 +9,29 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 멤버 정보 수정 요청 DTO
+ * 멤버 생성 요청 DTO
  * API 설계서 스키마를 준수하는 DTO
  */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateMemberRequest {
+public class CreateMemberRequest {
     
+    @NotBlank(message = "이름은 필수입니다")
     @Size(min = 2, max = 20, message = "이름은 2-20자 사이여야 합니다")
     private String name;
     
+    @NotNull(message = "나이는 필수입니다")
     @Min(value = 1, message = "나이는 1세 이상이어야 합니다")
     @Max(value = 120, message = "나이는 120세 이하여야 합니다")
     private Integer age;
     
+    @NotBlank(message = "성별은 필수입니다")
     @Pattern(regexp = "^(male|female)$", message = "성별은 male 또는 female이어야 합니다")
     private String gender;
     
+    @NotBlank(message = "건강상태는 필수입니다")
     @Pattern(regexp = "^(excellent|good|caution|limited)$", message = "건강상태는 excellent, good, caution, limited 중 하나여야 합니다")
     private String healthStatus;
     

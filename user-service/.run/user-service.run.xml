@@ -12,7 +12,7 @@
           <entry key="DB_USERNAME" value="tripgen_user" />
           <entry key="FILE_BASE_URL" value="http://localhost:8081" />
           <entry key="FILE_MAX_SIZE" value="5242880" />
-          <entry key="FILE_UPLOAD_PATH" value="/app/uploads" />
+          <entry key="FILE_UPLOAD_PATH" value="/Users/dreamondal/home/workspace/tripgen/uploads" />
           <entry key="JPA_DDL_AUTO" value="update" />
           <entry key="JPA_SHOW_SQL" value="true" />
           <entry key="JWT_ACCESS_TOKEN_EXPIRATION" value="86400" />

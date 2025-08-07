@@ -12,8 +12,7 @@ import java.util.Map;
  */
 @FeignClient(
     name = "weather-api-client",
-    url = "${external.api.weather.openweather.base-url:https://api.openweathermap.org/data/2.5}",
-    configuration = com.unicorn.tripgen.location.config.WeatherApiClientConfig.class
+    url = "${external.api.weather.openweather.base-url:https://api.openweathermap.org/data/2.5}"
 )
 public interface WeatherApiClient {
     

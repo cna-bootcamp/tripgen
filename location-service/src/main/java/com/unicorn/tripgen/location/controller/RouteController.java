@@ -1,7 +1,7 @@
 package com.unicorn.tripgen.location.controller;
 
-import com.unicorn.tripgen.location.dto.route.RouteRequest;
-import com.unicorn.tripgen.location.dto.route.RouteResponse;
+import com.unicorn.tripgen.location.dto.RouteRequest;
+import com.unicorn.tripgen.location.dto.RouteResponse;
 import com.unicorn.tripgen.location.service.RouteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

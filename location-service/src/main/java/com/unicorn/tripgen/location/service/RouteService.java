@@ -1,7 +1,7 @@
 package com.unicorn.tripgen.location.service;
 
-import com.unicorn.tripgen.location.dto.route.RouteRequest;
-import com.unicorn.tripgen.location.dto.route.RouteResponse;
+import com.unicorn.tripgen.location.dto.RouteRequest;
+import com.unicorn.tripgen.location.dto.RouteResponse;
 
 public interface RouteService {
     

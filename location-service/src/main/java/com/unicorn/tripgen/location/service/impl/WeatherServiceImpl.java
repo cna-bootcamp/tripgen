@@ -1,8 +1,8 @@
 package com.unicorn.tripgen.location.service.impl;
 
 import com.unicorn.tripgen.location.client.WeatherApiClient;
-import com.unicorn.tripgen.location.dto.weather.WeatherRequest;
-import com.unicorn.tripgen.location.dto.weather.WeatherResponse;
+import com.unicorn.tripgen.location.dto.WeatherRequest;
+import com.unicorn.tripgen.location.dto.WeatherResponse;
 import com.unicorn.tripgen.location.service.WeatherService;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;

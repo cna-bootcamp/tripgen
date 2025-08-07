@@ -1,7 +1,7 @@
 package com.unicorn.tripgen.location.service;
 
-import com.unicorn.tripgen.location.dto.weather.WeatherRequest;
-import com.unicorn.tripgen.location.dto.weather.WeatherResponse;
+import com.unicorn.tripgen.location.dto.WeatherRequest;
+import com.unicorn.tripgen.location.dto.WeatherResponse;
 
 public interface WeatherService {
     

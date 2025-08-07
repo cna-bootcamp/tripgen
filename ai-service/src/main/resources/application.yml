@@ -5,9 +5,9 @@ spring:
     active: dev
 
   datasource:
-    url: jdbc:postgresql://localhost:5434/ai_db
-    username: ai_user
-    password: ai_pass
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:ai_db}
+    username: ${DB_USERNAME:ai_user}
+    password: ${DB_PASSWORD:ai_pass}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -29,10 +29,10 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
-      password: redis_pass
-      timeout: 10s
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_pass}
+      timeout: ${REDIS_TIMEOUT:10s}
       lettuce:
         pool:
           max-active: 10
@@ -42,7 +42,7 @@ spring:
   cache:
     type: redis
     redis:
-      time-to-live: 3600s
+      time-to-live: ${CACHE_TTL:3600s}
       cache-null-values: false
 
   cloud:
@@ -53,9 +53,9 @@ spring:
         pricing-tier: standard
 
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
   servlet:
-    context-path: /api/v1/ai
+    context-path: ${SERVER_CONTEXT_PATH:/api/v1/ai}
 
 security:
   jwt:
@@ -66,43 +66,43 @@ security:
 ai:
   openai:
     api-key: ${OPENAI_API_KEY}
-    model: gpt-4
-    max-tokens: 4000
-    temperature: 0.7
-    timeout: 60s
+    model: ${OPENAI_MODEL:gpt-4}
+    max-tokens: ${OPENAI_MAX_TOKENS:4000}
+    temperature: ${OPENAI_TEMPERATURE:0.7}
+    timeout: ${OPENAI_TIMEOUT:60s}
   
   claude:
     api-key: ${CLAUDE_API_KEY}
-    model: claude-3-opus-20240229
-    max-tokens: 4000
-    timeout: 60s
+    model: ${CLAUDE_MODEL:claude-3-opus-20240229}
+    max-tokens: ${CLAUDE_MAX_TOKENS:4000}
+    timeout: ${CLAUDE_TIMEOUT:60s}
 
   job:
     schedule-generation:
-      timeout: 300s # 5 minutes
-      max-retries: 3
-      queue-name: ai-schedule-jobs
+      timeout: ${AI_SCHEDULE_TIMEOUT:300s} # 5 minutes
+      max-retries: ${AI_SCHEDULE_MAX_RETRIES:3}
+      queue-name: ${AI_SCHEDULE_QUEUE:ai-schedule-jobs}
     recommendation:
-      timeout: 180s # 3 minutes
-      max-retries: 3
-      queue-name: ai-recommendation-jobs
+      timeout: ${AI_RECOMMENDATION_TIMEOUT:180s} # 3 minutes
+      max-retries: ${AI_RECOMMENDATION_MAX_RETRIES:3}
+      queue-name: ${AI_RECOMMENDATION_QUEUE:ai-recommendation-jobs}
 
 # External Service URLs
 external-services:
   user-service:
-    url: http://localhost:8081/api/v1/users
-    connect-timeout: 5s
-    read-timeout: 30s
+    url: ${USER_SERVICE_URL:http://localhost:8081/api/v1/users}
+    connect-timeout: ${USER_SERVICE_CONNECT_TIMEOUT:5s}
+    read-timeout: ${USER_SERVICE_READ_TIMEOUT:30s}
   
   location-service:
-    url: http://localhost:8082/api/v1/locations
-    connect-timeout: 5s
-    read-timeout: 30s
+    url: ${LOCATION_SERVICE_URL:http://localhost:8082/api/v1/locations}
+    connect-timeout: ${LOCATION_SERVICE_CONNECT_TIMEOUT:5s}
+    read-timeout: ${LOCATION_SERVICE_READ_TIMEOUT:30s}
   
   weather-service:
-    url: http://localhost:8082/api/v1/locations/weather
-    connect-timeout: 5s
-    read-timeout: 30s
+    url: ${WEATHER_SERVICE_URL:http://localhost:8082/api/v1/locations/weather}
+    connect-timeout: ${WEATHER_SERVICE_CONNECT_TIMEOUT:5s}
+    read-timeout: ${WEATHER_SERVICE_READ_TIMEOUT:30s}
 
 # Feign Configuration
 feign:
@@ -135,15 +135,15 @@ management:
 # Logging
 logging:
   level:
-    com.unicorn.tripgen.ai: DEBUG
-    org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type: TRACE
+    com.unicorn.tripgen.ai: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:INFO}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:DEBUG}
+    org.hibernate.type: ${LOG_LEVEL_SQL_TYPE:TRACE}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/ai-service.log
+    name: ${LOG_FILE_PATH:logs/ai-service.log}
 
 ---
 # Production Profile
@@ -154,7 +154,7 @@ spring:
   
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-    username: ${DB_USER}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   
   data:
@@ -180,6 +180,6 @@ external-services:
 
 logging:
   level:
-    com.unicorn.tripgen.ai: INFO
-    org.springframework.web: WARN
-    org.hibernate: WARN
+    com.unicorn.tripgen.ai: ${LOG_LEVEL_APP:INFO}
+    org.springframework.web: ${LOG_LEVEL_WEB:WARN}
+    org.hibernate: ${LOG_LEVEL_HIBERNATE:WARN}

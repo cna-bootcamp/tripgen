@@ -1,10 +1,15 @@
 # Location Service Application Configuration
+# 위치 기반 여행 정보 제공 및 AI 추천 연동 서비스
 
-# JWT Configuration
+# JWT (JSON Web Token) 보안 설정
+# 사용자 인증 및 서비스 간 통신 보안을 위한 JWT 토큰 설정
 security:
   jwt:
+    # JWT 서명에 사용할 비밀키 (프로덕션에서는 반드시 환경변수로 관리)
     secret: ${JWT_SECRET:dev-jwt-secret-key-for-development-only}
+    # Access Token 만료 시간 (초 단위, 기본값: 3600초 = 1시간)
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600}
+    # Refresh Token 만료 시간 (초 단위, 기본값: 604800초 = 7일)
     refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800}
 
 server:
@@ -26,58 +31,65 @@ spring:
   main:
     allow-bean-definition-overriding: true
   
-  # Database Configuration
+  # PostgreSQL Database Configuration (PostGIS 지원)
+  # 위치 정보, 경로, 날씨 데이터 저장용 관계형 데이터베이스
   datasource:
-    url: jdbc:postgresql://localhost:5432/tripgen_location
-    username: tripgen_user
-    password: tripgen_password
+    # JDBC URL 형식: jdbc:postgresql://호스트:포트/데이터베이스명
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tripgen_location}
+    username: ${DB_USERNAME:tripgen_user}
+    password: ${DB_PASSWORD:tripgen_password}
     driver-class-name: org.postgresql.Driver
+    # HikariCP 커넥션 풀 설정 (성능 최적화)
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 300000
-      connection-timeout: 20000
-      validation-timeout: 5000
-      leak-detection-threshold: 60000
+      maximum-pool-size: 20           # 최대 커넥션 수
+      minimum-idle: 5                 # 최소 유휴 커넥션 수
+      idle-timeout: 300000            # 유휴 커넥션 타임아웃 (5분)
+      connection-timeout: 20000       # 커넥션 획득 타임아웃 (20초)
+      validation-timeout: 5000        # 커넥션 유효성 검사 타임아웃 (5초)
+      leak-detection-threshold: 60000 # 커넥션 누수 감지 임계값 (60초)
   
-  # JPA Configuration
+  # JPA/Hibernate Configuration
+  # 객체-관계 매핑(ORM) 설정
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: false
+      ddl-auto: validate  # 스키마 검증만 수행 (프로덕션 안전 모드)
+    show-sql: false       # SQL 쿼리 콘솔 출력 여부
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        use_sql_comments: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect  # PostgreSQL 방언
+        format_sql: true                # SQL 포맷팅
+        use_sql_comments: true          # SQL 주석 포함
         jdbc:
-          batch_size: 20
-        order_inserts: true
-        order_updates: true
-    open-in-view: false
+          batch_size: 20                # 배치 처리 크기
+        order_inserts: true             # INSERT 순서 정렬
+        order_updates: true             # UPDATE 순서 정렬
+    open-in-view: false                 # OSIV 비활성화 (성능 최적화)
   
-  # Redis Configuration
+  # Redis Cache Configuration
+  # 고성능 캐싱 및 세션 관리를 위한 인메모리 데이터 저장소
   data:
     redis:
-      host: localhost
-      port: 6379
-      password: 
-      database: 1
-      timeout: 2000ms
+      host: ${REDIS_HOST:localhost}    # Redis 서버 호스트
+      port: ${REDIS_PORT:6379}         # Redis 서버 포트
+      password: ${REDIS_PASSWORD:}     # Redis 인증 비밀번호
+      database: ${REDIS_DATABASE:1}    # 사용할 데이터베이스 번호 (0-15)
+      timeout: ${REDIS_TIMEOUT:2000ms} # 연결 타임아웃
+      # Lettuce 클라이언트 풀 설정
       lettuce:
         pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
+          max-active: 8   # 최대 활성 연결 수
+          max-idle: 8     # 최대 유휴 연결 수
+          min-idle: 0     # 최소 유휴 연결 수
   
-  # Cache Configuration
+  # Spring Cache Configuration
+  # 애플리케이션 레벨 캐싱 설정
   cache:
-    type: redis
+    type: redis                               # 캐시 타입 (Redis 사용)
     redis:
-      time-to-live: 1800000 # 30 minutes
-      cache-null-values: false
-      use-key-prefix: true
-      key-prefix: "location:"
+      time-to-live: ${CACHE_TTL:1800000}     # 기본 TTL (30분 = 1800000ms)
+      cache-null-values: false               # null 값 캐싱 여부
+      use-key-prefix: true                   # 키 프리픽스 사용 여부
+      key-prefix: "location:"                # 캐시 키 프리픽스 (서비스별 구분)
   
   # Jackson Configuration
   jackson:
@@ -89,38 +101,76 @@ spring:
     deserialization:
       fail-on-unknown-properties: false
   
-  # Spring Cloud Stream Configuration
+  # Spring Cloud Stream & Azure Service Bus Configuration
+  # Spring Cloud Stream을 통해 Azure Service Bus와 연동하여 마이크로서비스 간 비동기 메시징 구현
   cloud:
+    # Azure Service Bus 연결 설정
     azure:
       servicebus:
+        # Service Bus 네임스페이스 연결 문자열 (환경변수로 주입)
+        # 형식: Endpoint=sb://{namespace}.servicebus.windows.net/;SharedAccessKeyName={keyName};SharedAccessKey={key}
         connection-string: ${AZURE_SERVICEBUS_CONNECTION_STRING:}
+    
+    # Spring Cloud Stream 바인딩 설정
     stream:
+      # 메시지 채널 바인딩 정의
       bindings:
+        # Producer: Location 서비스 -> AI 서비스로 추천 요청 전송
+        # StreamBridge를 통해 동적으로 메시지 전송 (RecommendationProducerService 참조)
         aiRecommendationProducer-out-0:
-          destination: location-search
-          content-type: application/json
+          destination: location-search        # Service Bus Topic 이름
+          content-type: application/json      # 메시지 포맷 (JSON)
+        
+        # Consumer: AI 서비스 -> Location 서비스로 추천 결과 수신
+        # @Bean으로 정의된 Consumer 함수가 자동 바인딩 (RecommendationConsumerService 참조)
         aiRecommendationConsumer-in-0:
-          destination: ai-schedule-generation
-          content-type: application/json
+          destination: ai-schedule-generation # Service Bus Topic 이름
+          content-type: application/json      # 메시지 포맷 (JSON)
+      
+      # Consumer 함수 정의 (Spring Cloud Function)
+      # RecommendationConsumerService의 @Bean 메서드명과 일치해야 함
       function:
         definition: aiRecommendationConsumer
+      
+      # 바인딩 재시도 간격 (초 단위)
+      # Service Bus 연결 실패 시 재시도 간격
+      bindingRetryInterval: 5
+      
+      # Service Bus 전용 바인딩 설정
+      servicebus:
+        bindings:
+          # Producer 설정
+          aiRecommendationProducer-out-0:
+            producer:
+              entity-type: topic  # Azure Service Bus 엔티티 타입 (topic/queue 중 선택)
+          
+          # Consumer 설정  
+          aiRecommendationConsumer-in-0:
+            consumer:
+              entity-type: topic  # Azure Service Bus 엔티티 타입
+              subscription-name: location-service-subscription  # Topic 구독 이름
+      
+      # 기본 바인더 설정
+      # 여러 바인더 사용 시 기본값 지정 (kafka, rabbitmq, servicebus 등)
+      default:
+        binder: servicebus
 
 # Logging Configuration
 logging:
   level:
-    com.unicorn.tripgen.location: INFO
-    org.springframework.cache: DEBUG
-    org.springframework.data.redis: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    feign: DEBUG
+    com.unicorn.tripgen.location: ${LOG_LEVEL_APP:INFO}
+    org.springframework.cache: ${LOG_LEVEL_CACHE:DEBUG}
+    org.springframework.data.redis: ${LOG_LEVEL_REDIS:DEBUG}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:DEBUG}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${LOG_LEVEL_SQL_BINDER:TRACE}
+    feign: ${LOG_LEVEL_FEIGN:DEBUG}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/location-service.log
-    max-size: 10MB
-    max-history: 30
+    name: ${LOG_FILE_PATH:logs/location-service.log}
+    max-size: ${LOG_FILE_MAX_SIZE:10MB}
+    max-history: ${LOG_FILE_MAX_HISTORY:30}
 
 # Management/Actuator Configuration
 management:
@@ -146,69 +196,81 @@ management:
       enabled: true
 
 # External API Configuration
+# 외부 지도, 경로, 날씨 API 연동 설정
 external:
   api:
-    # Google APIs
+    # Google Maps & Places API
+    # 장소 검색, 상세 정보, 경로 탐색 등 Google 서비스 연동
     google:
       api-key: ${GOOGLE_API_KEY:${GOOGLE_PLACES_API_KEY:your-google-api-key}}
       places:
-        base-url: https://maps.googleapis.com/maps/api/place
+        base-url: https://maps.googleapis.com/maps/api/place  # Places API 엔드포인트
       directions:
-        base-url: https://maps.googleapis.com
+        base-url: https://maps.googleapis.com                  # Directions API 엔드포인트
     
-    # Kakao Map API
+    # Kakao Map API  
+    # 국내 지도 서비스 및 길찾기 API (한국 특화)
     kakao:
       api-key: ${KAKAO_MAP_API_KEY:your-kakao-map-api-key}
-      base-url: https://dapi.kakao.com
+      base-url: https://dapi.kakao.com                        # 기본 API 엔드포인트
       mobility:
-        base-url: https://apis-navi.kakaomobility.com
+        base-url: https://apis-navi.kakaomobility.com        # 카카오모빌리티 길찾기 API
     
     # TMAP API
+    # 대중교통 경로 탐색 특화 API (SK Telecom)
     tmap:
       app-key: ${TMAP_APP_KEY:your-tmap-app-key}
       transit:
-        base-url: https://apis.openapi.sk.com
+        base-url: https://apis.openapi.sk.com                # 대중교통 API 엔드포인트
     
     # Weather API
+    # 날씨 정보 제공 서비스
     weather:
+      # OpenWeatherMap API (기본 날씨 정보)
       openweather:
         api-key: ${OPENWEATHER_API_KEY:your-openweather-api-key}
         base-url: https://api.openweathermap.org/data/2.5
+      # WeatherAPI (상세 날씨 정보, 백업용)
       weatherapi:
         api-key: ${WEATHERAPI_KEY:your-weatherapi-key}
         base-url: https://api.weatherapi.com/v1
     
-    # Common settings
+    # 공통 HTTP 클라이언트 설정
     timeout:
-      connect: 5000
-      read: 30000
+      connect: 5000       # 연결 타임아웃 (5초)
+      read: 30000        # 읽기 타임아웃 (30초)
     retry:
-      max-attempts: 3
-      period: 1000
-      max-period: 5000
-    preferred-source: google
+      max-attempts: 3    # 최대 재시도 횟수
+      period: 1000       # 재시도 간격 (1초)
+      max-period: 5000   # 최대 재시도 간격 (5초)
+    preferred-source: google  # 기본 API 소스 (fallback 시 다른 소스 사용)
 
 # Location Service Specific Configuration
+# Location 서비스 고유 비즈니스 로직 설정
 location:
   service:
+    # 캐시 TTL(Time To Live) 설정
+    # 데이터 타입별 캐시 유지 시간 (초 단위)
     cache:
-      default-ttl: 1800          # 30 minutes
-      search-result-ttl: 300     # 5 minutes
-      location-detail-ttl: 1800  # 30 minutes
-      weather-info-ttl: 900      # 15 minutes
-      route-info-ttl: 600        # 10 minutes
+      default-ttl: 1800          # 기본 캐시 유지 시간 (30분)
+      search-result-ttl: 300     # 검색 결과 캐시 (5분) - 자주 변경될 수 있음
+      location-detail-ttl: 1800  # 장소 상세 정보 캐시 (30분) - 상대적으로 정적
+      weather-info-ttl: 900      # 날씨 정보 캐시 (15분) - 주기적 업데이트 필요
+      route-info-ttl: 600        # 경로 정보 캐시 (10분) - 실시간 교통 상황 반영
     
+    # 검색 관련 설정
     search:
-      default-page-size: 20
-      max-page-size: 50
-      max-radius: 50000          # 50km
-      default-radius: 5000       # 5km
+      default-page-size: 20      # 기본 페이지 크기
+      max-page-size: 50          # 최대 페이지 크기 (과도한 요청 방지)
+      max-radius: 50000          # 최대 검색 반경 (50km)
+      default-radius: 5000       # 기본 검색 반경 (5km)
     
+    # 외부 API 연동 전략
     external:
-      preferred-source: google
-      timeout-seconds: 30
-      retry-count: 3
-      fallback-enabled: true
+      preferred-source: google   # 우선 사용할 API 소스
+      timeout-seconds: 30        # API 호출 타임아웃 (초)
+      retry-count: 3            # 실패 시 재시도 횟수
+      fallback-enabled: true    # Fallback 활성화 (다른 API로 자동 전환)
 
 # Flyway Configuration
 flyway:
@@ -247,11 +309,11 @@ spring:
 # Development Logging
 logging:
   level:
-    com.unicorn.tripgen.location: DEBUG
-    com.unicorn.tripgen.location.security: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    feign: DEBUG
+    com.unicorn.tripgen.location: ${LOG_LEVEL_APP:DEBUG}
+    com.unicorn.tripgen.location.security: ${LOG_LEVEL_SECURITY:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
+    feign: ${LOG_LEVEL_FEIGN:DEBUG}
 
 external:
   api:
@@ -297,11 +359,11 @@ spring:
 # Production Logging
 logging:
   level:
-    com.unicorn.tripgen.location: INFO
-    org.springframework.web: WARN
-    feign: INFO
+    com.unicorn.tripgen.location: ${LOG_LEVEL_APP:INFO}
+    org.springframework.web: ${LOG_LEVEL_WEB:WARN}
+    feign: ${LOG_LEVEL_FEIGN:INFO}
   file:
-    name: /app/logs/location-service.log
+    name: ${LOG_FILE_PATH:/app/logs/location-service.log}
 
 # Production External APIs
 external:
@@ -348,8 +410,8 @@ spring:
 # Test Logging
 logging:
   level:
-    com.unicorn.tripgen.location: DEBUG
-    org.springframework.web: DEBUG
+    com.unicorn.tripgen.location: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
 
 # Mock External APIs for Testing
 external:
