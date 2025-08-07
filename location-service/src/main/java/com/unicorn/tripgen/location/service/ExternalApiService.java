@@ -36,13 +36,6 @@ public interface ExternalApiService {
      */
     LocationDetailResponse getLocationDetail(String placeId, Boolean includeReviews, String language);
     
-    /**
-     * 영업시간 정보 조회 (실시간)
-     * 
-     * @param placeId 장소 ID
-     * @return 영업시간 정보
-     */
-    LocationDetailResponse.BusinessHours getBusinessHours(String placeId);
     
     /**
      * 위치 자동완성 (외부 API 통합)
@@ -130,4 +123,17 @@ public interface ExternalApiService {
      * @return API 사용량 통계
      */
     Object getApiUsageStatistics();
+    
+    /**
+     * 주변 주차장 검색
+     * 
+     * @param latitude 중심 위도
+     * @param longitude 중심 경도
+     * @param radiusMeters 검색 반경 (미터)
+     * @param limit 결과 개수 제한 (기본 3개)
+     * @return 주변 주차장 목록
+     */
+    List<LocationDetailResponse.ParkingInfo> searchNearbyParkings(
+        Double latitude, Double longitude, Integer radiusMeters, Integer limit
+    );
 }

@@ -1,14 +1,20 @@
-package com.unicorn.tripgen.location.service;
+package com.unicorn.tripgen.location.service.impl;
 
 import com.unicorn.tripgen.common.exception.BusinessException;
 import com.unicorn.tripgen.common.exception.ErrorCodes;
 import com.unicorn.tripgen.common.exception.NotFoundException;
 import com.unicorn.tripgen.location.dto.*;
+import com.unicorn.tripgen.location.service.LocationService;
+import com.unicorn.tripgen.location.service.ExternalApiService;
+import com.unicorn.tripgen.location.service.CacheService;
+import com.unicorn.tripgen.location.service.RouteService;
+import com.unicorn.tripgen.location.service.RecommendationProducerService;
 import com.unicorn.tripgen.location.entity.Location;
 import com.unicorn.tripgen.location.entity.LocationType;
 import com.unicorn.tripgen.location.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,10 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * 위치 서비스 구현체
@@ -33,58 +38,25 @@ public class LocationServiceImpl implements LocationService {
     private final LocationRepository locationRepository;
     private final ExternalApiService externalApiService;
     private final CacheService cacheService;
-    private final WeatherService weatherService;
     private final RouteService routeService;
+    private final Environment environment;
+    private final RecommendationProducerService recommendationProducerService;
     
-    @Override
-    public LocationSearchResponse searchLocationsByKeyword(SearchLocationRequest request) {
-        log.info("Searching locations by keyword: {}", request.getKeyword());
-        
-        try {
-            // 캐시에서 검색 결과 확인
-            String cacheKey = buildSearchCacheKey(request);
-            LocationSearchResponse cachedResult = cacheService.getLocationSearchResult(cacheKey);
-            if (cachedResult != null) {
-                log.debug("Returning cached search result for keyword: {}", request.getKeyword());
-                return cachedResult;
+    // 구글 API 통일로 인해 한국 좌표 판별 불필요
+    
+    // 키워드 검색 메서드 제거됨 - 주변 검색으로 충분
+    
+    /**
+     * 캐시 사용 여부 확인 (dev 프로파일에서는 캐시 비활성화)
+     */
+    private boolean isCacheEnabled() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        for (String profile : activeProfiles) {
+            if ("dev".equals(profile)) {
+                return false;
             }
-            
-            long startTime = System.currentTimeMillis();
-            
-            // 로컬 DB에서 검색
-            List<LocationSearchResponse.PlaceCard> localResults = searchLocalLocations(request);
-            
-            // 외부 API에서 검색
-            List<LocationSearchResponse.PlaceCard> externalResults = externalApiService.searchLocationsByKeyword(request);
-            
-            // 결과 병합 및 중복 제거
-            List<LocationSearchResponse.PlaceCard> mergedResults = mergeAndDeduplicateResults(localResults, externalResults);
-            
-            // 정렬 및 페이징 적용
-            List<LocationSearchResponse.PlaceCard> sortedResults = applySortingAndPaging(mergedResults, request);
-            
-            // 응답 생성
-            LocationSearchResponse response = LocationSearchResponse.builder()
-                .keyword(request.getKeyword())
-                .totalCount((long) mergedResults.size())
-                .page(request.getPage())
-                .size(request.getSize())
-                .hasNext(calculateHasNext(mergedResults.size(), request))
-                .places(sortedResults)
-                .executionTimeMs(System.currentTimeMillis() - startTime)
-                .dataSource("merged")
-                .build();
-            
-            // 캐시에 저장
-            cacheService.cacheLocationSearchResult(cacheKey, response, 300); // 5분 캐시
-            
-            log.info("Location search completed: {} results found", response.getTotalCount());
-            return response;
-            
-        } catch (Exception e) {
-            log.error("Error searching locations by keyword: {}", request.getKeyword(), e);
-            throw new BusinessException(ErrorCodes.EXTERNAL_API_ERROR, "위치 검색 중 오류가 발생했습니다: " + e.getMessage());
         }
+        return true;
     }
     
     @Override
@@ -94,12 +66,15 @@ public class LocationServiceImpl implements LocationService {
                 request.getTransportMode(), request.getTimeRange());
         
         try {
-            // 캐시에서 검색 결과 확인
-            String cacheKey = buildNearbyCacheKey(request);
-            NearbyPlacesResponse cachedResult = cacheService.getNearbySearchResult(cacheKey);
-            if (cachedResult != null) {
-                log.debug("Returning cached nearby search result");
-                return cachedResult;
+            // 프로파일 기반 캐시 사용 여부 확인
+            String cacheKey = null;
+            if (isCacheEnabled()) {
+                cacheKey = buildNearbyCacheKey(request);
+                NearbyPlacesResponse cachedResult = cacheService.getNearbySearchResult(cacheKey);
+                if (cachedResult != null) {
+                    log.debug("Returning cached nearby search result");
+                    return cachedResult;
+                }
             }
             
             long startTime = System.currentTimeMillis();
@@ -110,23 +85,22 @@ public class LocationServiceImpl implements LocationService {
             // 주변 장소 검색
             List<NearbyPlacesResponse.NearbyPlace> nearbyPlaces = findNearbyPlaces(request, radiusKm);
             
-            // 경로 및 시간 정보 계산
-            if (request.getIncludeCost() || "travel_time".equals(request.getSort())) {
+            // 검색 결과가 없는 경우에도 정상 처리
+            if (nearbyPlaces == null) {
+                nearbyPlaces = new ArrayList<>();
+            }
+            
+            log.debug("Found {} nearby places before filtering", nearbyPlaces.size());
+            
+            // 경로 및 시간 정보 계산 (travel_time 정렬인 경우에만)
+            if ("travel_time".equals(request.getSort())) {
                 enrichWithRouteInformation(nearbyPlaces, request);
-            }
-            
-            // 날씨 정보 추가 (요청 시)
-            if (request.getIncludeWeather()) {
-                enrichWithWeatherInformation(nearbyPlaces, request);
-            }
-            
-            // AI 추천 정보 추가 (요청 시)
-            if (request.getIncludeAI()) {
-                enrichWithAIRecommendations(nearbyPlaces);
             }
             
             // 정렬 및 페이징
             List<NearbyPlacesResponse.NearbyPlace> sortedPlaces = applySortingAndPaging(nearbyPlaces, request);
+            
+            log.debug("Final filtered results: {}", sortedPlaces.size());
             
             // 응답 생성
             NearbyPlacesResponse response = NearbyPlacesResponse.builder()
@@ -141,8 +115,10 @@ public class LocationServiceImpl implements LocationService {
                 .responseTime(LocalDateTime.now())
                 .build();
             
-            // 캐시에 저장
-            cacheService.cacheNearbySearchResult(cacheKey, response, 600); // 10분 캐시
+            // 프로파일 기반 캐시 저장
+            if (isCacheEnabled() && cacheKey != null) {
+                cacheService.cacheNearbySearchResult(cacheKey, response, 600); // 10분 캐시
+            }
             
             log.info("Nearby places search completed: {} results found", response.getTotalCount());
             return response;
@@ -154,17 +130,20 @@ public class LocationServiceImpl implements LocationService {
     }
     
     @Override
-    public LocationDetailResponse getLocationDetail(String placeId, Boolean includeAI, Boolean includeReviews, String language) {
-        log.info("Getting location detail: placeId={}, includeAI={}, includeReviews={}", placeId, includeAI, includeReviews);
+    public LocationDetailResponse getLocationDetail(String placeId, Boolean includeReviews, String language) {
+        log.info("Getting location detail: placeId={}, includeReviews={}", placeId, includeReviews);
         
         try {
-            // 캐시에서 상세 정보 확인
-            String cacheKey = buildDetailCacheKey(placeId, includeAI, includeReviews, language);
-            LocationDetailResponse cachedDetail = cacheService.getLocationDetail(cacheKey);
-            if (cachedDetail != null) {
-                log.debug("Returning cached location detail: {}", placeId);
-                cachedDetail.setFromCache(true);
-                return cachedDetail;
+            // 프로파일 기반 캐시 사용 여부 확인
+            String cacheKey = null;
+            if (isCacheEnabled()) {
+                cacheKey = buildDetailCacheKey(placeId, includeReviews, language);
+                LocationDetailResponse cachedDetail = cacheService.getLocationDetail(cacheKey);
+                if (cachedDetail != null) {
+                    log.debug("Returning cached location detail: {}", placeId);
+                    cachedDetail.setFromCache(true);
+                    return cachedDetail;
+                }
             }
             
             // 로컬 DB에서 위치 정보 조회
@@ -183,18 +162,15 @@ public class LocationServiceImpl implements LocationService {
                 response = mergeWithLocalData(response, location);
             }
             
-            // AI 추천 정보 추가 (요청 시)
-            if (includeAI != null && includeAI) {
-                LocationDetailResponse.AIRecommendation aiRecommendation = getOrGenerateAIRecommendation(placeId);
-                response.setAiRecommendation(aiRecommendation);
-            }
             
             // 응답 메타데이터 설정
             response.setFromCache(false);
             response.setLastUpdated(LocalDateTime.now());
             
-            // 캐시에 저장
-            cacheService.cacheLocationDetail(cacheKey, response, 1800); // 30분 캐시
+            // 프로파일 기반 캐시 저장
+            if (isCacheEnabled() && cacheKey != null) {
+                cacheService.cacheLocationDetail(cacheKey, response, 1800); // 30분 캐시
+            }
             
             // 로컬 DB 업데이트 (비동기)
             updateLocalLocationAsync(response);
@@ -222,15 +198,29 @@ public class LocationServiceImpl implements LocationService {
                 return cachedRecommendation;
             }
             
-            // AI 서비스에 추천 정보 생성 요청
-            // TODO: AI 서비스 클라이언트 구현 후 실제 호출
-            log.info("AI recommendation not found in cache, requesting generation: {}", placeId);
+            // MQ를 통한 AI 추천 요청 발행
+            RecommendationRequest.SearchContext searchContext = RecommendationRequest.SearchContext.builder()
+                    .searchQuery("일반 추천") // 기본 검색 컨텍스트
+                    .searchIntents(new String[]{"general"})
+                    .build();
             
-            // 임시 응답 (AI 서비스에서 생성 중)
-            return new Object() {
-                public String getMessage() { return "AI 추천정보를 생성 중입니다. 잠시 후 다시 시도해주세요."; }
-                public Integer getEstimatedTime() { return 3; }
-            };
+            String requestId = recommendationProducerService.sendRecommendationRequest(placeId, tripId, searchContext);
+            
+            // 처리 중 상태를 Redis에 저장
+            String statusCacheKey = "rec_status_" + requestId;
+            cacheService.cacheObject(statusCacheKey, "processing", 60); // 1분
+            
+            log.info("AI recommendation request sent: requestId={}, placeId={}", requestId, placeId);
+            
+            // 비동기 처리 응답
+            return Map.of(
+                    "requestId", requestId,
+                    "status", "processing",
+                    "message", "AI 추천정보를 생성 중입니다",
+                    "pollingUrl", "/api/v1/locations/recommendations/" + requestId + "/status",
+                    "websocketUrl", "/ws/recommendations/" + requestId,
+                    "estimatedTime", 30
+            );
             
         } catch (Exception e) {
             log.error("Error getting location recommendations: {}", placeId, e);
@@ -238,19 +228,6 @@ public class LocationServiceImpl implements LocationService {
         }
     }
     
-    @Override
-    public LocationDetailResponse.BusinessHours getBusinessHours(String placeId) {
-        log.info("Getting business hours: placeId={}", placeId);
-        
-        try {
-            // 외부 API에서 실시간 영업시간 조회
-            return externalApiService.getBusinessHours(placeId);
-            
-        } catch (Exception e) {
-            log.error("Error getting business hours: {}", placeId, e);
-            throw new BusinessException(ErrorCodes.EXTERNAL_API_ERROR, "영업시간 조회 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
     
     // 나머지 메서드들은 구현 복잡도로 인해 기본 골격만 제공
     @Override
@@ -272,99 +249,25 @@ public class LocationServiceImpl implements LocationService {
             .collect(Collectors.toList());
     }
     
-    @Override
-    public List<LocationSearchResponse.PlaceCard> getPopularLocations(String category, String region, Pageable pageable) {
-        Page<Location> locations = locationRepository.findByIsActiveTrueOrderByReviewCountDesc(pageable);
-        return locations.getContent().stream()
-            .map(this::convertToPlaceCard)
-            .collect(Collectors.toList());
-    }
     
-    @Override
-    public List<LocationSearchResponse.PlaceCard> getTopRatedLocations(String category, Integer minReviewCount, Pageable pageable) {
-        Page<Location> locations = locationRepository.findTopRatedLocations(pageable);
-        return locations.getContent().stream()
-            .filter(location -> minReviewCount == null || location.getReviewCount() >= minReviewCount)
-            .map(this::convertToPlaceCard)
-            .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional
-    public LocationDetailResponse syncLocationData(String placeId, Boolean forceUpdate) {
-        log.info("Syncing location data: placeId={}, forceUpdate={}", placeId, forceUpdate);
-        
-        try {
-            // 강제 업데이트가 아닌 경우 캐시 무효화만 수행
-            if (forceUpdate == null || !forceUpdate) {
-                cacheService.evictLocationCache(placeId);
-            }
-            
-            // 외부 API에서 최신 정보 조회
-            LocationDetailResponse response = externalApiService.getLocationDetail(placeId, true, "ko");
-            
-            // 로컬 DB 업데이트
-            updateLocalLocationSync(response);
-            
-            // 캐시 업데이트
-            String[] cacheKeys = cacheService.getLocationCacheKeys(placeId);
-            for (String cacheKey : cacheKeys) {
-                cacheService.evictCache(cacheKey);
-            }
-            
-            log.info("Location data sync completed: {}", placeId);
-            return response;
-            
-        } catch (Exception e) {
-            log.error("Error syncing location data: {}", placeId, e);
-            throw new BusinessException(ErrorCodes.EXTERNAL_API_ERROR, "위치 데이터 동기화 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
     
     // Helper methods
-    private String buildSearchCacheKey(SearchLocationRequest request) {
-        return String.format("search:%s:%s:%d:%d:%s:%s", 
-            request.getKeyword(), request.getCategory(), 
-            request.getRadius(), request.getPage(), 
-            request.getSize(), request.getSort());
-    }
     
     private String buildNearbyCacheKey(NearbyPlacesRequest request) {
-        return String.format("nearby:%s:%s:%d:%s:%d:%d", 
+        return String.format("nearby:%s:%s:%d:%s:%d:%d:%s:%s:%s", 
             request.getOrigin().getLatitude(), request.getOrigin().getLongitude(),
             request.getTimeRange(), request.getTransportMode(),
-            request.getPage(), request.getSize());
+            request.getPage(), request.getSize(),
+            request.getMinRating(), request.getMaxPriceLevel(), request.getOpenNow());
     }
     
-    private String buildDetailCacheKey(String placeId, Boolean includeAI, Boolean includeReviews, String language) {
-        return String.format("detail:%s:%s:%s:%s", placeId, includeAI, includeReviews, language);
+    private String buildDetailCacheKey(String placeId, Boolean includeReviews, String language) {
+        return String.format("detail:%s:%s:%s", placeId, includeReviews, language);
     }
     
-    private List<LocationSearchResponse.PlaceCard> searchLocalLocations(SearchLocationRequest request) {
-        // 로컬 DB 검색 로직 구현
-        return new ArrayList<>();
-    }
     
-    private List<LocationSearchResponse.PlaceCard> mergeAndDeduplicateResults(
-            List<LocationSearchResponse.PlaceCard> local, List<LocationSearchResponse.PlaceCard> external) {
-        // 중복 제거 및 병합 로직
-        List<LocationSearchResponse.PlaceCard> merged = new ArrayList<>(local);
-        merged.addAll(external);
-        return merged;
-    }
     
-    private List<LocationSearchResponse.PlaceCard> applySortingAndPaging(
-            List<LocationSearchResponse.PlaceCard> results, SearchLocationRequest request) {
-        // 정렬 및 페이징 로직
-        return results.stream()
-            .skip((long) (request.getPage() - 1) * request.getSize())
-            .limit(request.getSize())
-            .collect(Collectors.toList());
-    }
     
-    private Boolean calculateHasNext(int totalSize, SearchLocationRequest request) {
-        return totalSize > request.getPage() * request.getSize();
-    }
     
     private Boolean calculateHasNext(int totalSize, int page, int size) {
         return totalSize > page * size;
@@ -386,46 +289,13 @@ public class LocationServiceImpl implements LocationService {
             .build();
     }
     
-    // Stub implementations for remaining methods
-    @Override
-    public List<LocationSearchResponse.PlaceCard> getLocationAutocomplete(String input, BigDecimal latitude, BigDecimal longitude, String language, Integer limit) {
-        return new ArrayList<>();
-    }
     
-    @Override
-    public Boolean addLocationBookmark(String userId, String placeId) {
-        return true;
-    }
     
-    @Override
-    public Boolean removeLocationBookmark(String userId, String placeId) {
-        return true;
-    }
     
-    @Override
-    public List<LocationSearchResponse.PlaceCard> getUserBookmarkedLocations(String userId, Pageable pageable) {
-        return new ArrayList<>();
-    }
     
-    @Override
-    public Boolean addLocationVisit(String userId, String placeId, String visitDate) {
-        return true;
-    }
     
-    @Override
-    public List<LocationSearchResponse.PlaceCard> getUserVisitedLocations(String userId, Pageable pageable) {
-        return new ArrayList<>();
-    }
     
-    @Override
-    public Boolean updateLocationRating(String placeId, BigDecimal rating, Integer reviewCount) {
-        return true;
-    }
     
-    @Override
-    public Object getLocationStatistics(String placeId) {
-        return new Object();
-    }
     
     // Private helper methods (stubs)
     private double calculateRadiusByTimeAndTransport(Integer timeRange, String transportMode) {
@@ -439,26 +309,98 @@ public class LocationServiceImpl implements LocationService {
     }
     
     private List<NearbyPlacesResponse.NearbyPlace> findNearbyPlaces(NearbyPlacesRequest request, double radiusKm) {
-        return new ArrayList<>();
+        log.info("Finding nearby places: origin=({}, {}), radius={}km", 
+                request.getOrigin().getLatitude(), request.getOrigin().getLongitude(), radiusKm);
+        
+        try {
+            // 모든 지역에서 Google Places API 사용 (속도 및 평점 정보 제공을 위해)
+            List<NearbyPlacesResponse.NearbyPlace> results = new ArrayList<>();
+            List<NearbyPlacesResponse.NearbyPlace> googleResults = findNearbyPlacesWithGoogle(request, radiusKm);
+            
+            if (googleResults != null) {
+                results.addAll(googleResults);
+            }
+            
+            log.info("Found {} nearby places using Google API", results.size());
+            return results;
+            
+        } catch (Exception e) {
+            log.error("Error finding nearby places", e);
+            // 에러 발생 시에도 빈 리스트 반환하여 정상 응답 유지
+            log.warn("Returning empty list due to search error");
+            return new ArrayList<>();
+        }
+    }
+    
+    // 구글 API 통일로 인해 Kakao 검색 메서드 제거됨
+    
+    private List<NearbyPlacesResponse.NearbyPlace> findNearbyPlacesWithGoogle(NearbyPlacesRequest request, double radiusKm) {
+        log.debug("Using Google Places API for nearby places search");
+        
+        try {
+            // ExternalApiService를 통해 Google 주변 검색 수행
+            List<NearbyPlacesResponse.NearbyPlace> results = externalApiService.searchNearbyWithGoogle(request);
+            
+            // null 체크 및 안전한 반환
+            if (results == null) {
+                log.debug("External API returned null, returning empty list");
+                return new ArrayList<>();
+            }
+            
+            log.debug("Google API returned {} places", results.size());
+            return results;
+            
+        } catch (Exception e) {
+            log.error("Error searching nearby places with Google API", e);
+            // 외부 API 오류 시에도 빈 리스트 반환하여 서비스 중단 방지
+            log.warn("Returning empty list due to Google API error: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+    
+    // 구글 API 통일로 인해 Kakao 카테고리 매핑 불필요
+    
+    private String mapCategoryToGoogleType(String category) {
+        // 카테고리를 Google Places 타입으로 매핑
+        if (category == null) return null;
+        
+        switch (category.toLowerCase()) {
+            case "restaurant": case "food": return "restaurant";
+            case "accommodation": case "hotel": return "lodging";
+            case "tourism": case "tourist": return "tourist_attraction";
+            case "shopping": return "shopping_mall";
+            case "gas_station": return "gas_station";
+            case "hospital": return "hospital";
+            default: return "point_of_interest";
+        }
     }
     
     private void enrichWithRouteInformation(List<NearbyPlacesResponse.NearbyPlace> places, NearbyPlacesRequest request) {
         // 경로 정보 추가 로직
     }
     
-    private void enrichWithWeatherInformation(List<NearbyPlacesResponse.NearbyPlace> places, NearbyPlacesRequest request) {
-        // 날씨 정보 추가 로직
-    }
     
     private void enrichWithAIRecommendations(List<NearbyPlacesResponse.NearbyPlace> places) {
         // AI 추천 정보 추가 로직
     }
     
     private List<NearbyPlacesResponse.NearbyPlace> applySortingAndPaging(List<NearbyPlacesResponse.NearbyPlace> places, NearbyPlacesRequest request) {
-        return places.stream()
+        // 빈 리스트 안전 처리
+        if (places == null || places.isEmpty()) {
+            log.debug("No places to filter, returning empty list");
+            return new ArrayList<>();
+        }
+        
+        List<NearbyPlacesResponse.NearbyPlace> filteredPlaces = places.stream()
+            .filter(place -> applyMinRatingFilter(place, request.getMinRating()))
+            .filter(place -> applyMaxPriceLevelFilter(place, request.getMaxPriceLevel()))
+            .filter(place -> applyOpenNowFilter(place, request.getOpenNow()))
             .skip((long) (request.getPage() - 1) * request.getSize())
             .limit(request.getSize())
             .collect(Collectors.toList());
+            
+        log.debug("Filtering applied: {} -> {} places", places.size(), filteredPlaces.size());
+        return filteredPlaces;
     }
     
     private NearbyPlacesResponse.SearchCriteria buildSearchCriteria(NearbyPlacesRequest request) {
@@ -470,6 +412,9 @@ public class LocationServiceImpl implements LocationService {
             .timeRange(request.getTimeRange())
             .category(request.getCategory())
             .sort(request.getSort())
+            .minRating(request.getMinRating())
+            .maxPriceLevel(request.getMaxPriceLevel())
+            .openNow(request.getOpenNow())
             .build();
     }
     
@@ -489,5 +434,57 @@ public class LocationServiceImpl implements LocationService {
     
     private void updateLocalLocationSync(LocationDetailResponse response) {
         // 동기 로컬 DB 업데이트
+    }
+    
+    
+    
+    private boolean applyMinRatingFilter(NearbyPlacesResponse.NearbyPlace place, BigDecimal minRating) {
+        // minRating이 null이면 필터링하지 않음
+        if (minRating == null) {
+            return true;
+        }
+        
+        // 장소의 rating이 null이면 제외
+        if (place.getRating() == null) {
+            return false;
+        }
+        
+        // minRating 이상인 장소만 포함
+        return place.getRating().compareTo(minRating) >= 0;
+    }
+    
+    private boolean applyMaxPriceLevelFilter(NearbyPlacesResponse.NearbyPlace place, Integer maxPriceLevel) {
+        // maxPriceLevel이 null이면 필터링하지 않음
+        if (maxPriceLevel == null) {
+            return true;
+        }
+        
+        // 장소의 priceLevel이 null이면 제외 (엄격한 가격 필터링 정책)
+        if (place.getPriceLevel() == null) {
+            return false;
+        }
+        
+        // maxPriceLevel 이하인 장소만 포함
+        return place.getPriceLevel() <= maxPriceLevel;
+    }
+    
+    private boolean applyOpenNowFilter(NearbyPlacesResponse.NearbyPlace place, Boolean openNow) {
+        // openNow가 null이거나 false이면 필터링하지 않음
+        if (openNow == null || !openNow) {
+            return true;
+        }
+        
+        // 장소의 isOpenNow가 null이면 제외 (영업시간 정보 없는 경우)
+        if (place.getIsOpenNow() == null) {
+            return false;
+        }
+        
+        // 영업 중인 장소만 포함
+        return place.getIsOpenNow();
+    }
+    
+    @Override
+    public ExternalApiService getExternalApiService() {
+        return externalApiService;
     }
 }

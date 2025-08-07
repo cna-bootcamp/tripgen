@@ -114,8 +114,4 @@ public class SearchLocationRequest {
     @Builder.Default
     private Boolean openNow = false;
     
-    /**
-     * 외부 API 소스 지정 (google, kakao 등)
-     */
-    private String preferredSource;
 }

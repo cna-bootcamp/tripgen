@@ -1,0 +1,66 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="user-service" type="GradleRunConfiguration" factoryName="Gradle">
+    <ExternalSystemSettings>
+      <option name="env">
+        <map>
+          <entry key="ACCOUNT_LOCK_DURATION_MINUTES" value="30" />
+          <entry key="CACHE_TTL" value="1800" />
+          <entry key="DB_HOST" value="20.249.197.193" />
+          <entry key="DB_NAME" value="tripgen_user_db" />
+          <entry key="DB_PASSWORD" value="tripgen_user_123" />
+          <entry key="DB_PORT" value="5432" />
+          <entry key="DB_USERNAME" value="tripgen_user" />
+          <entry key="FILE_BASE_URL" value="http://localhost:8081" />
+          <entry key="FILE_MAX_SIZE" value="5242880" />
+          <entry key="FILE_UPLOAD_PATH" value="/app/uploads" />
+          <entry key="JPA_DDL_AUTO" value="update" />
+          <entry key="JPA_SHOW_SQL" value="true" />
+          <entry key="JWT_ACCESS_TOKEN_EXPIRATION" value="86400" />
+          <entry key="JWT_REFRESH_TOKEN_EXPIRATION" value="604800" />
+          <entry key="JWT_SECRET" value="dev-jwt-secret-key-for-development-only" />
+          <entry key="LOG_LEVEL_APP" value="DEBUG" />
+          <entry key="LOG_LEVEL_ROOT" value="INFO" />
+          <entry key="LOG_LEVEL_SECURITY" value="DEBUG" />
+          <entry key="MAX_LOGIN_ATTEMPTS" value="5" />
+          <entry key="PASSWORD_MIN_LENGTH" value="8" />
+          <entry key="REDIS_DATABASE" value="0" />
+          <entry key="REDIS_HOST" value="20.214.121.28" />
+          <entry key="REDIS_PASSWORD" value="" />
+          <entry key="REDIS_PORT" value="6379" />
+          <entry key="SERVER_PORT" value="8081" />
+          <entry key="SPRING_PROFILES_ACTIVE" value="dev" />
+        </map>
+      </option>
+      <option name="executionName" />
+      <option name="externalProjectPath" value="$PROJECT_DIR$" />
+      <option name="externalSystemIdString" value="GRADLE" />
+      <option name="scriptParameters" value="" />
+      <option name="taskDescriptions">
+        <list />
+      </option>
+      <option name="taskNames">
+        <list>
+          <option value="user-service:bootRun" />
+        </list>
+      </option>
+      <option name="vmOptions" />
+    </ExternalSystemSettings>
+    <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+    <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+    <EXTENSION ID="com.intellij.execution.ExternalSystemRunConfigurationJavaExtension">
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="false" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+        </ENTRIES>
+      </extension>
+    </EXTENSION>
+    <DebugAllEnabled>false</DebugAllEnabled>
+    <RunAsTest>false</RunAsTest>
+    <method v="2" />
+  </configuration>
+</component>

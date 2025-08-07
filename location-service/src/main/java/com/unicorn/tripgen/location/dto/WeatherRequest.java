@@ -88,8 +88,4 @@ public class WeatherRequest {
     @Builder.Default
     private Boolean useCache = true;
     
-    /**
-     * 외부 API 소스 지정 (openweather, weatherapi 등)
-     */
-    private String preferredSource;
 }

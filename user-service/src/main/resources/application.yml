@@ -178,17 +178,17 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:true}
     
 logging:
   level:
-    com.unicorn.tripgen: DEBUG
-    org.springframework.security: DEBUG
+    com.unicorn.tripgen: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
     
 app:
   jwt:
-    secret: dev-jwt-secret-key-for-development-only
+    secret: ${JWT_SECRET:dev-jwt-secret-key-for-development-only}
     
 ---
 # Production Profile  

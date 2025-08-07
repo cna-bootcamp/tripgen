@@ -66,19 +66,9 @@ public class LocationDetailResponse {
     private LocationInfo location;
     
     /**
-     * 영업 시간 정보
-     */
-    private BusinessHours businessHours;
-    
-    /**
      * 연락처 정보
      */
     private ContactInfo contact;
-    
-    /**
-     * AI 추천 정보
-     */
-    private AIRecommendation aiRecommendation;
     
     /**
      * 최신 리뷰 목록 (최대 5개)
@@ -125,14 +115,19 @@ public class LocationDetailResponse {
         private String address;
         
         /**
-         * 지도 검색용 키워드
+         * 지도 검색용 키워드 (한국어)
          */
-        private String searchKeyword;
+        private String searchKeywordKo;
         
         /**
-         * 주차장 검색 키워드
+         * 지도 검색용 키워드 (영어)
          */
-        private String parkingKeyword;
+        private String searchKeywordEn;
+        
+        /**
+         * 주변 주차장 정보 (최대 3개)
+         */
+        private List<ParkingInfo> nearbyParkings;
         
         /**
          * 지역 구분 (domestic/international)
@@ -153,6 +148,66 @@ public class LocationDetailResponse {
          * 우편번호
          */
         private String postalCode;
+    }
+    
+    /**
+     * 주차장 정보
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ParkingInfo {
+        
+        /**
+         * 주차장 Place ID
+         */
+        private String placeId;
+        
+        /**
+         * 주차장명 (한국어)
+         */
+        private String nameKo;
+        
+        /**
+         * 주차장명 (영어)
+         */
+        private String nameEn;
+        
+        /**
+         * 주차장 주소
+         */
+        private String address;
+        
+        /**
+         * 거리 (미터)
+         */
+        private Double distanceMeters;
+        
+        /**
+         * 도보 소요시간 (분)
+         */
+        private Integer walkingMinutes;
+        
+        /**
+         * 주차장 타입
+         */
+        private String parkingType;
+        
+        /**
+         * 평점
+         */
+        private BigDecimal rating;
+        
+        /**
+         * 위도
+         */
+        private BigDecimal latitude;
+        
+        /**
+         * 경도
+         */
+        private BigDecimal longitude;
     }
     
     /**
@@ -435,11 +490,6 @@ public class LocationDetailResponse {
     public static class Review {
         
         /**
-         * 리뷰 ID
-         */
-        private String reviewId;
-        
-        /**
          * 작성자 이름
          */
         private String authorName;
@@ -455,9 +505,9 @@ public class LocationDetailResponse {
         private String text;
         
         /**
-         * 작성 시간 (Unix timestamp)
+         * 작성 시간 (YYYYMMDD 형식)
          */
-        private Long time;
+        private String time;
         
         /**
          * 상대 시간 표시

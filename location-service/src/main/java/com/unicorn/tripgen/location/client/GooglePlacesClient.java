@@ -34,6 +34,7 @@ public interface GooglePlacesClient {
         @RequestParam(value = "type", required = false) String type,
         @RequestParam(value = "keyword", required = false) String keyword,
         @RequestParam(value = "language", defaultValue = "ko") String language,
+        @RequestParam(value = "fields", required = false) String fields,
         @RequestParam("key") String apiKey
     );
     
@@ -55,6 +56,7 @@ public interface GooglePlacesClient {
         @RequestParam(value = "radius", required = false) Integer radius,
         @RequestParam(value = "type", required = false) String type,
         @RequestParam(value = "language", defaultValue = "ko") String language,
+        @RequestParam(value = "fields", required = false) String fields,
         @RequestParam("key") String apiKey
     );
     

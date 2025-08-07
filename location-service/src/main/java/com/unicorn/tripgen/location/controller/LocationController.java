@@ -4,11 +4,9 @@ import com.unicorn.tripgen.common.dto.ApiResponse;
 import com.unicorn.tripgen.location.dto.*;
 import com.unicorn.tripgen.location.dto.weather.WeatherRequest;
 import com.unicorn.tripgen.location.dto.weather.WeatherResponse;
-import com.unicorn.tripgen.location.dto.route.RouteRequest;
-import com.unicorn.tripgen.location.dto.route.RouteResponse;
 import com.unicorn.tripgen.location.service.LocationService;
 import com.unicorn.tripgen.location.service.WeatherService;
-import com.unicorn.tripgen.location.service.RouteService;
+import com.unicorn.tripgen.location.service.CacheService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * 위치 서비스 컨트롤러
@@ -35,7 +34,7 @@ public class LocationController {
     
     private final LocationService locationService;
     private final WeatherService weatherService;
-    private final RouteService routeService;
+    private final CacheService cacheService;
     
     /**
      * 주변 장소 검색
@@ -55,56 +54,6 @@ public class LocationController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
     
-    /**
-     * 키워드 검색
-     */
-    @GetMapping("/search/keyword")
-    @Operation(
-        summary = "키워드 검색",
-        description = "장소명이나 카테고리로 장소 검색"
-    )
-    public ResponseEntity<ApiResponse<LocationSearchResponse>> searchByKeyword(
-            @Parameter(description = "검색 키워드", required = true, example = "마리엔플라츠")
-            @RequestParam String keyword,
-            
-            @Parameter(description = "검색 기준 위도", required = true, example = "48.1374")
-            @RequestParam BigDecimal latitude,
-            
-            @Parameter(description = "검색 기준 경도", required = true, example = "11.5755")
-            @RequestParam BigDecimal longitude,
-            
-            @Parameter(description = "검색 반경 (미터)", example = "5000")
-            @RequestParam(defaultValue = "5000") Integer radius,
-            
-            @Parameter(description = "카테고리 필터", example = "tourist")
-            @RequestParam(defaultValue = "all") String category,
-            
-            @Parameter(description = "정렬 기준", example = "distance")
-            @RequestParam(defaultValue = "distance") String sort,
-            
-            @Parameter(description = "페이지 번호", example = "1")
-            @RequestParam(defaultValue = "1") Integer page,
-            
-            @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") Integer size) {
-        
-        log.info("Searching locations by keyword: {} at ({}, {})", keyword, latitude, longitude);
-        
-        SearchLocationRequest request = SearchLocationRequest.builder()
-            .keyword(keyword)
-            .latitude(latitude)
-            .longitude(longitude)
-            .radius(radius)
-            .category(category)
-            .sort(sort)
-            .page(page)
-            .size(size)
-            .build();
-        
-        LocationSearchResponse response = locationService.searchLocationsByKeyword(request);
-        
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
     
     /**
      * 장소 상세정보 조회
@@ -118,17 +67,15 @@ public class LocationController {
             @Parameter(description = "장소 ID", required = true, example = "ChIJU5LMbCt1nkcRGwGLFraPTBg")
             @PathVariable String placeId,
             
-            @Parameter(description = "AI 추천정보 포함 여부", example = "true")
-            @RequestParam(defaultValue = "true") Boolean includeAI,
             
             @Parameter(description = "리뷰 포함 여부", example = "true")
             @RequestParam(defaultValue = "true") Boolean includeReviews) {
         
-        log.info("Getting place details: placeId={}, includeAI={}, includeReviews={}", 
-                placeId, includeAI, includeReviews);
+        log.info("Getting place details: placeId={}, includeReviews={}", 
+                placeId, includeReviews);
         
         LocationDetailResponse response = locationService.getLocationDetail(
-            placeId, includeAI, includeReviews, "ko"
+            placeId, includeReviews, "ko"
         );
         
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -157,23 +104,65 @@ public class LocationController {
     }
     
     /**
-     * 실시간 영업시간 조회
+     * AI 추천 상태 조회
      */
-    @GetMapping("/places/{placeId}/business-hours")
+    @GetMapping("/recommendations/{requestId}/status")
     @Operation(
-        summary = "실시간 영업시간 조회",
-        description = "장소의 실시간 영업 상태 및 영업시간 조회"
+        summary = "AI 추천 상태 조회",
+        description = "AI 추천 요청의 처리 상태를 조회합니다"
     )
-    public ResponseEntity<ApiResponse<LocationDetailResponse.BusinessHours>> getBusinessHours(
-            @Parameter(description = "장소 ID", required = true, example = "ChIJU5LMbCt1nkcRGwGLFraPTBg")
-            @PathVariable String placeId) {
+    public ResponseEntity<ApiResponse<Object>> getRecommendationStatus(
+            @Parameter(description = "요청 ID", required = true)
+            @PathVariable String requestId) {
         
-        log.info("Getting business hours: placeId={}", placeId);
+        log.info("Getting recommendation status: requestId={}", requestId);
         
-        LocationDetailResponse.BusinessHours response = locationService.getBusinessHours(placeId);
-        
-        return ResponseEntity.ok(ApiResponse.success(response));
+        try {
+            // 상태 확인
+            String statusCacheKey = "rec_status_" + requestId;
+            String status = (String) cacheService.getObject(statusCacheKey);
+            
+            if (status == null) {
+                return ResponseEntity.ok(ApiResponse.failure("요청을 찾을 수 없습니다"));
+            }
+            
+            Object response;
+            
+            if ("completed".equals(status)) {
+                // 완료된 경우 결과 반환
+                String resultCacheKey = "rec_result_" + requestId;
+                Object recommendations = cacheService.getObject(resultCacheKey);
+                
+                response = Map.of(
+                        "requestId", requestId,
+                        "status", "completed",
+                        "recommendations", recommendations != null ? recommendations : "추천 결과를 찾을 수 없습니다"
+                );
+                
+            } else if ("failed".equals(status)) {
+                response = Map.of(
+                        "requestId", requestId,
+                        "status", "failed",
+                        "message", "AI 추천 생성에 실패했습니다"
+                );
+                
+            } else {
+                // 처리 중
+                response = Map.of(
+                        "requestId", requestId,
+                        "status", "processing",
+                        "message", "AI 추천정보를 생성 중입니다"
+                );
+            }
+            
+            return ResponseEntity.ok(ApiResponse.success(response));
+            
+        } catch (Exception e) {
+            log.error("Error getting recommendation status: requestId={}", requestId, e);
+            return ResponseEntity.ok(ApiResponse.failure("상태 조회 중 오류가 발생했습니다"));
+        }
     }
+    
     
     /**
      * 날씨 정보 조회
@@ -211,164 +200,39 @@ public class LocationController {
         
         return ResponseEntity.ok(ApiResponse.success(response));
     }
-    
     /**
-     * 경로 정보 조회
+     * 장소명으로 검색
      */
-    @GetMapping("/route")
+    @GetMapping("/search")
     @Operation(
-        summary = "경로 정보 조회",
-        description = "출발지와 목적지 간의 경로 정보 조회"
+        summary = "장소명으로 검색", 
+        description = "장소명을 입력하여 해당하는 장소들의 이름과 Place ID를 조회"
     )
-    public ResponseEntity<ApiResponse<RouteResponse>> getRoute(
-            @Parameter(description = "출발지 위도", required = true, example = "48.1374")
-            @RequestParam("origin_lat") BigDecimal originLat,
-            
-            @Parameter(description = "출발지 경도", required = true, example = "11.5755")
-            @RequestParam("origin_lng") BigDecimal originLng,
-            
-            @Parameter(description = "목적지 위도", required = true, example = "48.1351")
-            @RequestParam("dest_lat") BigDecimal destLat,
-            
-            @Parameter(description = "목적지 경도", required = true, example = "11.5820")
-            @RequestParam("dest_lng") BigDecimal destLng,
-            
-            @Parameter(description = "이동수단", example = "public_transport")
-            @RequestParam(defaultValue = "public_transport") String transportMode,
-            
-            @Parameter(description = "대안 경로 포함 여부", example = "false")
-            @RequestParam(defaultValue = "false") Boolean includeAlternatives,
-            
-            @Parameter(description = "언어 코드", example = "ko")
-            @RequestParam(defaultValue = "ko") String language) {
+    public ResponseEntity<ApiResponse<Object>> searchPlacesByName(
+            @Parameter(description = "검색할 장소명") @RequestParam String placeName,
+            @Parameter(description = "검색 결과 개수 (기본값: 5)") @RequestParam(defaultValue = "5") Integer limit) {
         
-        log.info("Getting route info: ({}, {}) -> ({}, {}), transport={}", 
-                originLat, originLng, destLat, destLng, transportMode);
+        log.info("Searching places by name: {}", placeName);
         
-        RouteRequest request = RouteRequest.builder()
-            .fromLatitude(originLat.doubleValue())
-            .fromLongitude(originLng.doubleValue())
-            .toLatitude(destLat.doubleValue())
-            .toLongitude(destLng.doubleValue())
-            .mode(transportMode)
-            .build();
-        
-        RouteResponse response = routeService.getRoute(request);
-        
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-    
-    /**
-     * 인기 장소 목록 조회
-     */
-    @GetMapping("/popular")
-    @Operation(
-        summary = "인기 장소 목록 조회",
-        description = "리뷰 수 기준 인기 장소 목록 조회"
-    )
-    public ResponseEntity<ApiResponse<Object>> getPopularLocations(
-            @Parameter(description = "카테고리 필터")
-            @RequestParam(required = false) String category,
+        try {
+            // ExternalApiService의 autocomplete 기능 활용
+            var places = locationService.getExternalApiService().getLocationAutocomplete(
+                placeName, null, null, "ko", limit
+            );
             
-            @Parameter(description = "지역 필터")
-            @RequestParam(required = false) String region,
+            // 간단한 응답 형태로 변환
+            var results = places.stream().map(place -> new Object() {
+                public String getName() { return place.getName(); }
+                public String getPlaceId() { return place.getPlaceId(); }
+                public String getAddress() { return place.getAddress(); }
+            }).toList();
             
-            @Parameter(description = "페이지 번호", example = "1")
-            @RequestParam(defaultValue = "1") Integer page,
+            return ResponseEntity.ok(ApiResponse.success(results));
             
-            @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") Integer size) {
-        
-        log.info("Getting popular locations: category={}, region={}", category, region);
-        
-        Pageable pageable = PageRequest.of(page - 1, size);
-        Object response = locationService.getPopularLocations(category, region, pageable);
-        
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-    
-    /**
-     * 최고 평점 장소 목록 조회
-     */
-    @GetMapping("/top-rated")
-    @Operation(
-        summary = "최고 평점 장소 목록 조회",
-        description = "평점 기준 최고 평점 장소 목록 조회"
-    )
-    public ResponseEntity<ApiResponse<Object>> getTopRatedLocations(
-            @Parameter(description = "카테고리 필터")
-            @RequestParam(required = false) String category,
-            
-            @Parameter(description = "최소 리뷰 수", example = "10")
-            @RequestParam(required = false) Integer minReviewCount,
-            
-            @Parameter(description = "페이지 번호", example = "1")
-            @RequestParam(defaultValue = "1") Integer page,
-            
-            @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") Integer size) {
-        
-        log.info("Getting top-rated locations: category={}, minReviewCount={}", category, minReviewCount);
-        
-        Pageable pageable = PageRequest.of(page - 1, size);
-        Object response = locationService.getTopRatedLocations(category, minReviewCount, pageable);
-        
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-    
-    /**
-     * 위치 자동완성
-     */
-    @GetMapping("/autocomplete")
-    @Operation(
-        summary = "위치 자동완성",
-        description = "입력 텍스트에 대한 위치 자동완성 결과 제공"
-    )
-    public ResponseEntity<ApiResponse<Object>> getLocationAutocomplete(
-            @Parameter(description = "입력 텍스트", required = true, example = "마리")
-            @RequestParam String input,
-            
-            @Parameter(description = "검색 중심 위도")
-            @RequestParam(required = false) BigDecimal latitude,
-            
-            @Parameter(description = "검색 중심 경도")
-            @RequestParam(required = false) BigDecimal longitude,
-            
-            @Parameter(description = "언어 코드", example = "ko")
-            @RequestParam(defaultValue = "ko") String language,
-            
-            @Parameter(description = "결과 개수 제한", example = "10")
-            @RequestParam(defaultValue = "10") Integer limit) {
-        
-        log.info("Getting location autocomplete: input={}", input);
-        
-        Object response = locationService.getLocationAutocomplete(
-            input, latitude, longitude, language, limit
-        );
-        
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-    
-    /**
-     * 위치 데이터 동기화
-     */
-    @PostMapping("/places/{placeId}/sync")
-    @Operation(
-        summary = "위치 데이터 동기화",
-        description = "외부 API에서 최신 정보를 가져와서 로컬 데이터 업데이트"
-    )
-    public ResponseEntity<ApiResponse<LocationDetailResponse>> syncLocationData(
-            @Parameter(description = "장소 ID", required = true)
-            @PathVariable String placeId,
-            
-            @Parameter(description = "강제 업데이트 여부", example = "false")
-            @RequestParam(defaultValue = "false") Boolean forceUpdate) {
-        
-        log.info("Syncing location data: placeId={}, forceUpdate={}", placeId, forceUpdate);
-        
-        LocationDetailResponse response = locationService.syncLocationData(placeId, forceUpdate);
-        
-        return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            log.error("Error searching places by name: {}", placeName, e);
+            return ResponseEntity.ok(ApiResponse.failure("장소 검색 중 오류가 발생했습니다"));
+        }
     }
     
     /**

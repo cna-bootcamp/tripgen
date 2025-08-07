@@ -86,15 +86,11 @@ public class LocationConfig {
         }
         
         public static class External {
-            private String preferredSource = "google";
             private int timeoutSeconds = 30;
             private int retryCount = 3;
             private boolean fallbackEnabled = true;
             
             // Getters and setters
-            public String getPreferredSource() { return preferredSource; }
-            public void setPreferredSource(String preferredSource) { this.preferredSource = preferredSource; }
-            
             public int getTimeoutSeconds() { return timeoutSeconds; }
             public void setTimeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
             

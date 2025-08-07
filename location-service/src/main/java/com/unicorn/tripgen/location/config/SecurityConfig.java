@@ -37,9 +37,7 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
                 // 헬스체크 엔드포인트 허용
-                .requestMatchers("/actuator/health").permitAll()
-                // API 테스트를 위해 임시로 routes 엔드포인트 허용 (개발 환경에서만)
-                .requestMatchers("/api/routes/**").permitAll()
+                .requestMatchers("/api/v1/locations/health").permitAll()
                 // 나머지 모든 요청은 인증 필요
                 .anyRequest().authenticated()
             )

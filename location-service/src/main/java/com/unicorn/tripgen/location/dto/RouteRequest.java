@@ -126,10 +126,6 @@ public class RouteRequest {
      */
     private AccessibilityOptions accessibility;
     
-    /**
-     * 외부 API 소스 지정
-     */
-    private String preferredSource;
     
     /**
      * 위치 정보

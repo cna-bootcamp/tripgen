@@ -2,12 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/location-service/com.unicorn.tripgen.tripgen.location-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/location-service/com.unicorn.tripgen.tripgen.location-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/ai-service/tripgen.ai-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/ai-service/tripgen.ai-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/tripgen.common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/common/tripgen.common.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/location-service/tripgen.location-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/location-service/tripgen.location-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/trip-service/tripgen.trip-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/trip-service/tripgen.trip-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-service/tripgen.user-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-service/tripgen.user-service.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-service/workspace.tripgen.user-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-service/workspace.tripgen.user-service.main.iml" />
     </modules>
   </component>
 </project>

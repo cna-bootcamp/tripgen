@@ -34,13 +34,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         logger.debug("Processing request: {} {}", request.getMethod(), request.getRequestURI());
         
-        // /api/routes/** 경로는 JWT 검증을 건너뛴다
-        String requestPath = request.getRequestURI();
-        if (requestPath != null && requestPath.startsWith("/api/routes/")) {
-            logger.debug("Skipping JWT authentication for public route: {}", requestPath);
-            filterChain.doFilter(request, response);
-            return;
-        }
         
         String token = getTokenFromRequest(request);
         

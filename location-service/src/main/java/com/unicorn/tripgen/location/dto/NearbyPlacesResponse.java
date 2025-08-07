@@ -119,10 +119,6 @@ public class NearbyPlacesResponse {
          */
         private Integer travelDistance;
         
-        /**
-         * 교통비 (원)
-         */
-        private Integer transportCost;
         
         /**
          * 대표 이미지 URL
@@ -179,140 +175,11 @@ public class NearbyPlacesResponse {
          */
         private String externalId;
         
-        /**
-         * AI 추천 정보 (간단)
-         */
-        private SimpleRecommendation aiRecommendation;
         
-        /**
-         * 날씨 정보 (요청 시)
-         */
-        private WeatherInfo weather;
         
-        /**
-         * 이동 경로 정보
-         */
-        private TravelRoute route;
         
-        /**
-         * 추천 점수 (1-10)
-         */
-        private Integer recommendationScore;
         
-        /**
-         * 인기도 점수
-         */
-        private BigDecimal popularityScore;
         
-        /**
-         * 간단한 AI 추천 정보
-         */
-        @Data
-        @NoArgsConstructor
-        @AllArgsConstructor
-        @Builder
-        public static class SimpleRecommendation {
-            
-            /**
-             * 추천 이유 (한 줄)
-             */
-            private String reason;
-            
-            /**
-             * 추천 방문 시간
-             */
-            private String bestVisitTime;
-            
-            /**
-             * 예상 소요 시간
-             */
-            private String estimatedDuration;
-            
-            /**
-             * 특별 팁
-             */
-            private String tip;
-        }
-        
-        /**
-         * 날씨 정보
-         */
-        @Data
-        @NoArgsConstructor
-        @AllArgsConstructor
-        @Builder
-        public static class WeatherInfo {
-            
-            /**
-             * 기온
-             */
-            private BigDecimal temperature;
-            
-            /**
-             * 날씨 상태
-             */
-            private String condition;
-            
-            /**
-             * 날씨 설명
-             */
-            private String description;
-            
-            /**
-             * 강수 확률
-             */
-            private Integer precipitationProbability;
-            
-            /**
-             * 여행 적합성 점수 (1-10)
-             */
-            private Integer suitabilityScore;
-        }
-        
-        /**
-         * 이동 경로 정보
-         */
-        @Data
-        @NoArgsConstructor
-        @AllArgsConstructor
-        @Builder
-        public static class TravelRoute {
-            
-            /**
-             * 이동 수단
-             */
-            private String mode;
-            
-            /**
-             * 이동 시간 (분)
-             */
-            private Integer duration;
-            
-            /**
-             * 이동 거리 (미터)
-             */
-            private Integer distance;
-            
-            /**
-             * 교통비 (원)
-             */
-            private Integer cost;
-            
-            /**
-             * 경로 요약
-             */
-            private String summary;
-            
-            /**
-             * 환승 횟수 (대중교통 이용 시)
-             */
-            private Integer transfers;
-            
-            /**
-             * 주요 경유지
-             */
-            private List<String> steps;
-        }
     }
     
     /**

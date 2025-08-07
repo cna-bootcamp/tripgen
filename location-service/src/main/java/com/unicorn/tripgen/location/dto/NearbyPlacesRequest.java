@@ -102,28 +102,9 @@ public class NearbyPlacesRequest {
     @Builder.Default
     private String language = "ko";
     
-    /**
-     * AI 추천 정보 포함 여부
-     */
-    @Builder.Default
-    private Boolean includeAI = true;
     
-    /**
-     * 날씨 정보 포함 여부
-     */
-    @Builder.Default
-    private Boolean includeWeather = false;
     
-    /**
-     * 교통비 포함 여부
-     */
-    @Builder.Default
-    private Boolean includeCost = false;
     
-    /**
-     * 선호하는 외부 API 소스
-     */
-    private String preferredSource;
     
     /**
      * 출발지 정보

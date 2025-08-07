@@ -10,8 +10,8 @@
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-configuration-processor/3.3.0/2a1542cac159dae637ca984bf95ddef0b0fb2627/spring-boot-configuration-processor-3.3.0.jar" />
         </processorPath>
         <module name="tripgen.common.main" />
-        <module name="com.unicorn.tripgen.tripgen.location-service.main" />
-        <module name="workspace.tripgen.user-service.main" />
+        <module name="tripgen.location-service.main" />
+        <module name="tripgen.user-service.main" />
         <module name="tripgen.ai-service.main" />
       </profile>
       <profile name="Gradle Imported" enabled="true">
@@ -33,7 +33,7 @@
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.mapstruct/mapstruct-processor/1.5.5.Final/897f6f115930b936287bef552bf5fe28cc64717d/mapstruct-processor-1.5.5.Final.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok-mapstruct-binding/0.2.0/2f1cf9ced7b720ba4996c942b816669e63f0fa4f/lombok-mapstruct-binding-0.2.0.jar" />
         </processorPath>
-        <module name="com.unicorn.tripgen.tripgen.trip-service.main" />
+        <module name="tripgen.trip-service.main" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="21" />

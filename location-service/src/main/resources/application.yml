@@ -88,6 +88,22 @@ spring:
       fail-on-empty-beans: false
     deserialization:
       fail-on-unknown-properties: false
+  
+  # Spring Cloud Stream Configuration
+  cloud:
+    azure:
+      servicebus:
+        connection-string: ${AZURE_SERVICEBUS_CONNECTION_STRING:}
+    stream:
+      bindings:
+        aiRecommendationProducer-out-0:
+          destination: location-search
+          content-type: application/json
+        aiRecommendationConsumer-in-0:
+          destination: ai-schedule-generation
+          content-type: application/json
+      function:
+        definition: aiRecommendationConsumer
 
 # Logging Configuration
 logging:

@@ -42,6 +42,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.apache.commons:commons-pool2'
     
+    // Azure Service Bus
+    implementation 'com.azure.spring:spring-cloud-azure-stream-binder-servicebus'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    
     // Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
@@ -64,6 +68,7 @@ dependencies {
 dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:2023.0.2"
+        mavenBom "com.azure.spring:spring-cloud-azure-dependencies:5.23.0"
     }
 }
 

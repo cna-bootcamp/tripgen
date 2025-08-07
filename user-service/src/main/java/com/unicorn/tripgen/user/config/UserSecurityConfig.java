@@ -46,7 +46,8 @@ public class UserSecurityConfig {
                 .requestMatchers(
                     "/api/v1/users/register",
                     "/api/v1/users/login",
-                    "/api/v1/users/check/**"
+                    "/api/v1/users/check/**",
+                    "/error"
                 ).permitAll()
                 // 정적 리소스
                 .requestMatchers(
