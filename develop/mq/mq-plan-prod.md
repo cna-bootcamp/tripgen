@@ -25,9 +25,9 @@ TripGen 서비스의 운영환경에서 엔터프라이즈급 비동기 메시�
 graph TB
     subgraph "Producer Services"
         TS[Trip Service]
+        AI_P[AI Service]
         LS[Location Service]
         US[User Service]
-        AS[AI Service]
     end
     
     subgraph "Queues"
@@ -45,33 +45,33 @@ graph TB
     end
     
     subgraph "Consumer Services"
-        AI[AI Service]
+        AI_C[AI Service]
         LSC[Location Service]
         NS[Notification Service]
         AUD[Audit Service]
         ANA[Analytics Service]
     end
     
-    TS -->|일정 생성| Q1
-    TS -->|재생성| Q2
-    LS -->|장소 검색| Q3
-    LS -->|경로 요청| Q4
-    LS -->|AI 추천| Q5
-    US -->|알림| Q6
+    TS -->|일정 생성 요청| Q1
+    TS -->|재생성 요청| Q2
+    AI_P -->|장소 정보 요청| Q3
+    AI_P -->|경로 계산 요청| Q4
+    LS -->|AI 추천 요청| Q5
+    US -->|알림 발송| Q6
     
-    Q1 -->|처리| AI
-    Q2 -->|처리| AI
+    Q1 -->|처리| AI_C
+    Q2 -->|처리| AI_C
     Q3 -->|처리| LSC
     Q4 -->|처리| LSC
-    Q5 -->|처리| AI
+    Q5 -->|처리| AI_C
     Q6 -->|처리| NS
     
-    AS -->|이벤트 발행| T1
+    AI_C -->|이벤트 발행| T1
     T1 -->|구독| AUD
     T1 -->|구독| ANA
     
-    AI -.->|완료 이벤트| TS
-    AI -.->|캐시 저장| Redis[(Redis Cache)]
+    AI_C -.->|완료 이벤트| TS
+    LSC -.->|캐시 저장| Redis[(Redis Cache)]
 ```
 
 | 플로우 | 큐/토픽 | 메시지 타입 | 처리 시간 | 우선순위 | 예상 트래픽 |
@@ -85,8 +85,15 @@ graph TB
 | 이벤트 브로드캐스팅 | trip-events | 다양한 이벤트 타입 | < 1초 | 중간 | 200,000/일 |
 
 #### 2.1.2 서비스별 역할
-- **Producer Services**: Trip Service, AI Service, User Service
-- **Consumer Services**: AI Service, Location Service, Notification Service
+- **Producer Services**: 
+  - Trip Service: AI 일정 생성/재생성 요청
+  - AI Service: 장소 정보 및 경로 계산 요청, 이벤트 발행
+  - Location Service: AI 추천정보 요청
+  - User Service: 알림 발송
+- **Consumer Services**: 
+  - AI Service: 일정 생성, 재생성, 추천정보 처리
+  - Location Service: 장소 검색, 경로 계산 처리
+  - Notification Service: 알림 처리
 - **이벤트 구독자**: Audit Service, Analytics Service, Monitoring Service
 
 ### 2.2 성능 요구사항
@@ -218,7 +225,7 @@ authentication:
       scope: /queues/*
       
     - principal: tripgen-location-service
-      role: Azure Service Bus Data Receiver
+      role: Azure Service Bus Data Owner
       scope: /queues/location-search
       
   key_vault_integration:

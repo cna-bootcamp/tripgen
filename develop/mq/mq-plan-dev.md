@@ -25,6 +25,7 @@ TripGen 서비스의 개발환경에서 비동기 메시징 시스템 구축을 
 graph TB
     subgraph "Producer Services"
         TS[Trip Service]
+        AI_P[AI Service]
         LS[Location Service]
         US[User Service]
     end
@@ -39,27 +40,27 @@ graph TB
     end
     
     subgraph "Consumer Services"
-        AI[AI Service]
+        AI_C[AI Service]
         LSC[Location Service]
         NS[Notification Service]
     end
     
     TS -->|일정 생성 요청| Q1
     TS -->|재생성 요청| Q2
-    LS -->|장소 검색| Q3
-    LS -->|경로 요청| Q4
+    AI_P -->|장소 정보 요청| Q3
+    AI_P -->|경로 계산 요청| Q4
     LS -->|AI 추천 요청| Q5
     US -->|알림 발송| Q6
     
-    Q1 -->|처리| AI
-    Q2 -->|처리| AI
+    Q1 -->|처리| AI_C
+    Q2 -->|처리| AI_C
     Q3 -->|처리| LSC
     Q4 -->|처리| LSC
-    Q5 -->|처리| AI
+    Q5 -->|처리| AI_C
     Q6 -->|처리| NS
     
-    AI -.->|완료 이벤트| TS
-    AI -.->|캐시 저장| Redis[(Redis Cache)]
+    AI_C -.->|완료 이벤트| TS
+    LSC -.->|캐시 저장| Redis[(Redis Cache)]
 ```
 
 | 플로우 | 큐/토픽 | 메시지 타입 | 처리 시간 | 우선순위 |
@@ -72,9 +73,16 @@ graph TB
 | 알림 메시지 | notification | `{userId, type, message}` | < 1초 | 낮음 |
 
 #### 2.1.2 서비스별 역할
-- **Producer Services**: Trip Service, AI Service
-- **Consumer Services**: AI Service, Location Service
-- **이벤트 발행**: 일정 생성 완료, 재생성 완료 이벤트
+- **Producer Services**: 
+  - Trip Service: AI 일정 생성/재생성 요청
+  - AI Service: 장소 정보 및 경로 계산 요청
+  - Location Service: AI 추천정보 요청
+  - User Service: 알림 발송
+- **Consumer Services**: 
+  - AI Service: 일정 생성, 재생성, 추천정보 처리
+  - Location Service: 장소 검색, 경로 계산 처리
+  - Notification Service: 알림 처리
+- **이벤트 발행**: 일정 생성 완료, 재생성 완료, 장소/경로 정보 완료 이벤트
 
 ### 2.2 성능 요구사항
 - **처리량**: 초당 10-50 메시지
@@ -146,8 +154,8 @@ connection_configuration:
 #### 3.2.2 서비스별 연결 정보
 | 서비스 | 역할 | 접근 큐 | 권한 |
 |--------|------|---------|------|
-| Trip Service | Producer/Consumer | ai-schedule-generation, ai-recommendation, notification | Send, Receive |
-| AI Service | Consumer/Producer | 모든 큐 | Send, Receive, Manage |
+| Trip Service | Producer | ai-schedule-generation, ai-schedule-regeneration | Send |
+| AI Service | Producer/Consumer | ai-schedule-generation, ai-schedule-regeneration, location-search, route-calculation, ai-recommendation | Send, Receive |
 | Location Service | Producer/Consumer | location-search, route-calculation, ai-recommendation | Send, Receive |
 | User Service | Producer | notification | Send |
 
