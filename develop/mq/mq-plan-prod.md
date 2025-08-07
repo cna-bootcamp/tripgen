@@ -20,12 +20,67 @@ TripGen 서비스의 운영환경에서 엔터프라이즈급 비동기 메시�
 ### 2.1 비동기 통신 요구사항
 
 #### 2.1.1 식별된 비동기 처리 플로우
+
+```mermaid
+graph TB
+    subgraph "Producer Services"
+        TS[Trip Service]
+        LS[Location Service]
+        US[User Service]
+        AS[AI Service]
+    end
+    
+    subgraph "Queues"
+        Q1[ai-schedule-generation]
+        Q2[ai-schedule-regeneration]
+        Q3[location-search]
+        Q4[route-calculation]
+        Q5[ai-recommendation]
+        Q6[notification]
+    end
+    
+    subgraph "Topics"
+        T1[trip-events]
+        T2[system-events]
+    end
+    
+    subgraph "Consumer Services"
+        AI[AI Service]
+        LSC[Location Service]
+        NS[Notification Service]
+        AUD[Audit Service]
+        ANA[Analytics Service]
+    end
+    
+    TS -->|일정 생성| Q1
+    TS -->|재생성| Q2
+    LS -->|장소 검색| Q3
+    LS -->|경로 요청| Q4
+    LS -->|AI 추천| Q5
+    US -->|알림| Q6
+    
+    Q1 -->|처리| AI
+    Q2 -->|처리| AI
+    Q3 -->|처리| LSC
+    Q4 -->|처리| LSC
+    Q5 -->|처리| AI
+    Q6 -->|처리| NS
+    
+    AS -->|이벤트 발행| T1
+    T1 -->|구독| AUD
+    T1 -->|구독| ANA
+    
+    AI -.->|완료 이벤트| TS
+    AI -.->|캐시 저장| Redis[(Redis Cache)]
+```
+
 | 플로우 | 큐/토픽 | 메시지 타입 | 처리 시간 | 우선순위 | 예상 트래픽 |
 |--------|----------|-------------|-----------|----------|------------|
 | AI 일정 생성 | ai-schedule-generation | `{tripId, travelData, requestId}` | 5-10초 | 높음 | 10,000/일 |
 | 장소 정보 요청 | location-search | `{destination, category, radius}` | 1-3초 | 중간 | 50,000/일 |
 | 경로 계산 요청 | route-calculation | `{routes: [{from, to, mode}], tripId}` | 2-5초 | 중간 | 30,000/일 |
 | 일정 재생성 | ai-schedule-regeneration | `{tripId, regenerateType, dayNumber?}` | 5-10초 | 높음 | 5,000/일 |
+| **AI 추천정보 요청** | **ai-recommendation** | `{placeId, userProfile, tripContext}` | 2-5초 | 중간 | 40,000/일 |
 | 알림 메시지 | notification | `{userId, type, message}` | < 1초 | 낮음 | 100,000/일 |
 | 이벤트 브로드캐스팅 | trip-events | 다양한 이벤트 타입 | < 1초 | 중간 | 200,000/일 |
 
@@ -87,6 +142,7 @@ namespace_configuration:
 | ai-schedule-regeneration | 80GB | 2 | Yes | Yes (10분) | 5분 | 3회 | AI 일정 재생성 요청 |
 | location-search | 80GB | 4 | No | No | 30초 | 3회 | 장소 정보 검색 |
 | route-calculation | 80GB | 4 | No | No | 1분 | 3회 | 경로 계산 요청 |
+| ai-recommendation | 80GB | 4 | No | Yes (5분) | 2분 | 3회 | AI 추천정보 생성 |
 | notification | 80GB | 8 | No | Yes (5분) | 10초 | 5회 | 알림 메시지 |
 
 #### 3.1.3 토픽 설계
@@ -354,6 +410,12 @@ locals {
       enable_session        = true
       duplicate_detection_history_time_window = "PT10M"
     }
+    "ai-schedule-regeneration" = {
+      max_size_in_megabytes = 81920
+      enable_partitioning   = true
+      enable_session        = true
+      duplicate_detection_history_time_window = "PT10M"
+    }
     "location-search" = {
       max_size_in_megabytes = 81920
       enable_partitioning   = true
@@ -363,6 +425,12 @@ locals {
       max_size_in_megabytes = 81920
       enable_partitioning   = true
       enable_session        = false
+    }
+    "ai-recommendation" = {
+      max_size_in_megabytes = 81920
+      enable_partitioning   = true
+      enable_session        = false
+      duplicate_detection_history_time_window = "PT5M"
     }
     "notification" = {
       max_size_in_megabytes = 81920
@@ -466,6 +534,7 @@ $queues = @(
     @{Name="ai-schedule-regeneration"; MaxSize="80GB"; Partitions=2; Session=$true; Duplicate="PT10M"},
     @{Name="location-search"; MaxSize="80GB"; Partitions=4; Session=$false; Duplicate=$null},
     @{Name="route-calculation"; MaxSize="80GB"; Partitions=4; Session=$false; Duplicate=$null},
+    @{Name="ai-recommendation"; MaxSize="80GB"; Partitions=4; Session=$false; Duplicate="PT5M"},
     @{Name="notification"; MaxSize="80GB"; Partitions=8; Session=$false; Duplicate="PT5M"}
 )
 

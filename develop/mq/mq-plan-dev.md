@@ -20,12 +20,55 @@ TripGen 서비스의 개발환경에서 비동기 메시징 시스템 구축을 
 ### 2.1 비동기 통신 요구사항
 
 #### 2.1.1 식별된 비동기 처리 플로우
+
+```mermaid
+graph TB
+    subgraph "Producer Services"
+        TS[Trip Service]
+        LS[Location Service]
+        US[User Service]
+    end
+    
+    subgraph "Message Queues"
+        Q1[ai-schedule-generation]
+        Q2[ai-schedule-regeneration]
+        Q3[location-search]
+        Q4[route-calculation]
+        Q5[ai-recommendation]
+        Q6[notification]
+    end
+    
+    subgraph "Consumer Services"
+        AI[AI Service]
+        LSC[Location Service]
+        NS[Notification Service]
+    end
+    
+    TS -->|일정 생성 요청| Q1
+    TS -->|재생성 요청| Q2
+    LS -->|장소 검색| Q3
+    LS -->|경로 요청| Q4
+    LS -->|AI 추천 요청| Q5
+    US -->|알림 발송| Q6
+    
+    Q1 -->|처리| AI
+    Q2 -->|처리| AI
+    Q3 -->|처리| LSC
+    Q4 -->|처리| LSC
+    Q5 -->|처리| AI
+    Q6 -->|처리| NS
+    
+    AI -.->|완료 이벤트| TS
+    AI -.->|캐시 저장| Redis[(Redis Cache)]
+```
+
 | 플로우 | 큐/토픽 | 메시지 타입 | 처리 시간 | 우선순위 |
 |--------|----------|-------------|-----------|----------|
 | AI 일정 생성 | ai-schedule-generation | `{tripId, travelData, requestId}` | 5-10초 | 높음 |
 | 장소 정보 요청 | location-search | `{destination, category, radius}` | 1-3초 | 중간 |
 | 경로 계산 요청 | route-calculation | `{routes: [{from, to, mode}], tripId}` | 2-5초 | 중간 |
 | 일정 재생성 | ai-schedule-regeneration | `{tripId, regenerateType, dayNumber?}` | 5-10초 | 높음 |
+| **AI 추천정보 요청** | **ai-recommendation** | `{placeId, userProfile, tripContext}` | 2-5초 | 중간 |
 | 알림 메시지 | notification | `{userId, type, message}` | < 1초 | 낮음 |
 
 #### 2.1.2 서비스별 역할
@@ -72,6 +115,7 @@ namespace_configuration:
 | ai-schedule-regeneration | 128MB | 1일 | 30초 | 3회 | AI 일정 재생성 요청 |
 | location-search | 128MB | 1시간 | 10초 | 3회 | 장소 정보 검색 |
 | route-calculation | 128MB | 1시간 | 15초 | 3회 | 경로 계산 요청 |
+| ai-recommendation | 128MB | 2시간 | 20초 | 3회 | AI 추천정보 생성 |
 | notification | 128MB | 6시간 | 5초 | 3회 | 알림 메시지 |
 | dead-letter | 128MB | 7일 | - | - | 실패 메시지 보관 |
 
@@ -102,9 +146,9 @@ connection_configuration:
 #### 3.2.2 서비스별 연결 정보
 | 서비스 | 역할 | 접근 큐 | 권한 |
 |--------|------|---------|------|
-| Trip Service | Producer/Consumer | ai-schedule-generation, notification | Send, Receive |
+| Trip Service | Producer/Consumer | ai-schedule-generation, ai-recommendation, notification | Send, Receive |
 | AI Service | Consumer/Producer | 모든 큐 | Send, Receive, Manage |
-| Location Service | Consumer | location-search, route-calculation | Receive |
+| Location Service | Producer/Consumer | location-search, route-calculation, ai-recommendation | Send, Receive |
 | User Service | Producer | notification | Send |
 
 ### 3.3 보안 설정
@@ -178,6 +222,7 @@ export QUEUE_AI_GEN="ai-schedule-generation"
 export QUEUE_AI_REGEN="ai-schedule-regeneration"
 export QUEUE_LOCATION="location-search"
 export QUEUE_ROUTE="route-calculation"
+export QUEUE_AI_REC="ai-recommendation"
 export QUEUE_NOTIFY="notification"
 export QUEUE_DLQ="dead-letter"
 ```
@@ -192,8 +237,8 @@ az servicebus namespace create \
     --sku Basic
 
 # 큐 생성
-queues=($QUEUE_AI_GEN $QUEUE_AI_REGEN $QUEUE_LOCATION $QUEUE_ROUTE $QUEUE_NOTIFY $QUEUE_DLQ)
-sizes=(256 128 128 128 128 128)
+queues=($QUEUE_AI_GEN $QUEUE_AI_REGEN $QUEUE_LOCATION $QUEUE_ROUTE $QUEUE_AI_REC $QUEUE_NOTIFY $QUEUE_DLQ)
+sizes=(256 128 128 128 128 128 128)
 
 for i in "${!queues[@]}"; do
     az servicebus queue create \
