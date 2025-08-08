@@ -1,5 +1,6 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Objects;
@@ -7,17 +8,45 @@ import java.util.Objects;
 /**
  * 여행지 도메인 엔티티
  */
+@Entity
+@Table(name = "destinations")
 public class Destination {
-    private final String destinationId;
-    private final String tripId;
+    @Id
+    @Column(name = "destination_id")
+    private String destinationId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private Trip trip;
+    
+    @Column(name = "trip_id", insertable = false, updatable = false)
+    private String tripId;
+    @Column(name = "destination_name", nullable = false, length = 20)
     private String destinationName;
+    
+    @Column(name = "nights", nullable = false)
     private int nights;
+    
+    @Column(name = "accommodation")
     private String accommodation;
+    
+    @Column(name = "check_in_time")
     private LocalTime checkInTime;
+    
+    @Column(name = "check_out_time")
     private LocalTime checkOutTime;
+    
+    @Column(name = "order_seq", nullable = false)
     private int order;
+    
+    @Column(name = "start_date")
     private LocalDate startDate;
+    
+    @Column(name = "end_date")
     private LocalDate endDate;
+    
+    // JPA 기본 생성자
+    protected Destination() {}
     
     private Destination(String destinationId, String tripId, String destinationName, int nights) {
         this.destinationId = Objects.requireNonNull(destinationId, "Destination ID는 필수입니다");
@@ -64,6 +93,13 @@ public class Destination {
         this.checkInTime = checkInTime;
         this.checkOutTime = checkOutTime;
         calculateDates();
+    }
+    
+    /**
+     * 순서만 업데이트 (날짜 재계산 없이)
+     */
+    public void updateOrder(int order) {
+        this.order = order;
     }
     
     /**
@@ -185,6 +221,17 @@ public class Destination {
     
     public LocalDate getEndDate() {
         return endDate;
+    }
+    
+    public Trip getTrip() {
+        return trip;
+    }
+    
+    /**
+     * Trip 참조 설정 (JPA 양방향 관계)
+     */
+    public void setTrip(Trip trip) {
+        this.trip = trip;
     }
     
     @Override

@@ -5,6 +5,9 @@ import com.unicorn.tripgen.trip.biz.domain.TripStatus;
 import com.unicorn.tripgen.trip.biz.dto.*;
 import com.unicorn.tripgen.trip.biz.usecase.in.TripUseCase;
 import com.unicorn.tripgen.trip.biz.usecase.in.MemberUseCase;
+import com.unicorn.tripgen.trip.biz.domain.Gender;
+import com.unicorn.tripgen.trip.biz.domain.HealthStatus;
+import com.unicorn.tripgen.trip.biz.domain.Preference;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,12 +18,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.List;
 
 /**
  * 여행 관련 REST API Controller
  * Clean Architecture의 Infrastructure Layer - Web Interface
  */
-@Tag(name = "trips", description = "여행 관리")
+@Tag(name = "trips", description = "여행 관리 - 기본설정, 여행CRUD, 상태관리")
 @RestController
 @RequestMapping("/api/v1/trips")
 public class TripController {
@@ -55,7 +59,7 @@ public class TripController {
         return ResponseEntity.ok(response);
     }
     
-    @Operation(summary = "새 여행 생성", description = "새로운 여행을 생성합니다")
+    @Operation(summary = "새 여행 생성", description = "기본설정: 새로운 여행을 생성합니다 (여행명, 설명, 일정, 이동수단)")
     @PostMapping
     public ResponseEntity<CreateTripResponse> createTrip(
             @Valid @RequestBody CreateTripRequest request,
@@ -63,8 +67,10 @@ public class TripController {
         
         TripUseCase.CreateTripCommand command = new TripUseCase.CreateTripCommand(
             userDetails.getUsername(),
-            request.getTitle(),
-            null  // TransportMode is not in the new CreateTripRequest
+            request.getTripName(),
+            request.getDescription(),
+            request.getStartDate(),
+            request.getTransportMode()
         );
         
         var trip = tripUseCase.createTrip(command);
@@ -79,14 +85,13 @@ public class TripController {
             @Parameter(description = "여행 ID") @PathVariable String tripId,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        var trip = tripUseCase.getTripDetail(tripId, userDetails.getUsername())
-                             .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다"));
+        var response = tripUseCase.getTripDetail(tripId, userDetails.getUsername())
+                                 .orElseThrow(() -> new IllegalArgumentException("여행을 찾을 수 없습니다"));
         
-        TripDetailResponse response = TripDetailResponse.from(trip);
         return ResponseEntity.ok(response);
     }
     
-    @Operation(summary = "여행 기본정보 수정", description = "여행명과 이동수단을 수정합니다")
+    @Operation(summary = "여행 기본정보 수정", description = "여행의 기본 정보(여행명, 설명, 일정, 이동수단)를 수정합니다")
     @PutMapping("/{tripId}")
     public ResponseEntity<TripResponse> updateTrip(
             @Parameter(description = "여행 ID") @PathVariable String tripId,
@@ -96,8 +101,10 @@ public class TripController {
         TripUseCase.UpdateTripCommand command = new TripUseCase.UpdateTripCommand(
             tripId,
             userDetails.getUsername(),
-            request.getTitle(),
-            null  // TransportMode is not in the new UpdateTripRequest
+            request.getTripName(),
+            request.getDescription(),
+            request.getStartDate(),
+            request.getTransportMode()
         );
         
         var trip = tripUseCase.updateTrip(command);
@@ -121,37 +128,130 @@ public class TripController {
         return ResponseEntity.noContent().build();
     }
     
-    @Operation(summary = "여행 기본정보 일괄 저장", description = "여행명, 이동수단, 멤버 정보를 한꺼번에 저장합니다")
-    @PutMapping("/{tripId}/basic-info")
-    public ResponseEntity<TripBasicInfoResponse> updateTripBasicInfo(
-            @Parameter(description = "여행 ID") @PathVariable String tripId,
+    @Operation(
+        summary = "여행 기본설정으로 새 여행 생성",
+        description = "기본설정 화면에서 사용하는 통합 API - 여행명, 설명, 일정, 이동수단, 멤버 목록으로 새 여행을 일괄 생성합니다"
+    )
+    @PostMapping("/basic-setup")
+    public ResponseEntity<CreateTripResponse> createTripWithBasicSetup(
             @Valid @RequestBody UpdateTripBasicInfoRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        // 여행 기본 정보 업데이트
-        TripUseCase.UpdateTripCommand tripCommand = new TripUseCase.UpdateTripCommand(
-            tripId,
+        // 1. 여행 생성 (모든 정보 포함)
+        TripUseCase.CreateTripCommand command = new TripUseCase.CreateTripCommand(
             userDetails.getUsername(),
-            request.tripName(),
-            TransportMode.valueOf(request.transportMode().toUpperCase())
+            request.getTripName(),
+            request.getDescription(),
+            request.getStartDate(),
+            request.getTransportMode()
         );
         
-        var updatedTrip = tripUseCase.updateTrip(tripCommand);
+        var trip = tripUseCase.createTrip(command);
         
-        // 멤버 일괄 업데이트
-        var memberInfos = request.members().stream()
-                                 .map(m -> new MemberUseCase.MemberInfo(
-                                     m.name(), m.age(), m.gender(), m.healthStatus(), m.preferences()
-                                 ))
-                                 .toList();
+        // 2. 멤버 추가
+        updateTripMembers(trip.getTripId(), userDetails.getUsername(), request.getMembers());
         
-        MemberUseCase.UpdateMembersBatchCommand memberCommand = new MemberUseCase.UpdateMembersBatchCommand(
-            tripId, userDetails.getUsername(), memberInfos
-        );
+        CreateTripResponse response = CreateTripResponse.from(trip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * 여행 멤버 목록을 일괄 업데이트하는 헬퍼 메서드
+     * 기존 멤버를 모두 삭제하고 새 멤버 목록으로 교체합니다
+     */
+    private void updateTripMembers(String tripId, String userId, List<CreateMemberRequest> memberRequests) {
+        if (memberRequests == null || memberRequests.isEmpty()) {
+            return;
+        }
         
-        var updatedMembers = memberUseCase.updateMembersBatch(memberCommand);
-        
-        TripBasicInfoResponse response = TripBasicInfoResponse.from(updatedTrip, updatedMembers);
-        return ResponseEntity.ok(response);
+        try {
+            // 1. 기존 멤버 목록 조회 및 삭제 (안전하게 처리)
+            try {
+                var existingMembers = memberUseCase.getTripMembers(tripId, userId);
+                for (var member : existingMembers) {
+                    MemberUseCase.DeleteMemberCommand deleteCommand = new MemberUseCase.DeleteMemberCommand(
+                        tripId, member.getMemberId(), userId
+                    );
+                    memberUseCase.deleteMember(deleteCommand);
+                }
+            } catch (Exception e) {
+                // 기존 멤버가 없거나 조회 실패해도 새 멤버 추가는 계속 진행
+                System.out.println("기존 멤버 조회/삭제 중 오류 (무시하고 계속): " + e.getMessage());
+            }
+            
+            // 2. 새 멤버 목록 추가
+            for (CreateMemberRequest memberRequest : memberRequests) {
+                try {
+                    Gender gender = parseGender(memberRequest.getGender());
+                    HealthStatus healthStatus = parseHealthStatus(memberRequest.getHealthStatus());
+                    List<Preference> preferences = parsePreferences(memberRequest.getPreferences());
+                    
+                    MemberUseCase.AddMemberCommand addCommand = new MemberUseCase.AddMemberCommand(
+                        tripId, userId, memberRequest.getName(), memberRequest.getAge(),
+                        gender, healthStatus, preferences
+                    );
+                    memberUseCase.addMember(addCommand);
+                    
+                    System.out.println("멤버 추가 성공: " + memberRequest.getName());
+                } catch (Exception e) {
+                    System.err.println("멤버 추가 실패 [" + memberRequest.getName() + "]: " + e.getMessage());
+                    throw e; // 멤버 추가 실패는 전체 실패로 처리
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("멤버 업데이트 전체 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new IllegalStateException("멤버 업데이트 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 성별 문자열을 Gender enum으로 변환
+     */
+    private Gender parseGender(String genderStr) {
+        if (genderStr == null) {
+            throw new IllegalArgumentException("성별은 필수입니다");
+        }
+        return switch (genderStr.toLowerCase()) {
+            case "male" -> Gender.MALE;
+            case "female" -> Gender.FEMALE;
+            default -> throw new IllegalArgumentException("유효하지 않은 성별: " + genderStr);
+        };
+    }
+    
+    /**
+     * 건강상태 문자열을 HealthStatus enum으로 변환
+     */
+    private HealthStatus parseHealthStatus(String healthStatusStr) {
+        if (healthStatusStr == null) {
+            throw new IllegalArgumentException("건강상태는 필수입니다");
+        }
+        return switch (healthStatusStr.toLowerCase()) {
+            case "excellent" -> HealthStatus.EXCELLENT;
+            case "good" -> HealthStatus.GOOD;
+            case "caution" -> HealthStatus.CAUTION;
+            case "limited" -> HealthStatus.LIMITED;
+            default -> throw new IllegalArgumentException("유효하지 않은 건강상태: " + healthStatusStr);
+        };
+    }
+    
+    /**
+     * 선호도 문자열 리스트를 Preference enum 리스트로 변환
+     */
+    private List<Preference> parsePreferences(List<String> preferenceStrs) {
+        if (preferenceStrs == null) {
+            return List.of();
+        }
+        return preferenceStrs.stream()
+                .map(prefStr -> switch (prefStr.toLowerCase()) {
+                    case "sightseeing" -> Preference.SIGHTSEEING;
+                    case "shopping" -> Preference.SHOPPING;
+                    case "culture" -> Preference.CULTURE;
+                    case "nature" -> Preference.NATURE;
+                    case "sports" -> Preference.SPORTS;
+                    case "rest" -> Preference.REST;
+                    default -> throw new IllegalArgumentException("유효하지 않은 선호도: " + prefStr);
+                })
+                .toList();
     }
 }

@@ -1,5 +1,6 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -7,6 +8,7 @@ import java.util.Objects;
 /**
  * 건강 고려사항 값 객체 (Value Object)
  */
+@Embeddable
 public class HealthConsideration {
     /**
      * 접근성 시설 유형
@@ -27,9 +29,26 @@ public class HealthConsideration {
         }
     }
     
-    private final List<String> restPoints;
-    private final List<AccessibilityType> accessibility;
-    private final double walkingDistance; // 도보 거리 (km)
+    @Column(name = "rest_points")
+    private String restPointsJson; // JSON 형태로 저장
+    
+    @Column(name = "accessibility")
+    private String accessibilityJson; // JSON 형태로 저장
+    
+    @Column(name = "walking_distance")
+    private double walkingDistance; // 도보 거리 (km)
+    
+    @Transient
+    private List<String> restPoints;
+    
+    @Transient 
+    private List<AccessibilityType> accessibility;
+    
+    // JPA 기본 생성자
+    protected HealthConsideration() {
+        this.restPoints = new ArrayList<>();
+        this.accessibility = new ArrayList<>();
+    }
     
     private HealthConsideration(List<String> restPoints, List<AccessibilityType> accessibility, double walkingDistance) {
         this.restPoints = restPoints != null ? new ArrayList<>(restPoints) : new ArrayList<>();

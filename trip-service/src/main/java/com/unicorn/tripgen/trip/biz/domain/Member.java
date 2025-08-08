@@ -1,5 +1,6 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -7,14 +8,41 @@ import java.util.Objects;
 /**
  * 여행 멤버 도메인 엔티티
  */
+@Entity
+@Table(name = "members")
 public class Member {
-    private final String memberId;
-    private final String tripId;
+    @Id
+    @Column(name = "member_id")
+    private String memberId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private Trip trip;
+    
+    @Column(name = "trip_id", insertable = false, updatable = false)
+    private String tripId;
+    @Column(name = "name", nullable = false, length = 20)
     private String name;
+    
+    @Column(name = "age", nullable = false)
     private int age;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false)
     private Gender gender;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "health_status", nullable = false)
     private HealthStatus healthStatus;
-    private final List<Preference> preferences;
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "member_preferences", joinColumns = @JoinColumn(name = "member_id"))
+    @Column(name = "preference")
+    private List<Preference> preferences = new ArrayList<>();
+    
+    // JPA 기본 생성자
+    protected Member() {}
     
     private Member(String memberId, String tripId, String name, int age, Gender gender, HealthStatus healthStatus) {
         this.memberId = Objects.requireNonNull(memberId, "Member ID는 필수입니다");
@@ -23,7 +51,6 @@ public class Member {
         this.age = validateAge(age);
         this.gender = Objects.requireNonNull(gender, "성별은 필수입니다");
         this.healthStatus = Objects.requireNonNull(healthStatus, "건강상태는 필수입니다");
-        this.preferences = new ArrayList<>();
     }
     
     /**
@@ -32,6 +59,19 @@ public class Member {
     public static Member create(String memberId, String tripId, String name, int age, 
                                Gender gender, HealthStatus healthStatus, List<Preference> preferences) {
         Member member = new Member(memberId, tripId, name, age, gender, healthStatus);
+        if (preferences != null) {
+            member.preferences.addAll(preferences);
+        }
+        return member;
+    }
+    
+    /**
+     * Trip 엔티티와 함께 새로운 멤버 생성 팩토리 메서드 (JPA 매핑용)
+     */
+    public static Member createWithTrip(String memberId, Trip trip, String name, int age,
+                                      Gender gender, HealthStatus healthStatus, List<Preference> preferences) {
+        Member member = new Member(memberId, trip.getTripId(), name, age, gender, healthStatus);
+        member.trip = trip;  // Trip 엔티티 설정
         if (preferences != null) {
             member.preferences.addAll(preferences);
         }

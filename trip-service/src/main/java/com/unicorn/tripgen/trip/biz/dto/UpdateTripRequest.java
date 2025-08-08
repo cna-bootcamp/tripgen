@@ -1,5 +1,7 @@
 package com.unicorn.tripgen.trip.biz.dto;
 
+import com.unicorn.tripgen.trip.biz.domain.TransportMode;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,12 +18,13 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateTripRequest {
-    @Size(max = 100, message = "여행 제목은 100자를 초과할 수 없습니다")
-    private String title;
+    @Size(max = 100, message = "여행명은 100자를 초과할 수 없습니다")
+    private String tripName;
     
     private String description;
     
     private LocalDate startDate;
     
-    private LocalDate endDate;
+    @NotNull(message = "교통수단은 필수입니다")
+    private TransportMode transportMode;
 }

@@ -1,5 +1,6 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,14 +9,35 @@ import java.util.Objects;
 /**
  * 일정 도메인 엔티티
  */
+@Entity
+@Table(name = "schedules")
 public class Schedule {
-    private final String scheduleId;
-    private final String tripId;
+    @Id
+    @Column(name = "schedule_id")
+    private String scheduleId;
+    
+    @Column(name = "trip_id", nullable = false)
+    private String tripId;
+    
+    @Column(name = "day", nullable = false)
     private int day;
+    
+    @Column(name = "date", nullable = false)
     private LocalDate date;
+    
+    @Column(name = "city", nullable = false)
     private String city;
+    
+    @Embedded
     private WeatherInfo weather;
-    private final List<SchedulePlace> places;
+    
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<SchedulePlace> places;
+    
+    // JPA 기본 생성자
+    protected Schedule() {
+        this.places = new ArrayList<>();
+    }
     
     private Schedule(String scheduleId, String tripId, int day, LocalDate date, String city) {
         this.scheduleId = Objects.requireNonNull(scheduleId, "Schedule ID는 필수입니다");

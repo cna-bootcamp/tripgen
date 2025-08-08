@@ -1,10 +1,12 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
  * 교통 정보 값 객체 (Value Object)
  */
+@Embeddable
 public class Transportation {
     /**
      * 교통수단 유형
@@ -25,10 +27,21 @@ public class Transportation {
         }
     }
     
-    private final Type type;
-    private final int duration; // 이동 시간 (분)
-    private final double distance; // 거리 (km)
-    private final String route; // 경로 설명
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transport_type")
+    private Type type;
+    
+    @Column(name = "transport_duration")
+    private int duration; // 이동 시간 (분)
+    
+    @Column(name = "transport_distance")
+    private double distance; // 거리 (km)
+    
+    @Column(name = "transport_route")
+    private String route; // 경로 설명
+    
+    // JPA 기본 생성자
+    protected Transportation() {}
     
     private Transportation(Type type, int duration, double distance, String route) {
         this.type = Objects.requireNonNull(type, "교통수단 유형은 필수입니다");

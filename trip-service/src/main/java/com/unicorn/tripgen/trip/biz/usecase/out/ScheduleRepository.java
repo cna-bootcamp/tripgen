@@ -28,7 +28,7 @@ public interface ScheduleRepository {
     /**
      * 여행의 모든 일정 조회 (일차 순으로)
      */
-    List<Schedule> findByTripIdOrderByDay(String tripId);
+    List<Schedule> findByTripId(String tripId);
     
     /**
      * 여행의 특정 일차 일정 조회
@@ -51,19 +51,14 @@ public interface ScheduleRepository {
     void deleteByTripId(String tripId);
     
     /**
-     * 여행의 특정 일차 일정 삭제
-     */
-    void deleteByTripIdAndDay(String tripId, int day);
-    
-    /**
      * 일정 존재 여부 확인
      */
-    boolean existsByTripId(String tripId);
+    boolean existsById(String scheduleId);
     
     /**
-     * 특정 일차 일정 존재 여부 확인
+     * 여행에 일정이 있는지 확인
      */
-    boolean existsByTripIdAndDay(String tripId, int day);
+    boolean hasSchedule(String tripId);
     
     /**
      * 일정 ID 생성

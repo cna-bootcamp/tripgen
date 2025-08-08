@@ -23,7 +23,7 @@ import java.util.List;
  * 여행 멤버 관리 REST API Controller
  * Clean Architecture의 Infrastructure Layer - Web Interface
  */
-@Tag(name = "members", description = "여행 멤버 관리")
+@Tag(name = "members", description = "여행 멤버 관리 - 개별 멤버 CRUD (기본설정은 trips/basic-setup 사용 권장)")
 @RestController
 @RequestMapping("/api/v1/trips/{tripId}/members")
 public class MemberController {
@@ -49,7 +49,7 @@ public class MemberController {
         return ResponseEntity.ok(response);
     }
     
-    @Operation(summary = "멤버 추가", description = "여행에 새로운 멤버를 추가합니다")
+    @Operation(summary = "멤버 추가", description = "여행에 새로운 멤버를 개별적으로 추가합니다 (기본설정 화면에서는 trips/basic-setup 사용 권장)")
     @PostMapping
     public ResponseEntity<MemberResponse> addTripMember(
             @Parameter(description = "여행 ID") @PathVariable String tripId,
@@ -80,7 +80,7 @@ public class MemberController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
-    @Operation(summary = "멤버 정보 수정", description = "멤버 정보를 수정합니다")
+    @Operation(summary = "멤버 정보 수정", description = "특정 멤버의 정보를 개별적으로 수정합니다")
     @PutMapping("/{memberId}")
     public ResponseEntity<MemberResponse> updateTripMember(
             @Parameter(description = "여행 ID") @PathVariable String tripId,

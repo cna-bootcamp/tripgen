@@ -1,15 +1,27 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
  * 날씨 정보 값 객체 (Value Object)
  */
+@Embeddable
 public class WeatherInfo {
-    private final String condition;
-    private final double minTemperature;
-    private final double maxTemperature;
-    private final String icon;
+    @Column(name = "weather_condition")
+    private String condition;
+    
+    @Column(name = "min_temperature")
+    private double minTemperature;
+    
+    @Column(name = "max_temperature")
+    private double maxTemperature;
+    
+    @Column(name = "weather_icon")
+    private String icon;
+    
+    // JPA 기본 생성자
+    protected WeatherInfo() {}
     
     private WeatherInfo(String condition, double minTemperature, double maxTemperature, String icon) {
         this.condition = Objects.requireNonNull(condition, "날씨 상태는 필수입니다");

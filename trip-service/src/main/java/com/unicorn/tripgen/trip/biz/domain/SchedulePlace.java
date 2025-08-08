@@ -1,21 +1,49 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.time.LocalTime;
 import java.util.Objects;
 
 /**
  * 일정 내 장소 도메인 엔티티
  */
+@Entity
+@Table(name = "schedule_places")
 public class SchedulePlace {
-    private final String placeId;
-    private final String scheduleId;
+    @Id
+    @Column(name = "place_id")
+    private String placeId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "schedule_id")
+    private Schedule schedule;
+    
+    @Column(name = "schedule_id", insertable = false, updatable = false)
+    private String scheduleId;
+    
+    @Column(name = "place_name", nullable = false)
     private String placeName;
+    
+    @Column(name = "category")
     private String category;
+    
+    @Column(name = "start_time")
     private LocalTime startTime;
+    
+    @Column(name = "duration", nullable = false)
     private int duration; // 소요 시간 (분)
+    
+    @Embedded
     private Transportation transportation;
+    
+    @Embedded
     private HealthConsideration healthConsideration;
+    
+    @Column(name = "order_seq", nullable = false)
     private int order;
+    
+    // JPA 기본 생성자
+    protected SchedulePlace() {}
     
     private SchedulePlace(String placeId, String scheduleId, String placeName, String category) {
         this.placeId = Objects.requireNonNull(placeId, "Place ID는 필수입니다");

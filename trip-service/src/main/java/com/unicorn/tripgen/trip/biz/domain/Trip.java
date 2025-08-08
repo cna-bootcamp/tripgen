@@ -1,5 +1,6 @@
 package com.unicorn.tripgen.trip.biz.domain;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -10,20 +11,56 @@ import java.util.Objects;
  * 여행 도메인 엔티티
  * Clean Architecture의 Domain Layer에 속하며 핵심 비즈니스 규칙을 포함
  */
+@Entity
+@Table(name = "trips")
 public class Trip {
-    private final String tripId;
+    @Id
+    @Column(name = "trip_id")
+    private String tripId;
+    
+    @Column(name = "trip_name", nullable = false, length = 16)
     private String tripName;
-    private final String userId;
+    
+    @Column(name = "user_id", nullable = false)
+    private String userId;
+    
+    @Column(name = "description", length = 500)
+    private String description;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transport_mode", nullable = false)
     private TransportMode transportMode;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private TripStatus status;
+    
+    @Column(name = "current_step")
     private String currentStep;
+    
+    @Column(name = "start_date")
     private LocalDate startDate;
+    
+    @Column(name = "end_date")
     private LocalDate endDate;
-    private final List<Member> members;
-    private final List<Destination> destinations;
+    
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Member> members;
+    
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Destination> destinations;
+    
+    @Column(name = "has_schedule")
     private boolean hasSchedule;
-    private final LocalDateTime createdAt;
+    
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+    
+    // JPA 기본 생성자
+    protected Trip() {}
     
     // Private constructor for domain integrity
     private Trip(String tripId, String tripName, String userId, TransportMode transportMode) {
@@ -73,6 +110,26 @@ public class Trip {
     }
     
     /**
+     * 여행 설명 설정
+     */
+    public void setDescription(String description) {
+        this.description = description != null ? description.trim() : null;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 여행 일정 설정
+     */
+    public void setTravelDates(LocalDate startDate, LocalDate endDate) {
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("시작일은 종료일보다 이전이어야 합니다");
+        }
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
      * 멤버 추가
      */
     public void addMember(Member member) {
@@ -95,7 +152,7 @@ public class Trip {
     }
     
     /**
-     * 여행지 추가
+     * 여행지 추가 (JPA 양방향 관계 설정)
      */
     public void addDestination(Destination destination) {
         Objects.requireNonNull(destination, "여행지는 필수입니다");
@@ -103,15 +160,24 @@ public class Trip {
             throw new IllegalStateException("여행지는 최대 10개까지 가능합니다");
         }
         this.destinations.add(destination);
+        // JPA 양방향 관계 설정 - 매우 중요!
+        destination.setTrip(this);
         updateTravelDates();
         this.updatedAt = LocalDateTime.now();
     }
     
     /**
-     * 여행지 제거
+     * 여행지 제거 (JPA 양방향 관계 해제)
      */
     public void removeDestination(String destinationId) {
-        boolean removed = destinations.removeIf(dest -> dest.getDestinationId().equals(destinationId));
+        boolean removed = destinations.removeIf(dest -> {
+            if (dest.getDestinationId().equals(destinationId)) {
+                // JPA 양방향 관계 해제
+                dest.setTrip(null);
+                return true;
+            }
+            return false;
+        });
         if (removed) {
             updateTravelDates();
             this.updatedAt = LocalDateTime.now();
@@ -119,7 +185,7 @@ public class Trip {
     }
     
     /**
-     * 여행지 일괄 업데이트
+     * 여행지 일괄 업데이트 (JPA 양방향 관계 설정) - 날짜 계산은 Service Layer에서 처리
      */
     public void updateDestinations(List<Destination> newDestinations) {
         Objects.requireNonNull(newDestinations, "여행지 목록은 필수입니다");
@@ -127,9 +193,22 @@ public class Trip {
             throw new IllegalStateException("여행지는 최대 10개까지 가능합니다");
         }
         
+        // 기존 여행지들의 관계 해제
+        for (Destination dest : this.destinations) {
+            dest.setTrip(null);
+        }
+        
         this.destinations.clear();
+        
+        // 새 여행지들의 관계 설정
+        for (Destination dest : newDestinations) {
+            dest.setTrip(this);
+        }
+        
         this.destinations.addAll(newDestinations);
-        updateTravelDates();
+        
+        // 일괄 업데이트에서는 날짜 계산을 Service Layer에 위임
+        // updateTravelDates()를 호출하지 않음 (recalculateDestinationDates에서 처리)
         this.updatedAt = LocalDateTime.now();
     }
     
@@ -204,6 +283,10 @@ public class Trip {
     
     public String getUserId() {
         return userId;
+    }
+    
+    public String getDescription() {
+        return description;
     }
     
     public TransportMode getTransportMode() {

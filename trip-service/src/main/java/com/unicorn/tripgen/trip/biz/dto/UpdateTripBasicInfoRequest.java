@@ -1,38 +1,56 @@
 package com.unicorn.tripgen.trip.biz.dto;
 
-import com.unicorn.tripgen.trip.biz.domain.Gender;
-import com.unicorn.tripgen.trip.biz.domain.HealthStatus;
-import com.unicorn.tripgen.trip.biz.domain.Preference;
+import com.unicorn.tripgen.trip.biz.domain.TransportMode;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 여행 기본정보 일괄 업데이트 요청 DTO
+ * 여행 기본정보 일괄 저장 요청 DTO
+ * API 설계서의 UpdateTripBasicInfoRequest에 해당
  */
-public record UpdateTripBasicInfoRequest(
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateTripBasicInfoRequest {
+    
+    /**
+     * 여행명 (최대 16자)
+     */
     @NotBlank(message = "여행명은 필수입니다")
-    @Size(max = 16, message = "여행명은 16자를 초과할 수 없습니다")
-    String tripName,
+    @Size(max = 16, message = "여행명은 최대 16자까지 입력 가능합니다")
+    private String tripName;
     
-    @NotBlank(message = "교통수단은 필수입니다")
-    String transportMode,
+    /**
+     * 여행 설명
+     */
+    private String description;
     
+    /**
+     * 여행 시작일
+     */
+    @NotNull(message = "시작일은 필수입니다")
+    private LocalDate startDate;
+    
+    
+    /**
+     * 이동수단 (public: 대중교통, car: 자동차)
+     */
+    @NotNull(message = "이동수단은 필수입니다")
+    private TransportMode transportMode;
+    
+    /**
+     * 멤버 목록 (기존 멤버는 모두 교체됩니다)
+     */
     @NotEmpty(message = "최소 1명의 멤버가 필요합니다")
     @Valid
-    List<MemberInfo> members
-) {
-    public record MemberInfo(
-        @NotBlank(message = "이름은 필수입니다")
-        @Size(min = 2, max = 20, message = "이름은 2자 이상 20자 이하여야 합니다")
-        String name,
-        
-        int age,
-        Gender gender,
-        HealthStatus healthStatus,
-        List<Preference> preferences
-    ) {}
+    private List<CreateMemberRequest> members;
 }

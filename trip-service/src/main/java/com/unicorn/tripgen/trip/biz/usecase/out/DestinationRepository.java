@@ -28,7 +28,7 @@ public interface DestinationRepository {
     /**
      * 여행의 모든 여행지 조회 (순서대로)
      */
-    List<Destination> findByTripIdOrderByOrder(String tripId);
+    List<Destination> findByTripId(String tripId);
     
     /**
      * 여행의 여행지 개수 조회
@@ -54,4 +54,9 @@ public interface DestinationRepository {
      * 여행지 ID 생성
      */
     String generateDestinationId();
+    
+    /**
+     * 여행의 다음 순서 조회
+     */
+    int getNextOrder(String tripId);
 }

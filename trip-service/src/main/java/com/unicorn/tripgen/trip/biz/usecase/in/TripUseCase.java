@@ -3,7 +3,9 @@ package com.unicorn.tripgen.trip.biz.usecase.in;
 import com.unicorn.tripgen.trip.biz.domain.Trip;
 import com.unicorn.tripgen.trip.biz.domain.TransportMode;
 import com.unicorn.tripgen.trip.biz.domain.TripStatus;
+import com.unicorn.tripgen.trip.biz.dto.TripDetailResponse;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,6 +60,8 @@ public interface TripUseCase {
     record CreateTripCommand(
         String userId,
         String tripName,
+        String description,
+        LocalDate startDate,
         TransportMode transportMode
     ) {}
     
@@ -68,6 +72,8 @@ public interface TripUseCase {
         String tripId,
         String userId,
         String tripName,
+        String description,
+        LocalDate startDate,
         TransportMode transportMode
     ) {}
     
@@ -87,7 +93,7 @@ public interface TripUseCase {
     /**
      * 여행 상세 조회
      */
-    Optional<Trip> getTripDetail(String tripId, String userId);
+    Optional<TripDetailResponse> getTripDetail(String tripId, String userId);
     
     /**
      * 새로운 여행 생성
